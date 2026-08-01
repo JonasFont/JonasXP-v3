@@ -1,7 +1,9 @@
 let ALL_ALUNOS = [];
 let ALL_TURMAS = [];
+let linkAlunoAtualModal = '';
+let modalDetalhesInstance = null;
+let modalQRInstance = null;
 
-// Metas de XP para cada Nível (Gamificação)
 const NIVEIS_XP = [
   { nivel: 1, min: 0, max: 99, titulo: "Novato" },
   { nivel: 2, min: 100, max: 249, titulo: "Aprendiz" },
@@ -16,12 +18,24 @@ const NIVEIS_XP = [
 ];
 
 document.addEventListener("DOMContentLoaded", () => {
+  modalDetalhesInstance = new bootstrap.Modal(document.getElementById('modalDetalhesAluno'));
+  modalQRInstance = new bootstrap.Modal(document.getElementById('modalQR'));
+
+  document.getElementById('btnCopiarModal').addEventListener('click', () => {
+    if (linkAlunoAtualModal) copiarTexto(linkAlunoAtualModal);
+  });
+
   carregarDadosGlobais();
 });
 
 async function carregarDadosGlobais() {
-  ALL_TURMAS = await API.getTurmas();
-  ALL_ALUNOS = await API.getAlunos();
+  const [turmas, alunos] = await Promise.all([
+    API.getTurmas(),
+    API.getAlunos()
+  ]);
+
+  ALL_TURMAS = turmas || [];
+  ALL_ALUNOS = alunos || [];
 
   atualizarDashboardMetricas();
   preencherSelectsTurmas();
@@ -29,7 +43,6 @@ async function carregarDadosGlobais() {
   renderizarTabelaTurmas();
 }
 
-// --- METRICAS GLOBAIS (CARD SUMMARY) ---
 function atualizarDashboardMetricas() {
   document.getElementById("metricTotalAlunos").innerText = ALL_ALUNOS.length;
   document.getElementById("metricTotalTurmas").innerText = ALL_TURMAS.length;
@@ -46,26 +59,21 @@ function atualizarDashboardMetricas() {
   }
 }
 
-// --- AUXILIARES E SELECTS ---
 function preencherSelectsTurmas() {
-  const filtro = document.getElementById("filtroTurmaAluno");
-  const lote = document.getElementById("selectTurmaLote");
-  const form = document.getElementById("alunoTurma");
+  const selects = ['filtroTurmaAluno', 'selectTurmaLote', 'alunoTurma', 'selectTurmaCracha'];
+  selects.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const valAtual = el.value;
 
-  let options = '<option value="">Todas as Turmas</option>';
-  let optionsForm = '<option value="">Selecione...</option>';
-
-  ALL_TURMAS.forEach(t => {
-    options += `<option value="${t.Nome}">${t.Nome}</option>`;
-    optionsForm += `<option value="${t.Nome}">${t.Nome}</option>`;
+    let defaultText = id === 'filtroTurmaAluno' ? 'Todas as Turmas' : '-- Selecione a Turma --';
+    el.innerHTML = `<option value="">${defaultText}</option>` + 
+      ALL_TURMAS.map(t => `<option value="${t.Nome}">${t.Nome}</option>`).join('');
+    
+    el.value = valAtual;
   });
-
-  filtro.innerHTML = options;
-  lote.innerHTML = '<option value="">Selecione uma turma...</option>' + ALL_TURMAS.map(t => `<option value="${t.Nome}">${t.Nome}</option>`).join('');
-  form.innerHTML = optionsForm;
 }
 
-// --- TABELA DE ALUNOS ---
 function renderizarTabelaAlunos() {
   const tbody = document.getElementById("tabelaAlunos");
   const filtro = document.getElementById("filtroTurmaAluno").value;
@@ -77,23 +85,21 @@ function renderizarTabelaAlunos() {
     return;
   }
 
-  // Ordenar por XP decrescente (Ranking)
   alunosFiltrados.sort((a, b) => (b.XP || 0) - (a.XP || 0));
 
-  let html = "";
-  alunosFiltrados.forEach(aluno => {
+  tbody.innerHTML = alunosFiltrados.map(aluno => {
     const xp = Number(aluno.XP || 0);
     const nivelObj = obterInfoNivel(xp);
     const percProgresso = calcularPorcentagemProximoNivel(xp, nivelObj);
 
-    html += `
+    return `
       <tr>
-        <td class="fw-bold">${aluno.Nome}</td>
+        <td class="fw-bold text-light">${aluno.Nome}</td>
         <td><span class="badge bg-secondary">${aluno.Turma}</span></td>
         <td><span class="badge bg-primary badge-level">Nível ${nivelObj.nivel}</span></td>
         <td>
           <div class="d-flex align-items-center gap-2">
-            <div class="progress w-100" style="height: 16px;">
+            <div class="progress w-100 bg-black border border-secondary" style="height: 16px;">
               <div class="progress-bar bg-success progress-bar-striped progress-bar-animated" role="progressbar" style="width: ${percProgresso}%">
                 ${xp} XP
               </div>
@@ -102,29 +108,20 @@ function renderizarTabelaAlunos() {
           </div>
         </td>
         <td class="text-end">
-          <button class="btn btn-outline-info btn-sm me-1" title="Ver Detalhes e Histórico" onclick="verDetalhesAluno('${aluno.ID}')">
-            <i class="fa-solid fa-eye"></i>
-          </button>
-          <button class="btn btn-outline-warning btn-sm me-1" title="Editar" onclick="modalEditarAluno('${aluno.ID}')">
-            <i class="fa-solid fa-pen"></i>
-          </button>
-          <button class="btn btn-outline-danger btn-sm" title="Excluir" onclick="deletarAluno('${aluno.ID}')">
-            <i class="fa-solid fa-trash"></i>
-          </button>
+          <button class="btn btn-outline-info btn-sm me-1" title="Ver Detalhes/Histórico" onclick="verDetalhesAluno('${aluno.ID}')"><i class="fa-solid fa-eye"></i></button>
+          <button class="btn btn-outline-light btn-sm me-1" title="QR Code" onclick="gerarQR('${aluno.ID}', '${aluno.Nome}')"><i class="fa-solid fa-qrcode"></i></button>
+          <button class="btn btn-outline-success btn-sm me-1" title="Copiar Link" onclick="copiarLinkAluno('${aluno.ID}')"><i class="fa-solid fa-link"></i></button>
+          <button class="btn btn-outline-warning btn-sm me-1" title="Editar" onclick="modalEditarAluno('${aluno.ID}')"><i class="fa-solid fa-pen"></i></button>
+          <button class="btn btn-outline-danger btn-sm" title="Excluir" onclick="deletarAluno('${aluno.ID}')"><i class="fa-solid fa-trash"></i></button>
         </td>
       </tr>
     `;
-  });
-
-  tbody.innerHTML = html;
+  }).join('');
 }
 
-// --- CÁLCULO DE GAMIFICAÇÃO DE NÍVEL ---
 function obterInfoNivel(xp) {
   for (let i = NIVEIS_XP.length - 1; i >= 0; i--) {
-    if (xp >= NIVEIS_XP[i].min) {
-      return NIVEIS_XP[i];
-    }
+    if (xp >= NIVEIS_XP[i].min) return NIVEIS_XP[i];
   }
   return NIVEIS_XP[0];
 }
@@ -137,11 +134,16 @@ function calcularPorcentagemProximoNivel(xp, nivelAtual) {
   return Math.min(Math.max(perc, 0), 100);
 }
 
-// --- DETALHES INDIVIDUAIS DO ALUNO (MODAL) ---
+// --- VER DETALHES DO ALUNO SEM TRAVAR A TELA ---
 async function verDetalhesAluno(id) {
+  const tbody = document.getElementById("detalhesHistorico");
+  tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">Carregando histórico...</td></tr>';
+
+  modalDetalhesInstance.show();
+
   const data = await API.getAlunoById(id);
-  if (data.error) {
-    alert("Erro ao carregar detalhes do aluno.");
+  if (data.error || !data.aluno) {
+    tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger">Erro ao carregar detalhes.</td></tr>';
     return;
   }
 
@@ -162,30 +164,98 @@ async function verDetalhesAluno(id) {
     document.getElementById("detalheProximoNivel").innerText = `Faltam ${faltaXP} XP para o Nível ${infoNivel.nivel + 1}`;
   }
 
-  const tbody = document.getElementById("detalhesHistorico");
   if (avaliacoes.length === 0) {
     tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">Nenhum lançamento registrado.</td></tr>';
   } else {
-    let html = "";
-    avaliacoes.reverse().forEach(av => {
+    const listaInvertida = avaliacoes.slice().reverse();
+    tbody.innerHTML = listaInvertida.map(av => {
       const total = Number(av.Atividade || 0) + Number(av.Equipe || 0) + Number(av.Comportamento || 0) + Number(av.Participacao || 0);
-      html += `
+      return `
         <tr>
           <td><small>${av.Data}</small></td>
-          <td class="text-success">+${av.Atividade}</td>
-          <td class="text-success">+${av.Equipe}</td>
-          <td class="text-success">+${av.Comportamento}</td>
-          <td class="text-success">+${av.Participacao}</td>
-          <td class="fw-bold text-primary">+${total}</td>
+          <td class="text-info">+${av.Atividade}</td>
+          <td class="text-warning">+${av.Equipe}</td>
+          <td class="text-primary">+${av.Comportamento}</td>
+          <td style="color: #a855f7;">+${av.Participacao}</td>
+          <td class="fw-bold text-success">+${total}</td>
           <td><small class="text-muted">${av.Observacao || '-'}</small></td>
         </tr>
       `;
-    });
-    tbody.innerHTML = html;
+    }).join('');
+  }
+}
+
+// --- FUNÇÕES DE QR CODE E LINK ---
+function getLinkAluno(id) {
+  return `${window.location.origin}${window.location.pathname.replace('professor.html', '')}aluno.html?id=${id}`;
+}
+
+function gerarQR(id, nome) {
+  const link = getLinkAluno(id);
+  linkAlunoAtualModal = link;
+
+  document.getElementById('modalQRTitulo').innerText = `QR Code - ${nome}`;
+  const qrContainer = document.getElementById('qrcode');
+  qrContainer.innerHTML = '';
+
+  const qr = qrcode(0, 'M');
+  qr.addData(link);
+  qr.make();
+  qrContainer.innerHTML = qr.createImgTag(5);
+
+  modalQRInstance.show();
+}
+
+function copiarLinkAluno(id) {
+  copiarTexto(getLinkAluno(id));
+}
+
+function copiarTexto(texto) {
+  navigator.clipboard.writeText(texto).then(() => {
+    alert('🔗 Link de acesso copiado com sucesso!');
+  }).catch(() => {
+    prompt("Copie o link abaixo:", texto);
+  });
+}
+
+function gerarCrachasTurma() {
+  const turma = document.getElementById('selectTurmaCracha').value;
+  const container = document.getElementById('containerCrachas');
+
+  if (!turma) {
+    container.innerHTML = `<div class="text-center text-muted no-print py-5">Selecione uma turma para carregar os crachás.</div>`;
+    return;
   }
 
-  const modal = new bootstrap.Modal(document.getElementById("modalDetalhesAluno"));
-  modal.show();
+  const alunos = ALL_ALUNOS.filter(a => a.Turma === turma);
+
+  if (alunos.length === 0) {
+    container.innerHTML = `<div class="text-center text-muted no-print py-5">Nenhum aluno nesta turma.</div>`;
+    return;
+  }
+
+  container.innerHTML = alunos.map(a => {
+    const link = getLinkAluno(a.ID);
+    const qr = qrcode(0, 'M');
+    qr.addData(link);
+    qr.make();
+    const qrImgTag = qr.createImgTag(4);
+
+    return `
+      <div class="col-md-4 col-6">
+        <div class="card bg-black border-primary text-light text-center p-3 cracha-card">
+          <h6 class="fw-bold text-primary mb-0">⚡ JONAS XP</h6>
+          <hr class="border-secondary my-2">
+          <h5 class="fw-bold my-1 text-light">${a.Nome}</h5>
+          <p class="badge bg-secondary mb-2">${a.Turma}</p>
+          <div class="bg-white p-2 d-inline-block rounded my-2">
+            ${qrImgTag}
+          </div>
+          <small class="d-block text-muted" style="font-size:0.65rem">Escaneie para acessar seu Perfil RPG</small>
+        </div>
+      </div>
+    `;
+  }).join('');
 }
 
 // --- LANÇAMENTO EM LOTE ---
@@ -202,26 +272,22 @@ function carregarAlunosParaLote() {
 
   const alunosTurma = ALL_ALUNOS.filter(a => a.Turma === turma);
   if (alunosTurma.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">Nenhum aluno cadastrado nesta turma.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">Nenhum aluno nesta turma.</td></tr>';
     btn.disabled = true;
     return;
   }
 
-  let html = "";
-  alunosTurma.forEach(aluno => {
-    html += `
-      <tr data-alunoid="${aluno.ID}">
-        <td class="fw-bold">${aluno.Nome}</td>
-        <td><input type="number" class="form-control form-control-sm inp-ativ" min="0" value="0"></td>
-        <td><input type="number" class="form-control form-control-sm inp-eqp" min="0" value="0"></td>
-        <td><input type="number" class="form-control form-control-sm inp-comp" min="0" value="0"></td>
-        <td><input type="number" class="form-control form-control-sm inp-part" min="0" value="0"></td>
-        <td><input type="text" class="form-control form-control-sm inp-obs" placeholder="Ex: Ótima participação"></td>
-      </tr>
-    `;
-  });
+  tbody.innerHTML = alunosTurma.map(aluno => `
+    <tr data-alunoid="${aluno.ID}">
+      <td class="fw-bold text-light">${aluno.Nome}</td>
+      <td><input type="number" class="form-control form-control-sm bg-black text-light border-secondary inp-ativ" min="0" value="0"></td>
+      <td><input type="number" class="form-control form-control-sm bg-black text-light border-secondary inp-eqp" min="0" value="0"></td>
+      <td><input type="number" class="form-control form-control-sm bg-black text-light border-secondary inp-comp" min="0" value="0"></td>
+      <td><input type="number" class="form-control form-control-sm bg-black text-light border-secondary inp-part" min="0" value="0"></td>
+      <td><input type="text" class="form-control form-control-sm bg-black text-light border-secondary inp-obs" placeholder="Opcional"></td>
+    </tr>
+  `).join('');
 
-  tbody.innerHTML = html;
   btn.disabled = false;
 }
 
@@ -240,37 +306,27 @@ async function salvarLoteXP(e) {
       const obs = tr.querySelector(".inp-obs").value;
 
       if (ativ > 0 || eqp > 0 || comp > 0 || part > 0) {
-        avaliacoes.push({
-          alunoId,
-          atividade: ativ,
-          equipe: eqp,
-          comportamento: comp,
-          participacao: part,
-          observacao: obs
-        });
+        avaliacoes.push({ alunoId, atividade: ativ, equipe: eqp, comportamento: comp, participacao: part, observacao: obs });
       }
     }
   });
 
-  if (avaliacoes.length === 0) {
-    alert("Informe algum valor de XP para pelo menos um aluno.");
-    return;
-  }
+  if (avaliacoes.length === 0) return alert("Informe XP para pelo menos um aluno.");
 
   document.getElementById("btnSalvarLote").disabled = true;
   const res = await API.addAvaliacoesLote(avaliacoes);
 
   if (res.success) {
-    alert("Pontuações registradas com sucesso!");
+    alert("✅ Pontuações salvas com sucesso!");
     await carregarDadosGlobais();
     carregarAlunosParaLote();
   } else {
-    alert("Erro ao salvar: " + res.error);
+    alert("Erro ao salvar!");
     document.getElementById("btnSalvarLote").disabled = false;
   }
 }
 
-// --- TURMAS E ALUNOS (CRUD) ---
+// --- CRUD TURMAS E ALUNOS ---
 function modalNovaTurma() {
   document.getElementById("turmaId").value = "";
   document.getElementById("turmaNome").value = "";
@@ -297,18 +353,14 @@ function renderizarTabelaTurmas() {
     return;
   }
 
-  let html = "";
-  ALL_TURMAS.forEach(t => {
-    html += `
-      <tr>
-        <td class="fw-bold">${t.Nome}</td>
-        <td class="text-end">
-          <button class="btn btn-outline-danger btn-sm" onclick="deletarTurma('${t.ID}')"><i class="fa-solid fa-trash"></i> Excluir</button>
-        </td>
-      </tr>
-    `;
-  });
-  tbody.innerHTML = html;
+  tbody.innerHTML = ALL_TURMAS.map(t => `
+    <tr>
+      <td class="fw-bold text-light">${t.Nome}</td>
+      <td class="text-end">
+        <button class="btn btn-outline-danger btn-sm" onclick="deletarTurma('${t.ID}')"><i class="fa-solid fa-trash me-1"></i> Excluir</button>
+      </td>
+    </tr>
+  `).join('');
 }
 
 async function deletarTurma(id) {

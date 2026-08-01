@@ -1,4 +1,4 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbxQFxkc8E6kgVvV5AkG_MUY51tsVEcj2MWr45cakUWfP3r7XdfndAHpHZ7wYwzJRtKZ/exec"; // Mantenha sua URL atual aqui
+const API_URL = "https://script.google.com/macros/s/AKfycbx6ocpWilzWD_xBIzF8l8RxvyTfpUbdWFb1tYIdw_IhU37_tD1ibFw7Dpz1Ycr8tPZ4/exec"; // Mantenha sua URL atual aqui
 
 const API = {
   async getAlunos() {

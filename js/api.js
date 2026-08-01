@@ -1,11 +1,12 @@
 // Substitua pela URL da sua implantação do Apps Script
-const API_URL = "https://script.google.com/macros/s/AKfycbxOOckzcHkout3ArKDX25Iyfw8ElhGAWWgN5iC4gOmxXsmhGHaXNK3P71lX8HsMKuND/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwdKDdXRr_arUOyOz0eliAGSDiySaFqVrvtTX0oleeGK0MEAiZoBEDKGpyQCBE2mawg/exec";
 
 const API = {
   // --- LEITURA (GET) ---
   getAlunos: async () => {
     try {
-      const res = await fetch(`${API_URL}?action=getAlunos`, { redirect: "follow" });
+      const url = `${API_URL}?action=getAlunos`;
+      const res = await fetch(url, { method: "GET", redirect: "follow" });
       return await res.json();
     } catch (err) {
       console.error("Erro ao buscar alunos:", err);
@@ -15,7 +16,8 @@ const API = {
 
   getTurmas: async () => {
     try {
-      const res = await fetch(`${API_URL}?action=getTurmas`, { redirect: "follow" });
+      const url = `${API_URL}?action=getTurmas`;
+      const res = await fetch(url, { method: "GET", redirect: "follow" });
       return await res.json();
     } catch (err) {
       console.error("Erro ao buscar turmas:", err);
@@ -25,7 +27,8 @@ const API = {
 
   getAlunoById: async (id) => {
     try {
-      const res = await fetch(`${API_URL}?action=getAluno&id=${id}`, { redirect: "follow" });
+      const url = `${API_URL}?action=getAluno&id=${encodeURIComponent(id)}`;
+      const res = await fetch(url, { method: "GET", redirect: "follow" });
       return await res.json();
     } catch (err) {
       console.error("Erro ao buscar aluno por ID:", err);
@@ -62,14 +65,12 @@ const API = {
     return await API.postData({ action: 'addAvaliacoesLote', avaliacoes });
   },
 
-  // Função genérica para tratar os POSTs sem bloquear no CORS
   postData: async (payload) => {
     try {
       const res = await fetch(API_URL, {
         method: 'POST',
-        mode: 'cors',
         headers: {
-          'Content-Type': 'text/plain;charset=utf-8', // Evita o 'preflight' de CORS do navegador
+          'Content-Type': 'text/plain;charset=utf-8',
         },
         body: JSON.stringify(payload),
         redirect: 'follow'

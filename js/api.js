@@ -1,74 +1,83 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbx6ocpWilzWD_xBIzF8l8RxvyTfpUbdWFb1tYIdw_IhU37_tD1ibFw7Dpz1Ycr8tPZ4/exec"; // Mantenha sua URL atual aqui
+// Substitua pela URL da sua implantação do Apps Script
+const API_URL = "https://script.google.com/macros/s/AKfycbxOOckzcHkout3ArKDX25Iyfw8ElhGAWWgN5iC4gOmxXsmhGHaXNK3P71lX8HsMKuND/exec";
 
 const API = {
-  async getAlunos() {
-    const res = await fetch(`${API_URL}?action=getAlunos`);
-    return await res.json();
+  // --- LEITURA (GET) ---
+  getAlunos: async () => {
+    try {
+      const res = await fetch(`${API_URL}?action=getAlunos`, { redirect: "follow" });
+      return await res.json();
+    } catch (err) {
+      console.error("Erro ao buscar alunos:", err);
+      return [];
+    }
   },
-  async getTurmas() {
-    const res = await fetch(`${API_URL}?action=getTurmas`);
-    return await res.json();
+
+  getTurmas: async () => {
+    try {
+      const res = await fetch(`${API_URL}?action=getTurmas`, { redirect: "follow" });
+      return await res.json();
+    } catch (err) {
+      console.error("Erro ao buscar turmas:", err);
+      return [];
+    }
   },
-  async getAlunoById(id) {
-    const res = await fetch(`${API_URL}?action=getAluno&id=${id}`);
-    return await res.json();
+
+  getAlunoById: async (id) => {
+    try {
+      const res = await fetch(`${API_URL}?action=getAluno&id=${id}`, { redirect: "follow" });
+      return await res.json();
+    } catch (err) {
+      console.error("Erro ao buscar aluno por ID:", err);
+      return { error: true };
+    }
   },
-  async addAluno(alunoData) {
-    const res = await fetch(API_URL, {
-      method: "POST",
-      body: JSON.stringify({ action: "addAluno", ...alunoData })
-    });
-    return await res.json();
+
+  // --- ESCRITA E MODIFICAÇÃO (POST) ---
+  addAluno: async (nome, turma) => {
+    return await API.postData({ action: 'addAluno', nome, turma });
   },
-  async addTurma(nome) {
-    const res = await fetch(API_URL, {
-      method: "POST",
-      body: JSON.stringify({ action: "addTurma", nome })
-    });
-    return await res.json();
-  },
-  async editTurma(id, nome) {
-    const res = await fetch(API_URL, {
-      method: "POST",
-      body: JSON.stringify({ action: "editTurma", id, nome })
-    });
-    return await res.json();
-  },
-  async deleteTurma(id) {
-    const res = await fetch(API_URL, {
-      method: "POST",
-      body: JSON.stringify({ action: "deleteTurma", id })
-    });
-    return await res.json();
-  },
-  async addAvaliacao(avaliacaoData) {
-    const res = await fetch(API_URL, {
-      method: "POST",
-      body: JSON.stringify({ action: "addAvaliacao", ...avaliacaoData })
-    });
-    return await res.json();
-  },
-  // Adicione esta função dentro do objeto API no seu js/api.js:
-  async addAvaliacoesLote(listaAvaliacoes) {
-    const res = await fetch(API_URL, {
-      method: "POST",
-      body: JSON.stringify({ action: "addAvaliacoesLote", avaliacoes: listaAvaliacoes })
-    });
-    return await res.json();
-  },
+
   editAluno: async (id, nome, turma) => {
-    const res = await fetch(API_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action: 'editAluno', id, nome, turma })
-    });
-  return await res.json();
+    return await API.postData({ action: 'editAluno', id, nome, turma });
   },
 
   deleteAluno: async (id) => {
-    const res = await fetch(API_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action: 'deleteAluno', id })
-    });
-    return await res.json();
+    return await API.postData({ action: 'deleteAluno', id });
+  },
+
+  addTurma: async (nome) => {
+    return await API.postData({ action: 'addTurma', nome });
+  },
+
+  editTurma: async (id, nome) => {
+    return await API.postData({ action: 'editTurma', id, nome });
+  },
+
+  deleteTurma: async (id) => {
+    return await API.postData({ action: 'deleteTurma', id });
+  },
+
+  addAvaliacoesLote: async (avaliacoes) => {
+    return await API.postData({ action: 'addAvaliacoesLote', avaliacoes });
+  },
+
+  // Função genérica para tratar os POSTs sem bloquear no CORS
+  postData: async (payload) => {
+    try {
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        mode: 'cors',
+        headers: {
+          'Content-Type': 'text/plain;charset=utf-8', // Evita o 'preflight' de CORS do navegador
+        },
+        body: JSON.stringify(payload),
+        redirect: 'follow'
+      });
+      return await res.json();
+    } catch (err) {
+      console.error("Erro na requisição POST:", err);
+      return { error: err.toString() };
+    }
   }
 };

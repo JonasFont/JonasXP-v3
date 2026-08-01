@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JonasXP - Painel do Professor</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    @media print {
+      body * { visibility: hidden; }
+      #printableCrachas, #printableCrachas * { visibility: visible; }
+      #printableCrachas { position: absolute; left: 0; top: 0; width: 100%; }
+      .cracha-card { page-break-inside: avoid; border: 2px solid #000 !important; color: #000 !important; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Modal Login -->
+  <div class="modal fade" id="loginModal" data-bs-backdrop="static" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content bg-dark text-light">
+        <div class="modal-header border-secondary"><h5 class="modal-title">Acesso Restrito</h5></div>
+        <div class="modal-body"><input type="password" id="passInput" class="form-control" placeholder="Senha do Professor"></div>
+        <div class="modal-footer border-secondary"><button type="button" class="btn btn-primary" onclick="validarSenha()">Entrar</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="mainContent" class="container py-4 d-none">
+    <header class="d-flex justify-content-between align-items-center mb-4">
+      <h2>Painel de Gestão - JonasXP</h2>
+      <button class="btn btn-outline-danger" onclick="location.reload()">Sair</button>
+    </header>
+
+    <!-- Métricas -->
+    <div class="row g-3 mb-4">
+      <div class="col-md-4"><div class="rpg-card p-3 text-center"><h5>Total de Alunos</h5><h2 id="totalAlunos" class="text-primary">0</h2></div></div>
+      <div class="col-md-4"><div class="rpg-card p-3 text-center"><h5>Total de Turmas</h5><h2 id="totalTurmas" class="text-info">0</h2></div></div>
+      <div class="col-md-4"><div class="rpg-card p-3 text-center"><h5>XP Distribuído</h5><h2 id="totalXP" class="text-success">0</h2></div></div>
+    </div>
+
+    <!-- Abas -->
+    <ul class="nav nav-pills mb-3" id="pills-tab">
+      <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tab-lote">⚡ Chamada em Lote</button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-alunos">Gerenciar Alunos</button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-turmas">Gerenciar Turmas</button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-crachas">🖨️ Imprimir Crachás</button></li>
+    </ul>
+
+    <div class="tab-content">
+      <!-- Chamada em Lote (Lançamento Rápido) -->
+      <div class="tab-pane fade show active" id="tab-lote">
+        <div class="rpg-card p-4">
+          <h4>⚡ Lançamento de XP da Turma em Lote</h4>
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <select id="filtroTurmaLote" class="form-select bg-dark text-light border-secondary" onchange="carregarTabelaLote()">
+                <option value="">-- Selecione uma turma para a chamada --</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="containerLote" class="d-none">
+            <div class="table-responsive">
+              <table class="table table-dark align-middle">
+                <thead>
+                  <tr>
+                    <th>Aluno</th>
+                    <th>Ativ (0-10)</th>
+                    <th>Equipe (0-10)</th>
+                    <th>Comp (0-10)</th>
+                    <th>Part (0-10)</th>
+                  </tr>
+                </thead>
+                <tbody id="corpoTabelaLote"></tbody>
+              </table>
+            </div>
+            <button class="btn btn-success btn-lg w-100 mt-3" onclick="salvarLote()">🚀 Salvar Pontuação da Aula Toda</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Alunos -->
+      <div class="tab-pane fade" id="tab-alunos">
+        <div class="rpg-card p-4 mb-4">
+          <h4>Cadastrar Aluno</h4>
+          <form id="formAluno" class="row g-3">
+            <div class="col-md-6"><input type="text" id="nomeAluno" class="form-control" placeholder="Nome do Aluno" required></div>
+            <div class="col-md-4"><select id="turmaAluno" class="form-select" required></select></div>
+            <div class="col-md-2"><button type="submit" class="btn btn-primary w-100">Adicionar</button></div>
+          </form>
+        </div>
+        <div class="rpg-card p-4">
+          <h4>Lista de Alunos</h4>
+          <div class="table-responsive">
+            <table class="table table-dark table-hover">
+              <thead><tr><th>Nome</th><th>Turma</th><th>Nível</th><th>XP</th><th>QR Code</th></tr></thead>
+              <tbody id="tabelaAlunos"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Turmas -->
+      <div class="tab-pane fade" id="tab-turmas">
+        <div class="rpg-card p-4">
+          <h4>Cadastrar Nova Turma</h4>
+          <form id="formTurma" class="row g-3 mb-4">
+            <div class="col-md-8"><input type="text" id="nomeTurma" class="form-control" placeholder="Ex: CTO1-10010" required></div>
+            <div class="col-md-4"><button type="submit" class="btn btn-primary w-100">Salvar Turma</button></div>
+          </form>
+          <ul id="listaTurmas" class="list-group list-group-flush bg-transparent"></ul>
+        </div>
+      </div>
+
+      <!-- Gerador de Crachás -->
+      <div class="tab-pane fade" id="tab-crachas">
+        <div class="rpg-card p-4">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4>Imprimir Cartões/Crachás da Turma</h4>
+            <button class="btn btn-info" onclick="window.print()">🖨️ Imprimir Folha</button>
+          </div>
+          <select id="filtroTurmaCracha" class="form-select bg-dark text-light border-secondary mb-4" onchange="gerarCrachasTurma()">
+            <option value="">-- Selecione a turma para gerar crachás --</option>
+          </select>
+          <div id="printableCrachas" class="row g-3"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal QR Code -->
+  <div class="modal fade" id="qrModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered text-center">
+      <div class="modal-content bg-dark text-light p-3">
+        <h5 id="qrAlunoNome"></h5>
+        <div id="qrcode" class="d-flex justify-content-center my-3"></div>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/professor.js"></script>
+</body>
+</html>

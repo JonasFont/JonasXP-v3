@@ -1,61 +1,101 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>JonasXP - Perfil do Herói</title>
+  <title>JonasXP - Perfil do Aluno</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
 </head>
-<body class="py-4">
-  <div class="container max-width-sm">
-    <div id="loading" class="text-center py-5">
-      <div class="spinner-border text-primary" role="status"></div>
-      <p class="mt-2">Carregando dados do Herói...</p>
-    </div>
+<body class="bg-dark text-light">
 
-    <div id="perfilContent" class="d-none">
-      <!-- Card Perfil Principal -->
-      <div class="rpg-card p-4 text-center mb-4">
-        <h1 id="alunoNome" class="fw-bold mb-1">---</h1>
-        <p id="alunoTurma" class="text-muted mb-3">---</p>
-        
-        <div class="d-flex justify-content-center gap-2 mb-3">
-          <span id="alunoNivel" class="badge badge-rpg">Nível 1</span>
-          <span id="alunoTitulo" class="badge bg-secondary">Novato</span>
-        </div>
-
-        <div class="my-3">
-          <div class="d-flex justify-content-between text-sm mb-1">
-            <span>Progresso de XP</span>
-            <span id="xpText">0 / 100 XP</span>
-          </div>
-          <div class="progress">
-            <div id="xpBar" class="progress-bar" role="progressbar" style="width: 0%"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 🏆 Badges / Conquistas Desbloqueáveis -->
-      <div class="rpg-card p-4 mb-4">
-        <h5 class="mb-3">🏆 Badges Conquistadas</h5>
-        <div id="containerBadges" class="d-flex flex-wrap gap-2"></div>
-      </div>
-
-      <!-- 🎴 Poderes / Recompensas RPG -->
-      <div class="rpg-card p-4 mb-4">
-        <h5 class="mb-3">🎴 Poderes RPG Liberados</h5>
-        <div id="containerPoderes" class="row g-2"></div>
-      </div>
-
-      <!-- Histórico de Aulas -->
-      <div class="rpg-card p-4">
-        <h5 class="mb-3">📜 Pontuações das Aulas</h5>
-        <div id="historico" class="list-group list-group-flush"></div>
-      </div>
-    </div>
+  <div id="loading" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status"></div>
+    <p class="mt-2 text-muted fw-bold">Carregando Poderes e Aura...</p>
   </div>
 
+  <div id="perfilContent" class="container py-4 d-none">
+    
+    <!-- Cabeçalho do Perfil / Card Principal -->
+    <div class="card bg-black border-secondary p-4 mb-4 rpg-card shadow-lg">
+      <div class="row align-items-center">
+        <div class="col-md-8 text-center text-md-start">
+          <span class="badge bg-primary mb-2" id="alunoTurma">Turma: -</span>
+          <h2 class="fw-bold mb-1" id="alunoNome">Nome do Aluno</h2>
+          <h5 class="text-warning fw-bold mb-3" id="alunoTitulo">✨ Título do Aluno</h5>
+          
+          <!-- Barra de XP -->
+          <div class="progress bg-secondary bg-opacity-25 my-2" style="height: 22px; border-radius: 12px;">
+            <div id="xpBar" class="progress-bar progress-bar-striped progress-bar-animated bg-success" style="width: 0%;"></div>
+          </div>
+          <div class="d-flex justify-content-between text-muted small fw-bold">
+            <span id="alunoNivel">Nível 1</span>
+            <span id="xpText">0 / 100 XP</span>
+          </div>
+        </div>
+        <div class="col-md-4 text-center mt-3 mt-md-0">
+          <div class="p-3 border border-secondary rounded bg-dark bg-opacity-50">
+            <small class="text-muted d-block uppercase fw-bold">Badges Conquistadas</small>
+            <div id="containerBadges" class="d-flex flex-wrap gap-1 justify-content-center mt-2"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navegação em Abas do Aluno -->
+    <ul class="nav nav-pills mb-3 justify-content-center" id="alunoTabs" role="tablist">
+      <li class="nav-item">
+        <button class="nav-link active fw-bold" id="tab-historico-tab" data-bs-toggle="pill" data-bs-target="#tab-historico">
+          ⚡ Historico de XP & Aulas
+        </button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link fw-bold position-relative" id="tab-avisos-tab" data-bs-toggle="pill" data-bs-target="#tab-avisos">
+          🔔 Avisos & Observações
+          <span id="badgeNotificacao" class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle d-none">
+            <span class="visually-hidden">Novas notificações</span>
+          </span>
+        </button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link fw-bold" id="tab-poderes-tab" data-bs-toggle="pill" data-bs-target="#tab-poderes">
+          🎴 Poderes RPG
+        </button>
+      </li>
+    </ul>
+
+    <!-- Conteúdo das Abas -->
+    <div class="tab-content" id="alunoTabsContent">
+      
+      <!-- ABA 1: HISTÓRICO DE AULAS DINÂMICO -->
+      <div class="tab-pane fade show active" id="tab-historico">
+        <div class="card bg-black border-secondary p-3">
+          <h5 class="fw-bold text-primary mb-3">📜 Log de Ganhos de XP por Aula</h5>
+          <div id="historico" class="d-flex flex-column gap-2"></div>
+        </div>
+      </div>
+
+      <!-- ABA 2: AVISOS E OBSERVAÇÕES -->
+      <div class="tab-pane fade" id="tab-avisos">
+        <div class="card bg-black border-secondary p-3">
+          <h5 class="fw-bold text-warning mb-3">💬 Recados do Professor</h5>
+          <div id="containerAvisos" class="d-flex flex-column gap-2"></div>
+        </div>
+      </div>
+
+      <!-- ABA 3: PODERES RPG -->
+      <div class="tab-pane fade" id="tab-poderes">
+        <div class="card bg-black border-secondary p-3">
+          <h5 class="fw-bold text-info mb-3">🔮 Seus Poderes e Vantagens RPG</h5>
+          <div id="containerPoderes" class="row"></div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script src="js/api.js"></script>
   <script src="js/aluno.js"></script>
 </body>

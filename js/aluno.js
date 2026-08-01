@@ -9,7 +9,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   renderPerfil(res.aluno, res.avaliacoes);
 });
 
-// Configuração dos 10 Níveis e Auras de Anime
+// Configuração dos 10 Níveis e Auras
 const TABELA_PROGRESSAO = [
   { nivel: 1, xpMeta: 100,  titulo: "👤 Humano Comum" },
   { nivel: 2, xpMeta: 250,  titulo: "✨ Aura Branca (Chakra Iniciante)" },
@@ -42,13 +42,13 @@ function renderPerfil(aluno, avaliacoes) {
 
   const xpAtual = Number(aluno.XP || 0);
 
-  // Calcula Nível Dinâmico com base no XP acumulado
+  // Nível Dinâmico
   let infoNivel = TABELA_PROGRESSAO.find(p => xpAtual < p.xpMeta) || TABELA_PROGRESSAO[TABELA_PROGRESSAO.length - 1];
   let nivelAtual = infoNivel.nivel > 1 && xpAtual < TABELA_PROGRESSAO[infoNivel.nivel - 2].xpMeta 
     ? infoNivel.nivel - 1 
     : (xpAtual >= 5000 ? 10 : infoNivel.nivel);
 
-  // Aplica classe dinamica de aura no fundo do site!
+  // Aplica classe de aura no fundo
   document.body.className = `aura-lvl-${nivelAtual}`;
 
   const configNivelAtual = TABELA_PROGRESSAO[nivelAtual - 1];
@@ -59,7 +59,7 @@ function renderPerfil(aluno, avaliacoes) {
   document.getElementById('alunoNivel').innerText = `Nível ${nivelAtual}`;
   document.getElementById('alunoTitulo').innerText = configNivelAtual.titulo;
 
-  // Cálculo da Barra de Progresso
+  // Barra de Progresso
   const xpAnterior = nivelAtual > 1 ? TABELA_PROGRESSAO[nivelAtual - 2].xpMeta : 0;
   const xpNoNivel = xpAtual - xpAnterior;
   const metaNoNivel = proximaMeta - xpAnterior;
@@ -70,7 +70,7 @@ function renderPerfil(aluno, avaliacoes) {
 
   renderBadges(xpAtual, avaliacoes);
   renderPoderes(nivelAtual);
-  renderHistorico(avaliacoes);
+  renderHistoricoEDinamico(avaliacoes);
 }
 
 function renderBadges(xp, avaliacoes) {
@@ -108,23 +108,87 @@ function renderPoderes(nivelAtual) {
   }).join('');
 }
 
-function renderHistorico(avaliacoes) {
+function renderHistoricoEDinamico(avaliacoes) {
   const histContainer = document.getElementById('historico');
+  const avisosContainer = document.getElementById('containerAvisos');
+  const badgeNotificacao = document.getElementById('badgeNotificacao');
+
   if (!avaliacoes || avaliacoes.length === 0) {
-    histContainer.innerHTML = `<p class="text-muted">Nenhuma aula registrada ainda.</p>`;
+    histContainer.innerHTML = `<p class="text-muted text-center py-3">Nenhuma aula registrada ainda.</p>`;
+    avisosContainer.innerHTML = `<p class="text-muted text-center py-3">Nenhuma observação ou recado registrado.</p>`;
     return;
   }
 
-  histContainer.innerHTML = avaliacoes.slice().reverse().map(av => {
-    const totalSemAula = Number(av.Atividade) + Number(av.Equipe) + Number(av.Comportamento) + Number(av.Participacao);
+  const listaInvertida = avaliacoes.slice().reverse();
+  let possuiObservacoes = false;
+
+  // 1. Renderizar Histórico Dinâmico em estilo Log de Combate
+  histContainer.innerHTML = listaInvertida.map(av => {
+    const ativ = Number(av.Atividade || 0);
+    const eqp = Number(av.Equipe || 0);
+    const comp = Number(av.Comportamento || 0);
+    const part = Number(av.Participacao || 0);
+    const totalGanha = ativ + eqp + comp + part;
+
     return `
-      <div class="list-group-item bg-transparent text-light border-secondary px-0 py-2">
-        <div class="d-flex justify-content-between align-items-center">
-          <strong class="text-success">+${totalSemAula} XP</strong>
-          <small class="text-muted">${av.Data}</small>
+      <div class="border border-secondary rounded p-3 bg-dark bg-opacity-70 shadow-sm">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <span class="badge bg-success fs-6 fw-bold">+${totalGanha} XP Ganho</span>
+          <small class="text-muted fw-bold">📅 ${av.Data}</small>
         </div>
-        <small class="text-muted d-block">📝 Ativ: ${av.Atividade} | 🤝 Eqp: ${av.Equipe} | ⭐ Comp: ${av.Comportamento} | 🚀 Part: ${av.Participacao}</small>
+        
+        <div class="row g-2 text-center my-1">
+          <div class="col-3">
+            <div class="p-1 border border-secondary rounded bg-black">
+              <small class="d-block text-muted" style="font-size:0.65rem">Atividade</small>
+              <strong class="text-info">+${ativ}</strong>
+            </div>
+          </div>
+          <div class="col-3">
+            <div class="p-1 border border-secondary rounded bg-black">
+              <small class="d-block text-muted" style="font-size:0.65rem">Equipe</small>
+              <strong class="text-warning">+${eqp}</strong>
+            </div>
+          </div>
+          <div class="col-3">
+            <div class="p-1 border border-secondary rounded bg-black">
+              <small class="d-block text-muted" style="font-size:0.65rem">Atitude</small>
+              <strong class="text-primary">+${comp}</strong>
+            </div>
+          </div>
+          <div class="col-3">
+            <div class="p-1 border border-secondary rounded bg-black">
+              <small class="d-block text-muted" style="font-size:0.65rem">Participação</small>
+              <strong class="text-danger">+${part}</strong>
+            </div>
+          </div>
+        </div>
+
+        ${av.Observacao ? `
+          <div class="mt-2 p-2 rounded bg-warning bg-opacity-10 border border-warning border-opacity-25">
+            <small class="text-warning d-block fw-bold">💬 Recado do Professor:</small>
+            <small class="text-light">${av.Observacao}</small>
+          </div>
+        ` : ''}
       </div>
     `;
   }).join('');
+
+  // 2. Renderizar Notificações/Avisos filtrados
+  const comObservacao = listaInvertida.filter(av => av.Observacao && av.Observacao.trim() !== '');
+
+  if (comObservacao.length > 0) {
+    badgeNotificacao.classList.remove('d-none');
+    avisosContainer.innerHTML = comObservacao.map(av => `
+      <div class="p-3 border border-warning rounded bg-dark bg-opacity-90 shadow">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+          <strong class="text-warning">📌 Observação do Professor</strong>
+          <small class="text-muted">${av.Data}</small>
+        </div>
+        <p class="mb-0 text-light mt-2" style="font-size: 0.95rem;">"${av.Observacao}"</p>
+      </div>
+    `).join('');
+  } else {
+    avisosContainer.innerHTML = `<p class="text-muted text-center py-3">Nenhum recado ou aviso por enquanto! Tudo em ordem 👍</p>`;
+  }
 }

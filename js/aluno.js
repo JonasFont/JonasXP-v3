@@ -120,9 +120,8 @@ function renderHistoricoEDinamico(avaliacoes) {
   }
 
   const listaInvertida = avaliacoes.slice().reverse();
-  let possuiObservacoes = false;
 
-  // 1. Renderizar Histórico Dinâmico em estilo Log de Combate
+  // 1. Renderizar Histórico Dinâmico com cores pedagógicas amigáveis
   histContainer.innerHTML = listaInvertida.map(av => {
     const ativ = Number(av.Atividade || 0);
     const eqp = Number(av.Equipe || 0);
@@ -159,7 +158,8 @@ function renderHistoricoEDinamico(avaliacoes) {
           <div class="col-3">
             <div class="p-1 border border-secondary rounded bg-black">
               <small class="d-block text-muted" style="font-size:0.65rem">Participação</small>
-              <strong class="text-danger">+${part}</strong>
+              <!-- MUDANÇA: Cor Violeta/Lilás amigável em vez de vermelho -->
+              <strong style="color: #a855f7;">+${part}</strong>
             </div>
           </div>
         </div>

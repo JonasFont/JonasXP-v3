@@ -55,5 +55,20 @@ const API = {
       body: JSON.stringify({ action: "addAvaliacoesLote", avaliacoes: listaAvaliacoes })
     });
     return await res.json();
+  },
+  editAluno: async (id, nome, turma) => {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'editAluno', id, nome, turma })
+    });
+  return await res.json();
+  },
+
+  deleteAluno: async (id) => {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'deleteAluno', id })
+    });
+    return await res.json();
   }
 };

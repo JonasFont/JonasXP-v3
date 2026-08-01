@@ -1,10 +1,13 @@
 let todosAlunos = [];
 let todasTurmas = [];
 let modalQRInstance = null;
+let modalEditarAlunoInstance = null;
 let linkAlunoAtualModal = '';
 
 document.addEventListener("DOMContentLoaded", () => {
   modalQRInstance = new bootstrap.Modal(document.getElementById('modalQR'));
+  modalEditarAlunoInstance = new bootstrap.Modal(document.getElementById('modalEditarAluno'));
+  
   carregarDados();
 
   document.getElementById('formAddAluno').addEventListener('submit', cadastrarAluno);
@@ -29,39 +32,99 @@ async function carregarDados() {
 }
 
 function renderTurmasSelects() {
-  const selects = ['turmaAluno', 'selectTurmaLote', 'selectTurmaCracha'];
+  const selects = ['turmaAluno', 'selectTurmaLote', 'selectTurmaCracha', 'editAlunoTurma'];
   selects.forEach(id => {
     const el = document.getElementById(id);
+    if (!el) return;
     const valAtual = el.value;
     el.innerHTML = '<option value="">-- Selecione a Turma --</option>' +
       todasTurmas.map(t => `<option value="${t.Nome}">${t.Nome}</option>`).join('');
     el.value = valAtual;
   });
+
+  // Atualizar filtro de turmas da gestão de alunos
+  const filtro = document.getElementById('filtroTurmaAluno');
+  const valFiltro = filtro.value;
+  filtro.innerHTML = '<option value="TODAS">Todas as Turmas</option>' +
+    todasTurmas.map(t => `<option value="${t.Nome}">${t.Nome}</option>`).join('');
+  filtro.value = valFiltro || 'TODAS';
 }
 
 function renderTabelaAlunos() {
   const tbody = document.getElementById('tabelaAlunos');
-  if (todosAlunos.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">Nenhum aluno cadastrado.</td></tr>`;
+  const filtroTurma = document.getElementById('filtroTurmaAluno').value;
+
+  // Filtrar alunos por turma selecionada
+  let alunosFiltrados = todosAlunos;
+  if (filtroTurma && filtroTurma !== 'TODAS') {
+    alunosFiltrados = todosAlunos.filter(a => a.Turma === filtroTurma);
+  }
+
+  if (alunosFiltrados.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">Nenhum aluno encontrado.</td></tr>`;
     return;
   }
 
-  tbody.innerHTML = todosAlunos.map(a => `
+  tbody.innerHTML = alunosFiltrados.map(a => `
     <tr>
       <td><strong>${a.Nome}</strong></td>
       <td><span class="badge bg-secondary">${a.Turma}</span></td>
       <td><span class="badge bg-primary">Nível ${a.Nivel}</span></td>
       <td><strong>${a.XP} XP</strong></td>
       <td>
-        <button class="btn btn-sm btn-outline-info me-1" onclick="gerarQR('${a.ID}', '${a.Nome}')">
-          📱 Ver QR
+        <button class="btn btn-sm btn-outline-info me-1" onclick="gerarQR('${a.ID}', '${a.Nome}')" title="Ver QR Code">
+          📱 QR
         </button>
-        <button class="btn btn-sm btn-outline-success" onclick="copiarLinkAluno('${a.ID}')">
-          🔗 Copiar Link
+        <button class="btn btn-sm btn-outline-success me-1" onclick="copiarLinkAluno('${a.ID}')" title="Copiar Link">
+          🔗 Link
+        </button>
+        <button class="btn btn-sm btn-outline-warning me-1" onclick="abrirModalEditarAluno('${a.ID}')" title="Editar Aluno">
+          ✏️
+        </button>
+        <button class="btn btn-sm btn-outline-danger" onclick="excluirAluno('${a.ID}', '${a.Nome}')" title="Excluir Aluno">
+          🗑️
         </button>
       </td>
     </tr>
   `).join('');
+}
+
+function abrirModalEditarAluno(id) {
+  const aluno = todosAlunos.find(a => String(a.ID) === String(id));
+  if (!aluno) return alert('Aluno não encontrado!');
+
+  document.getElementById('editAlunoId').value = aluno.ID;
+  document.getElementById('editAlunoNome').value = aluno.Nome;
+  document.getElementById('editAlunoTurma').value = aluno.Turma;
+
+  modalEditarAlunoInstance.show();
+}
+
+async function salvarEdicaoAluno() {
+  const id = document.getElementById('editAlunoId').value;
+  const nome = document.getElementById('editAlunoNome').value.trim();
+  const turma = document.getElementById('editAlunoTurma').value;
+
+  if (!nome || !turma) return alert('Preencha o nome e selecione a turma!');
+
+  const res = await API.editAluno(id, nome, turma);
+  if (res.success) {
+    modalEditarAlunoInstance.hide();
+    carregarDados();
+  } else {
+    alert('Erro ao editar aluno!');
+  }
+}
+
+async function excluirAluno(id, nome) {
+  if (confirm(`Tem certeza que deseja excluir o aluno "${nome}"? Esta ação não pode ser desfeita.`)) {
+    const res = await API.deleteAluno(id);
+    if (res.success) {
+      carregarDados();
+    } else {
+      alert('Erro ao excluir aluno!');
+    }
+  }
 }
 
 function renderTabelaTurmas() {

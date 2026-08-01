@@ -73,6 +73,7 @@
 
       <!-- ABA 2: GESTÃO DE ALUNOS -->
       <div class="tab-pane fade" id="tab-alunos">
+        <!-- Cadastrar Aluno -->
         <div class="card bg-secondary bg-opacity-10 border-secondary p-3 mb-4">
           <h5 class="card-title text-primary">Cadastrar Novo Aluno</h5>
           <form id="formAddAluno" class="row g-2">
@@ -90,6 +91,18 @@
           </form>
         </div>
 
+        <!-- Filtro por Turma -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="fw-bold m-0 text-light">Lista de Alunos</h5>
+          <div class="d-flex align-items-center gap-2" style="max-width: 300px;">
+            <label class="form-label mb-0 text-muted fw-bold small">Filtrar:</label>
+            <select id="filtroTurmaAluno" class="form-select form-select-sm bg-dark text-light border-secondary" onchange="renderTabelaAlunos()">
+              <option value="TODAS">Todas as Turmas</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Tabela de Alunos -->
         <div class="table-responsive">
           <table class="table table-dark table-striped align-middle">
             <thead>
@@ -98,7 +111,7 @@
                 <th>Turma</th>
                 <th>Nível</th>
                 <th>XP Total</th>
-                <th>Ações</th>
+                <th style="width: 280px;">Ações</th>
               </tr>
             </thead>
             <tbody id="tabelaAlunos"></tbody>
@@ -147,6 +160,33 @@
         </div>
       </div>
 
+    </div>
+  </div>
+
+  <!-- Modal Editar Aluno -->
+  <div class="modal fade" id="modalEditarAluno" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content bg-dark text-light border-secondary">
+        <div class="modal-header border-secondary">
+          <h5 class="modal-title">✏️ Editar Aluno</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="editAlunoId">
+          <div class="mb-3">
+            <label class="form-label fw-bold">Nome do Aluno:</label>
+            <input type="text" id="editAlunoNome" class="form-control bg-dark text-light border-secondary" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold">Turma:</label>
+            <select id="editAlunoTurma" class="form-select bg-dark text-light border-secondary" required></select>
+          </div>
+        </div>
+        <div class="modal-footer border-secondary">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary fw-bold" onclick="salvarEdicaoAluno()">💾 Salvar Alterações</button>
+        </div>
+      </div>
     </div>
   </div>
 

@@ -9,30 +9,103 @@ document.addEventListener("DOMContentLoaded", async () => {
   renderPerfil(res.aluno, res.avaliacoes);
 });
 
+// Configuração dos 10 Níveis, Títulos de Anime e Metas de XP
+const TABELA_PROGRESSAO = [
+  { nivel: 1, xpMeta: 100,  titulo: "👤 Humano Comum" },
+  { nivel: 2, xpMeta: 250,  titulo: "✨ Aura Branca (Chakra Iniciante)" },
+  { nivel: 3, xpMeta: 500,  titulo: "🟩 Aura Verde (Nível Genin)" },
+  { nivel: 4, xpMeta: 850,  titulo: "🟦 Aura Azul (Nível Chunin)" },
+  { nivel: 5, xpMeta: 1300, titulo: "🟪 Aura Roxa (Expansão de Domínio)" },
+  { nivel: 6, xpMeta: 1900, titulo: "🟥 Aura Vermelha (Modo Berserker)" },
+  { nivel: 7, xpMeta: 2600, titulo: "🟨 Aura Dourada (Super Saiyajin)" },
+  { nivel: 8, xpMeta: 3500, titulo: "🔲 Aura Prateada (Instinto Superior)" },
+  { nivel: 9, xpMeta: 5000, titulo: "🌌 Aura Cósmica (Caçador Rank-S)" },
+  { nivel: 10, xpMeta: 9999, titulo: "👑 Aura Divina (Hokage / Deus da Morte)" }
+];
+
+// Lista de Poderes RPG por Nível
+const LISTA_PODERES = [
+  { reqNivel: 2, nome: '⏰ Poder do Tempo', desc: '+5 min na entrega de uma atividade' },
+  { reqNivel: 3, nome: '🪑 Escolha do Trono', desc: 'Escolhe o lugar na sala por 1 aula' },
+  { reqNivel: 4, nome: '🎵 Ritmo do Código', desc: 'Pode ouvir música durante tarefa individual' },
+  { reqNivel: 5, nome: '🤝 Dupla Lendária', desc: 'Escolhe a dupla no trabalho prático' },
+  { reqNivel: 6, nome: '🛡️ Escudo Anti-Bug', desc: 'Refaz 1 questão de uma atividade' },
+  { reqNivel: 7, nome: '☕ Pausa do Café', desc: '3 minutos extras de água/intervalo' },
+  { reqNivel: 8, nome: '💡 Dica do Mestre', desc: 'Pede 1 dica direta ao professor na tarefa' },
+  { reqNivel: 9, nome: '📜 Lorde do Projeto', desc: 'Escolhe o tema de um trabalho livre' },
+  { reqNivel: 10, nome: '👑 Imunidade Lendária', desc: 'Nota máxima automática em 1 participação' }
+];
+
 function renderPerfil(aluno, avaliacoes) {
   document.getElementById('loading').classList.add('d-none');
   document.getElementById('perfilContent').classList.remove('d-none');
 
+  const xpAtual = Number(aluno.XP || 0);
+
+  // Descobrir Nível dinamicamente com base no XP acumulado
+  let infoNivel = TABELA_PROGRESSAO.find(p => xpAtual < p.xpMeta) || TABELA_PROGRESSAO[TABELA_PROGRESSAO.length - 1];
+  let nivelAtual = infoNivel.nivel > 1 && xpAtual < TABELA_PROGRESSAO[infoNivel.nivel - 2].xpMeta 
+    ? infoNivel.nivel - 1 
+    : (xpAtual >= 5000 ? 10 : infoNivel.nivel);
+
+  const configNivelAtual = TABELA_PROGRESSAO[nivelAtual - 1];
+  const proximaMeta = configNivelAtual.xpMeta;
+
   document.getElementById('alunoNome').innerText = aluno.Nome;
   document.getElementById('alunoTurma').innerText = `Turma: ${aluno.Turma}`;
-  document.getElementById('alunoNivel').innerText = `Nível ${aluno.Nivel}`;
-  document.getElementById('alunoTitulo').innerText = aluno.Titulo;
+  document.getElementById('alunoNivel').innerText = `Nível ${nivelAtual}`;
+  document.getElementById('alunoTitulo').innerText = configNivelAtual.titulo;
 
-  const metas = [0, 100, 300, 700, 1200, 2000];
-  const proximaMeta = metas[aluno.Nivel] || 2000;
-  const xpAtual = Number(aluno.XP);
-  const porcentagem = Math.min(100, Math.floor((xpAtual / proximaMeta) * 100));
-  
+  // Porcentagem da Barra de XP
+  const xpAnterior = nivelAtual > 1 ? TABELA_PROGRESSAO[nivelAtual - 2].xpMeta : 0;
+  const xpNoNivel = xpAtual - xpAnterior;
+  const metaNoNivel = proximaMeta - xpAnterior;
+  const porcentagem = Math.min(100, Math.max(0, Math.floor((xpNoNivel / metaNoNivel) * 100)));
+
   document.getElementById('xpBar').style.width = `${porcentagem}%`;
   document.getElementById('xpText').innerText = `${xpAtual} / ${proximaMeta} XP`;
 
-  // Renderizar Badges
   renderBadges(xpAtual, avaliacoes);
+  renderPoderes(nivelAtual);
+  renderHistorico(avaliacoes);
+}
 
-  // Renderizar Poderes RPG
-  renderPoderes(Number(aluno.Nivel));
+function renderBadges(xp, avaliacoes) {
+  const container = document.getElementById('containerBadges');
+  const badges = [
+    { nome: '🎓 Despertar', desc: 'Ganhou os primeiros pontos', unlocked: avaliacoes && avaliacoes.length > 0 },
+    { nome: '⭐ Foco Total', desc: 'Nota 10 em comportamento', unlocked: avaliacoes && avaliacoes.some(a => Number(a.Comportamento) === 10) },
+    { nome: '🤝 Sincronia de Equipe', desc: 'Nota 10 em trabalho em equipe', unlocked: avaliacoes && avaliacoes.some(a => Number(a.Equipe) === 10) },
+    { nome: '🔥 Despertar de Aura', desc: 'Alcançou 250 XP', unlocked: xp >= 250 },
+    { nome: '⚡ Dominio de Chakra', desc: 'Alcançou 850 XP', unlocked: xp >= 850 },
+    { nome: '👑 Modo Lendário', desc: 'Alcançou 2600 XP', unlocked: xp >= 2600 }
+  ];
 
-  // Renderizar Histórico
+  container.innerHTML = badges.map(b => `
+    <span class="badge ${b.unlocked ? 'bg-success' : 'bg-dark text-muted border border-secondary'}" title="${b.desc}">
+      ${b.unlocked ? '✅' : '🔒'} ${b.nome}
+    </span>
+  `).join('');
+}
+
+function renderPoderes(nivelAtual) {
+  const container = document.getElementById('containerPoderes');
+  
+  container.innerHTML = LISTA_PODERES.map(p => {
+    const liberado = nivelAtual >= p.reqNivel;
+    return `
+      <div class="col-md-4 col-6 mb-2">
+        <div class="p-2 border rounded text-center ${liberado ? 'border-primary bg-dark' : 'border-secondary opacity-50'}" style="min-height: 105px;">
+          <small class="d-block fw-bold ${liberado ? 'text-primary' : 'text-muted'}">${p.nome}</small>
+          <small class="d-block text-muted my-1" style="font-size:0.75rem">${p.desc}</small>
+          <span class="badge ${liberado ? 'bg-success' : 'bg-secondary'}">${liberado ? '✨ Desbloqueado' : `🔒 Nível ${p.reqNivel}`}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderHistorico(avaliacoes) {
   const histContainer = document.getElementById('historico');
   if (!avaliacoes || avaliacoes.length === 0) {
     histContainer.innerHTML = `<p class="text-muted">Nenhuma aula registrada ainda.</p>`;
@@ -48,45 +121,6 @@ function renderPerfil(aluno, avaliacoes) {
           <small class="text-muted">${av.Data}</small>
         </div>
         <small class="text-muted d-block">📝 Ativ: ${av.Atividade} | 🤝 Eqp: ${av.Equipe} | ⭐ Comp: ${av.Comportamento} | 🚀 Part: ${av.Participacao}</small>
-      </div>
-    `;
-  }).join('');
-}
-
-function renderBadges(xp, avaliacoes) {
-  const container = document.getElementById('containerBadges');
-  const badges = [
-    { nome: '🎓 Primeira Aula', desc: 'Ganhou os primeiros pontos', unlocked: avaliacoes && avaliacoes.length > 0 },
-    { nome: '⭐ Bom Comportamento', desc: 'Nota 10 em comportamento em uma aula', unlocked: avaliacoes && avaliacoes.some(a => Number(a.Comportamento) === 10) },
-    { nome: '🤝 Trabalho em Equipe', desc: 'Nota 10 em equipe em uma aula', unlocked: avaliacoes && avaliacoes.some(a => Number(a.Equipe) === 10) },
-    { nome: '🔥 Herói de Bronze', desc: 'Alcançou 300 XP', unlocked: xp >= 300 },
-    { nome: '💎 Mestre do Código', desc: 'Alcançou 1200 XP', unlocked: xp >= 1200 }
-  ];
-
-  container.innerHTML = badges.map(b => `
-    <span class="badge ${b.unlocked ? 'bg-success' : 'bg-dark text-muted border border-secondary'}" title="${b.desc}">
-      ${b.unlocked ? '✅' : '🔒'} ${b.nome}
-    </span>
-  `).join('');
-}
-
-function renderPoderes(nivel) {
-  const container = document.getElementById('containerPoderes');
-  const poderes = [
-    { reqNivel: 2, nome: '⏰ Poder do Tempo', desc: '+5 minutos na entrega de uma atividade' },
-    { reqNivel: 3, nome: '🪑 Escolha do Trono', desc: 'Pode escolher o lugar na sala por 1 aula' },
-    { reqNivel: 5, nome: '🤝 Dupla Lendária', desc: 'Pode escolher a dupla no trabalho prático' }
-  ];
-
-  container.innerHTML = poderes.map(p => {
-    const liberado = nivel >= p.reqNivel;
-    return `
-      <div class="col-md-4 col-12">
-        <div class="p-2 border rounded ${liberado ? 'border-primary bg-dark' : 'border-secondary opacity-50'}">
-          <small class="d-block fw-bold ${liberado ? 'text-primary' : 'text-muted'}">${p.nome}</small>
-          <small class="d-block text-muted" style="font-size:0.75rem">${p.desc}</small>
-          <small class="badge ${liberado ? 'bg-primary' : 'bg-secondary'} mt-1">${liberado ? 'Liberado!' : `Nível ${p.reqNivel}`}</small>
-        </div>
       </div>
     `;
   }).join('');

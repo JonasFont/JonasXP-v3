@@ -36,3 +36,32 @@ body {
 .progress-bar {
   background: linear-gradient(90deg, #10b981, #3b82f6);
 }
+/* Temas de Fundo Dinâmicos por Aura */
+body.aura-lvl-1 { background-color: #121212; color: #fff; }
+body.aura-lvl-2 { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); }
+body.aura-lvl-3 { background: linear-gradient(135deg, #0d2b1d 0%, #000000 100%); } /* Verde Genin */
+body.aura-lvl-4 { background: linear-gradient(135deg, #051923 0%, #003554 100%); } /* Azul Chunin */
+body.aura-lvl-5 { background: linear-gradient(135deg, #240046 0%, #10002b 100%); } /* Roxo Domínio */
+body.aura-lvl-6 { background: linear-gradient(135deg, #370617 0%, #000000 100%); } /* Vermelho Berserker */
+body.aura-lvl-7 { background: linear-gradient(135deg, #3d2b00 0%, #000000 100%); } /* Dourado Saiyajin */
+body.aura-lvl-8 { background: linear-gradient(135deg, #2b2d42 0%, #11111d 100%); } /* Prateado Instinto */
+body.aura-lvl-9 { background: linear-gradient(135deg, #03071e 0%, #370617 50%, #03071e 100%); } /* Cósmico */
+body.aura-lvl-10 { 
+  background: linear-gradient(135deg, #4a3b00 0%, #8a6d00 50%, #000000 100%); 
+  animation: auraGlow 4s infinite alternate;
+} /* Divino */
+
+@keyframes auraGlow {
+  0% { filter: brightness(1); }
+  100% { filter: brightness(1.3); }
+}
+
+/* Card do Perfil com Borda Neon correspondente */
+.aura-lvl-3 .rpg-card { border: 1px solid #2ec4b6 !important; box-shadow: 0 0 15px rgba(46, 196, 182, 0.3); }
+.aura-lvl-4 .rpg-card { border: 1px solid #00b4d8 !important; box-shadow: 0 0 15px rgba(0, 180, 216, 0.3); }
+.aura-lvl-5 .rpg-card { border: 1px solid #9d4edd !important; box-shadow: 0 0 20px rgba(157, 78, 221, 0.4); }
+.aura-lvl-6 .rpg-card { border: 1px solid #e63946 !important; box-shadow: 0 0 20px rgba(230, 57, 70, 0.4); }
+.aura-lvl-7 .rpg-card { border: 1px solid #ffb703 !important; box-shadow: 0 0 20px rgba(255, 183, 3, 0.5); }
+.aura-lvl-8 .rpg-card { border: 1px solid #e0e1dd !important; box-shadow: 0 0 20px rgba(224, 225, 221, 0.5); }
+.aura-lvl-9 .rpg-card { border: 1px solid #7209b7 !important; box-shadow: 0 0 25px rgba(114, 9, 183, 0.6); }
+.aura-lvl-10 .rpg-card { border: 2px solid #ffd700 !important; box-shadow: 0 0 35px rgba(255, 215, 0, 0.8); }

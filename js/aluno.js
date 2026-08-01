@@ -9,7 +9,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   renderPerfil(res.aluno, res.avaliacoes);
 });
 
-// Configuração dos 10 Níveis, Títulos de Anime e Metas de XP
+// Configuração dos 10 Níveis e Auras de Anime
 const TABELA_PROGRESSAO = [
   { nivel: 1, xpMeta: 100,  titulo: "👤 Humano Comum" },
   { nivel: 2, xpMeta: 250,  titulo: "✨ Aura Branca (Chakra Iniciante)" },
@@ -42,11 +42,14 @@ function renderPerfil(aluno, avaliacoes) {
 
   const xpAtual = Number(aluno.XP || 0);
 
-  // Descobrir Nível dinamicamente com base no XP acumulado
+  // Calcula Nível Dinâmico com base no XP acumulado
   let infoNivel = TABELA_PROGRESSAO.find(p => xpAtual < p.xpMeta) || TABELA_PROGRESSAO[TABELA_PROGRESSAO.length - 1];
   let nivelAtual = infoNivel.nivel > 1 && xpAtual < TABELA_PROGRESSAO[infoNivel.nivel - 2].xpMeta 
     ? infoNivel.nivel - 1 
     : (xpAtual >= 5000 ? 10 : infoNivel.nivel);
+
+  // Aplica classe dinamica de aura no fundo do site!
+  document.body.className = `aura-lvl-${nivelAtual}`;
 
   const configNivelAtual = TABELA_PROGRESSAO[nivelAtual - 1];
   const proximaMeta = configNivelAtual.xpMeta;
@@ -56,7 +59,7 @@ function renderPerfil(aluno, avaliacoes) {
   document.getElementById('alunoNivel').innerText = `Nível ${nivelAtual}`;
   document.getElementById('alunoTitulo').innerText = configNivelAtual.titulo;
 
-  // Porcentagem da Barra de XP
+  // Cálculo da Barra de Progresso
   const xpAnterior = nivelAtual > 1 ? TABELA_PROGRESSAO[nivelAtual - 2].xpMeta : 0;
   const xpNoNivel = xpAtual - xpAnterior;
   const metaNoNivel = proximaMeta - xpAnterior;
@@ -112,7 +115,7 @@ function renderHistorico(avaliacoes) {
     return;
   }
 
-  histContainer.innerHTML = avaliacoes.reverse().map(av => {
+  histContainer.innerHTML = avaliacoes.slice().reverse().map(av => {
     const totalSemAula = Number(av.Atividade) + Number(av.Equipe) + Number(av.Comportamento) + Number(av.Participacao);
     return `
       <div class="list-group-item bg-transparent text-light border-secondary px-0 py-2">

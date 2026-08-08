@@ -3,14 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard do Professor - Gamificação</title>
+  <title>JonasXP V3 - Painel do Professor</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
   <style>
     body { background-color: #0d0f12; color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    .card-metric { border: 1px solid #2d3238; background-color: #16191d; border-radius: 12px; transition: transform 0.2s; }
-    .card-metric:hover { transform: translateY(-3px); }
+    .card-metric { border: 1px solid #2d3238; background-color: #16191d; border-radius: 12px; }
     .icon-box { width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; }
     .badge-level { font-size: 0.85rem; padding: 5px 10px; border-radius: 20px; }
     .cracha-card { border: 2px dashed #0d6efd; background-color: #000; border-radius: 12px; page-break-inside: avoid; }
@@ -26,90 +25,70 @@
   <!-- NAVBAR -->
   <nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom border-secondary mb-4 shadow no-print">
     <div class="container-fluid px-4">
-      <a class="navbar-brand fw-bold text-primary" href="#"><i class="fa-solid fa-gamepad text-warning me-2"></i>Painel Gamificado <small class="text-muted fs-6">| Professor</small></a>
+      <a class="navbar-brand fw-bold text-primary" href="#"><i class="fa-solid fa-gamepad text-warning me-2"></i>JONAS XP <small class="text-muted fs-6">| Painel do Professor</small></a>
     </div>
   </nav>
 
   <div class="container-fluid px-4">
 
-    <!-- METRICAS GLOBAIS (DASHBOARD) -->
+    <!-- METRICAS GLOBAIS -->
     <div class="row g-3 mb-4 no-print">
       <div class="col-md-3">
         <div class="card card-metric p-3">
           <div class="d-flex align-items-center">
-            <div class="icon-box bg-primary bg-opacity-20 text-primary me-3">
-              <i class="fa-solid fa-users"></i>
-            </div>
-            <div>
-              <span class="text-muted small fw-bold">Total de Alunos</span>
-              <h3 class="mb-0 fw-bold text-light" id="metricTotalAlunos">0</h3>
-            </div>
+            <div class="icon-box bg-primary bg-opacity-20 text-primary me-3"><i class="fa-solid fa-users"></i></div>
+            <div><span class="text-muted small fw-bold">Total de Alunos</span><h3 class="mb-0 fw-bold text-light" id="metricTotalAlunos">0</h3></div>
           </div>
         </div>
       </div>
-
       <div class="col-md-3">
         <div class="card card-metric p-3">
           <div class="d-flex align-items-center">
-            <div class="icon-box bg-success bg-opacity-20 text-success me-3">
-              <i class="fa-solid fa-star"></i>
-            </div>
-            <div>
-              <span class="text-muted small fw-bold">XP Total Distribuído</span>
-              <h3 class="mb-0 fw-bold text-success" id="metricTotalXP">0</h3>
-            </div>
+            <div class="icon-box bg-success bg-opacity-20 text-success me-3"><i class="fa-solid fa-star"></i></div>
+            <div><span class="text-muted small fw-bold">XP Total Distribuído</span><h3 class="mb-0 fw-bold text-success" id="metricTotalXP">0</h3></div>
           </div>
         </div>
       </div>
-
       <div class="col-md-3">
         <div class="card card-metric p-3">
           <div class="d-flex align-items-center">
-            <div class="icon-box bg-warning bg-opacity-20 text-warning me-3">
-              <i class="fa-solid fa-trophy"></i>
-            </div>
-            <div>
-              <span class="text-muted small fw-bold">Média de Nível</span>
-              <h3 class="mb-0 fw-bold text-warning" id="metricMediaNivel">0</h3>
-            </div>
+            <div class="icon-box bg-warning bg-opacity-20 text-warning me-3"><i class="fa-solid fa-trophy"></i></div>
+            <div><span class="text-muted small fw-bold">Média de Nível</span><h3 class="mb-0 fw-bold text-warning" id="metricMediaNivel">0</h3></div>
           </div>
         </div>
       </div>
-
       <div class="col-md-3">
         <div class="card card-metric p-3">
           <div class="d-flex align-items-center">
-            <div class="icon-box bg-info bg-opacity-20 text-info me-3">
-              <i class="fa-solid fa-layer-group"></i>
-            </div>
-            <div>
-              <span class="text-muted small fw-bold">Total de Turmas</span>
-              <h3 class="mb-0 fw-bold text-info" id="metricTotalTurmas">0</h3>
-            </div>
+            <div class="icon-box bg-info bg-opacity-20 text-info me-3"><i class="fa-solid fa-layer-group"></i></div>
+            <div><span class="text-muted small fw-bold">Total de Turmas</span><h3 class="mb-0 fw-bold text-info" id="metricTotalTurmas">0</h3></div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- ABAS DE NAVEGAÇÃO -->
-    <ul class="nav nav-pills mb-4 bg-dark p-2 rounded border border-secondary no-print" id="pills-tab" role="tablist">
+    <!-- ABAS -->
+    <ul class="nav nav-pills mb-4 bg-dark p-2 rounded border border-secondary no-print" id="pills-tab">
       <li class="nav-item">
-        <button class="nav-link active fw-bold" id="tab-alunos-btn" data-bs-toggle="pill" data-bs-target="#tab-alunos"><i class="fa-solid fa-graduation-cap me-2"></i>Alunos & Ranking</button>
+        <button class="nav-link active fw-bold" data-bs-toggle="pill" data-bs-target="#tab-alunos"><i class="fa-solid fa-graduation-cap me-2"></i>Alunos & Ranking</button>
       </li>
       <li class="nav-item">
-        <button class="nav-link fw-bold" id="tab-lote-btn" data-bs-toggle="pill" data-bs-target="#tab-lote"><i class="fa-solid fa-bolt me-2"></i>Lançar XP em Lote</button>
+        <button class="nav-link fw-bold" data-bs-toggle="pill" data-bs-target="#tab-lote"><i class="fa-solid fa-bolt me-2"></i>Lançar XP em Lote</button>
       </li>
       <li class="nav-item">
-        <button class="nav-link fw-bold" id="tab-turmas-btn" data-bs-toggle="pill" data-bs-target="#tab-turmas"><i class="fa-solid fa-users-rectangle me-2"></i>Turmas</button>
+        <button class="nav-link fw-bold text-success" data-bs-toggle="pill" data-bs-target="#tab-whatsapp"><i class="fa-brands fa-whatsapp me-2"></i>Links WhatsApp (Turma)</button>
       </li>
       <li class="nav-item">
-        <button class="nav-link fw-bold" id="tab-crachas-btn" data-bs-toggle="pill" data-bs-target="#tab-crachas"><i class="fa-solid fa-qrcode me-2"></i>Imprimir Crachás QR</button>
+        <button class="nav-link fw-bold" data-bs-toggle="pill" data-bs-target="#tab-turmas"><i class="fa-solid fa-users-rectangle me-2"></i>Turmas</button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link fw-bold" data-bs-toggle="pill" data-bs-target="#tab-crachas"><i class="fa-solid fa-qrcode me-2"></i>Imprimir Crachás</button>
       </li>
     </ul>
 
     <div class="tab-content" id="pills-tabContent">
 
-      <!-- ABA 1: ALUNOS & RANKING -->
+      <!-- TAB 1: ALUNOS -->
       <div class="tab-pane fade show active" id="tab-alunos">
         <div class="card bg-dark border-secondary shadow">
           <div class="card-header bg-black py-3 d-flex justify-content-between align-items-center border-secondary">
@@ -142,7 +121,7 @@
         </div>
       </div>
 
-      <!-- ABA 2: LANÇAMENTO EM LOTE -->
+      <!-- TAB 2: LANÇAMENTO EM LOTE (OBSERVAÇÃO MAIOR + COMPORTAMENTO) -->
       <div class="tab-pane fade" id="tab-lote">
         <div class="card bg-dark border-secondary shadow">
           <div class="card-header bg-black py-3 d-flex justify-content-between align-items-center border-secondary">
@@ -157,12 +136,12 @@
                 <table class="table table-dark table-bordered align-middle">
                   <thead class="text-center small">
                     <tr>
-                      <th class="text-start">Aluno</th>
-                      <th>Atividade (+XP)</th>
-                      <th>Equipe (+XP)</th>
-                      <th>Atitude (+XP)</th>
-                      <th>Participação (+XP)</th>
-                      <th>Observação</th>
+                      <th class="text-start" style="width: 20%;">Aluno</th>
+                      <th style="width: 10%;">Atividade (+XP)</th>
+                      <th style="width: 10%;">Equipe (+XP)</th>
+                      <th style="width: 10%;">Comportamento (+XP)</th>
+                      <th style="width: 10%;">Participação (+XP)</th>
+                      <th style="width: 40%;">Observação Detalhada</th>
                     </tr>
                   </thead>
                   <tbody id="tabelaLote">
@@ -176,7 +155,33 @@
         </div>
       </div>
 
-      <!-- ABA 3: TURMAS -->
+      <!-- TAB 3: GERADOR DE LINKS WHATSAPP EM MASSA -->
+      <div class="tab-pane fade" id="tab-whatsapp">
+        <div class="card bg-dark border-secondary shadow">
+          <div class="card-header bg-black py-3 d-flex justify-content-between align-items-center border-secondary">
+            <h5 class="mb-0 fw-bold text-success"><i class="fa-brands fa-whatsapp me-2"></i>Gerador de Links da Turma para WhatsApp</h5>
+            <select id="selectTurmaWp" class="form-select form-select-sm bg-dark text-light border-secondary w-auto" onchange="gerarLinksWhatsAppTurma()">
+              <option value="">Selecione uma Turma...</option>
+            </select>
+          </div>
+          <div class="card-body">
+            <div class="row g-3 mb-3">
+              <div class="col-md-8">
+                <label class="form-label text-muted small fw-bold">Modelo de Mensagem (Use {nome} e {link})</label>
+                <textarea id="msgWpTemplate" class="form-control bg-black text-light border-secondary" rows="2" oninput="gerarLinksWhatsAppTurma()">Olá {nome}! Confira seu painel de pontos XP e seu progresso aqui: {link}</textarea>
+              </div>
+              <div class="col-md-4 d-flex align-items-end">
+                <button class="btn btn-outline-success w-100 fw-bold" onclick="copiarTodosLinksTurma()"><i class="fa-regular fa-copy me-2"></i>Copiar Todos os Links da Turma</button>
+              </div>
+            </div>
+            <div id="containerLinksWp" class="vstack gap-2">
+              <div class="text-center text-muted py-4">Selecione uma turma para gerar a lista de links.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 4: TURMAS -->
       <div class="tab-pane fade" id="tab-turmas">
         <div class="card bg-dark border-secondary shadow">
           <div class="card-header bg-black py-3 d-flex justify-content-between align-items-center border-secondary">
@@ -199,7 +204,7 @@
         </div>
       </div>
 
-      <!-- ABA 4: IMPRIMIR CRACHÁS COM QR CODE -->
+      <!-- TAB 5: CRACHÁS -->
       <div class="tab-pane fade" id="tab-crachas">
         <div class="d-flex justify-content-between align-items-center mb-3 no-print">
           <select id="selectTurmaCracha" class="form-select bg-dark text-light border-secondary w-50" onchange="gerarCrachasTurma()">
@@ -207,7 +212,6 @@
           </select>
           <button class="btn btn-warning fw-bold" onclick="window.print()"><i class="fa-solid fa-print me-2"></i>Imprimir Folha de Crachás</button>
         </div>
-
         <div id="containerCrachas" class="row g-3">
           <div class="text-center text-muted no-print py-5">Selecione uma turma para carregar os crachás com QR Code.</div>
         </div>
@@ -216,7 +220,7 @@
     </div>
   </div>
 
-  <!-- MODAL: DETALHES E HISTÓRICO DO ALUNO (OTIMIZADO) -->
+  <!-- MODAIS -->
   <div class="modal fade" id="modalDetalhesAluno" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-centered">
       <div class="modal-content bg-dark text-light border-secondary">
@@ -241,7 +245,6 @@
               </div>
             </div>
           </div>
-
           <h6 class="fw-bold mb-3 text-warning"><i class="fa-solid fa-clock-rotate-left me-2"></i>Histórico de Lançamentos</h6>
           <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
             <table class="table table-dark table-striped table-sm">
@@ -250,7 +253,7 @@
                   <th>Data</th>
                   <th>Ativ.</th>
                   <th>Eqp.</th>
-                  <th>Atit.</th>
+                  <th>Comp.</th>
                   <th>Part.</th>
                   <th>Total</th>
                   <th>Obs.</th>
@@ -266,7 +269,6 @@
     </div>
   </div>
 
-  <!-- MODAL: QR CODE INDIVIDUAL -->
   <div class="modal fade" id="modalQR" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content bg-dark text-light border-secondary">
@@ -276,14 +278,12 @@
         </div>
         <div class="modal-body text-center">
           <div id="qrcode" class="p-3 bg-white rounded d-inline-block mb-3"></div>
-          <p class="text-muted small">Escanear com a câmera para ir direto para o Perfil RPG do aluno.</p>
           <button id="btnCopiarModal" class="btn btn-outline-success btn-sm w-100 fw-bold"><i class="fa-solid fa-link me-1"></i> Copiar Link de Acesso</button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- MODAL: FORMULÁRIO ALUNO -->
   <div class="modal fade" id="modalAluno" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content bg-dark text-light border-secondary">
@@ -309,7 +309,6 @@
     </div>
   </div>
 
-  <!-- MODAL: FORMULÁRIO TURMA -->
   <div class="modal fade" id="modalTurma" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content bg-dark text-light border-secondary">

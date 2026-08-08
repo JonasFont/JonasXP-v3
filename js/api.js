@@ -1,6 +1,6 @@
 // js/api.js - Módulo de Conexão com Google Sheets
 
-const API_URL = "https://script.google.com/macros/s/AKfycbyxgLrAWxM8XW_d6Yizq7alJfGyZ2JthjMh2Ww1dGTp-ny_hjzAMYg0NQtIgBHzqmFh/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxsOr7vf038H0zxZP3RT6FHixBDzbREwqqy-DvaXDUu1Uq0ol-GSlhtD2hj88Kpr1XR/exec";
 
 const API = {
     _request: function(action, params = {}) {
@@ -23,7 +23,7 @@ const API = {
             script.onerror = () => {
                 delete window[callbackName];
                 if (script.parentNode) document.body.removeChild(script);
-                reject(new Error("Erro de conexão."));
+                reject(new Error("Falha na sincronização."));
             };
             document.body.appendChild(script);
         });
@@ -44,7 +44,8 @@ const API = {
     },
 
     getAlunoPorId: async function(id) {
-        const res = await this._request('getAlunoPorId', { id });
+        const idLimpo = String(id).trim();
+        const res = await this._request('getAlunoPorId', { id: idLimpo });
         return (res && !res.erro) ? res : null;
     },
 
@@ -53,7 +54,8 @@ const API = {
     },
 
     getLancamentosPorAluno: async function(alunoId) {
-        const res = await this._request('getLancamentosPorAluno', { alunoId });
+        const idLimpo = String(alunoId).trim();
+        const res = await this._request('getLancamentosPorAluno', { alunoId: idLimpo });
         return Array.isArray(res) ? res : [];
     },
 

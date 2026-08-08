@@ -1,77 +1,86 @@
-// js/aluno.js - Carregamento dinâmico e robusto do perfil do aluno
+// js/aluno.js - Carregamento Ultra Resiliente
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // 1. Captura o ID da URL (?id=...)
-    const params = new URLSearchParams(window.location.search);
-    let alunoId = params.get('id');
+    // 1. Extrai e limpa o ID da URL
+    const urlParams = new URLSearchParams(window.location.search);
+    let alunoIdRaw = urlParams.get('id');
 
-    if (!alunoId) {
-        exibirMensagemErro("Acesso Inválido", "Nenhum ID de aluno foi informado na URL.");
+    if (!alunoIdRaw) {
+        exibirMensagemErro("URL Inválida", "Nenhum ID de aluno foi passado no link.");
         return;
     }
 
-    // Normaliza o ID para comparação pura de texto
-    alunoId = String(alunoId).trim().replace("'", "");
+    // Limpa caracteres especiais, aspas e espaços do ID
+    const alunoId = String(alunoIdRaw).replace(/['"\s]/g, '');
 
-    // Exibe indicador de carregamento
-    exibirLoader();
+    exibirStatusCarregando();
 
     try {
-        // 2. Busca o aluno (Tenta direto e faz fallback para lista geral)
-        let aluno = await API.getAlunoPorId(alunoId);
+        // 2. Busca o aluno na API
+        let aluno = await buscarAlunoSeguro(alunoId);
 
         if (!aluno) {
-            // Fallback: Busca todos os alunos e compara os IDs sem formatação
-            const todosAlunos = await API.getAlunos();
-            aluno = todosAlunos.find(a => {
-                const idCadastrado = String(a.id || a.ID || '').trim().replace("'", "");
-                return idCadastrado === alunoId;
-            });
-        }
-
-        // Se ainda assim não encontrar o aluno
-        if (!aluno) {
-            exibirMensagemErro("Aluno não encontrado", `Não encontramos nenhum cadastro ativo associado ao ID: #${alunoId}`);
+            exibirMensagemErro("Aluno não encontrado", `Não foi possível localizar o cadastro para o ID: ${alunoId}`);
             return;
         }
 
         // 3. Busca o histórico de lançamentos do aluno
-        const idFinal = String(aluno.id || aluno.ID).trim().replace("'", "");
-        const historico = await API.getLancamentosPorAluno(idFinal);
+        const idFinal = String(aluno.id || aluno.ID || alunoId).replace(/['"\s]/g, '');
+        const historico = await API.getLancamentosPorAluno(idFinal).catch(() => []);
 
-        // 4. Renderiza os dados do aluno na tela
-        renderizarPerfil(aluno, historico);
+        // 4. Renderiza na interface
+        renderizarPerfilAluno(aluno, historico);
 
-    } catch (erro) {
-        console.error("Erro ao carregar dados do aluno:", erro);
-        exibirMensagemErro("Erro de Conexão", "Não foi possível conectar com o banco de dados da planilha. Tente recarregar.");
+    } catch (err) {
+        console.error("Erro fatal ao carregar aluno:", err);
+        exibirMensagemErro("Erro de Conexão", "Houve um problema ao conectar com o banco de dados. Atualize a página.");
     }
 });
 
-function renderizarPerfil(aluno, historico) {
-    const nome = aluno.nome || aluno.Nome || 'Estudante';
-    const turma = aluno.turma || aluno.Turma || 'Sem Turma';
-    const xpTotal = Number(aluno.xp || aluno.XP) || 0;
-    const infoNivel = API.calcularNivel(xpTotal);
+// Estratégia de Dupla Busca (Direta + Varredura Geral)
+async function buscarAlunoSeguro(idProcurado) {
+    try {
+        // Tenta a rota direta
+        let res = await API.getAlunoPorId(idProcurado);
+        if (res && (res.id || res.ID || res.nome || res.Nome)) {
+            return res;
+        }
+    } catch (e) {
+        console.warn("Busca por ID falhou, tentando varredura geral...", e);
+    }
 
-    // Atualiza cabeçalho e cards
+    // Fallback: Busca todos e compara IDs normalizados
+    const todosAlunos = await API.getAlunos();
+    if (!Array.isArray(todosAlunos)) return null;
+
+    return todosAlunos.find(a => {
+        const idCadastrado = String(a.id || a.ID || '').replace(/['"\s]/g, '');
+        return idCadastrado === idProcurado || idCadastrado.includes(idProcurado) || idProcurado.includes(idCadastrado);
+    });
+}
+
+function renderizarPerfilAluno(aluno, historico) {
+    const nome = aluno.nome || aluno.Nome || 'Aluno';
+    const turma = aluno.turma || aluno.Turma || 'Turma não informada';
+    const xp = Number(aluno.xp || aluno.XP) || 0;
+    const infoNivel = API.calcularNivel(xp);
+
+    // Preenche elementos do HTML caso existam
     if (document.getElementById('alunoNome')) document.getElementById('alunoNome').innerText = nome;
     if (document.getElementById('alunoTurma')) document.getElementById('alunoTurma').innerText = turma;
     if (document.getElementById('alunoNivel')) document.getElementById('alunoNivel').innerText = infoNivel.nivel;
     if (document.getElementById('alunoTitulo')) document.getElementById('alunoTitulo').innerText = infoNivel.titulo;
-    if (document.getElementById('alunoXP')) document.getElementById('alunoXP').innerText = `${xpTotal.toLocaleString()} XP`;
-    
-    const barraProgresso = document.getElementById('alunoProgresso');
-    if (barraProgresso) {
-        barraProgresso.style.width = `${infoNivel.porcentagem}%`;
-    }
+    if (document.getElementById('alunoXP')) document.getElementById('alunoXP').innerText = `${xp.toLocaleString()} XP`;
 
-    // Renderiza a tabela de histórico de pontos
+    const progressBar = document.getElementById('alunoProgresso');
+    if (progressBar) progressBar.style.width = `${infoNivel.porcentagem}%`;
+
+    // Renderiza tabela de histórico
     const tbody = document.getElementById('tabelaHistoricoAluno');
     if (!tbody) return;
 
     if (!historico || historico.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4"><i class="fa-solid fa-folder-open me-2"></i>Nenhum histórico de XP registrado até o momento.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-4">Nenhum histórico de XP registrado ainda.</td></tr>`;
         return;
     }
 
@@ -80,7 +89,7 @@ function renderizarPerfil(aluno, historico) {
         const eqp = Number(h.equipe || h.Equipe) || 0;
         const comp = Number(h.comportamento || h.Comportamento) || 0;
         const part = Number(h.participacao || h.Participacao) || 0;
-        const totalLinha = atv + eqp + comp + part;
+        const total = atv + eqp + comp + part;
 
         return `
             <tr>
@@ -89,31 +98,27 @@ function renderizarPerfil(aluno, historico) {
                 <td class="text-success">+${eqp}</td>
                 <td class="text-success">+${comp}</td>
                 <td class="text-success">+${part}</td>
-                <td class="fw-bold text-warning">+${totalLinha} XP</td>
+                <td class="fw-bold text-warning">+${total} XP</td>
                 <td class="small text-muted">${h.observacao || h.Observacao || '-'}</td>
             </tr>
         `;
     }).join('');
 }
 
-function exibirLoader() {
+function exibirStatusCarregando() {
     const tbody = document.getElementById('tabelaHistoricoAluno');
     if (tbody) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-warning"><i class="fa-solid fa-spinner fa-spin me-2"></i>Carregando seu progresso...</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-info"><i class="fa-solid fa-spinner fa-spin me-2"></i>Carregando os dados do aluno...</td></tr>`;
     }
 }
 
-function exibirMensagemErro(titulo, mensagem) {
-    const container = document.querySelector('.container') || document.body;
-    container.innerHTML = `
-        <div class="row justify-content-center py-5">
-            <div class="col-md-6 text-center">
-                <div class="card bg-dark text-white border-danger shadow p-4">
-                    <i class="fa-solid fa-triangle-exclamation text-danger display-4 mb-3"></i>
-                    <h4 class="fw-bold text-danger">${titulo}</h4>
-                    <p class="text-muted mt-2">${mensagem}</p>
-                    <a href="javascript:history.back()" class="btn btn-outline-light mt-3"><i class="fa-solid fa-arrow-left me-2"></i>Voltar</a>
-                </div>
+function exibirMensagemErro(titulo, detalhe) {
+    document.body.innerHTML = `
+        <div class="container py-5 text-center">
+            <div class="card bg-dark text-white border-danger shadow p-4 mx-auto" style="max-width: 500px;">
+                <h3 class="text-danger fw-bold mb-3">${titulo}</h3>
+                <p class="text-muted mb-4">${detalhe}</p>
+                <button onclick="window.location.reload()" class="btn btn-outline-light">Tentar Novamente</button>
             </div>
         </div>
     `;

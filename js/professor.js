@@ -210,6 +210,7 @@ async function salvarLoteXP(e) {
     carregarAlunosParaLote();
 }
 
+// Garanta que a geração do link no professor.js esteja estruturada assim:
 function gerarLinksWhatsAppTurma() {
     const turma = document.getElementById('selectTurmaWp').value;
     const container = document.getElementById('containerLinksWp');
@@ -217,13 +218,15 @@ function gerarLinksWhatsAppTurma() {
     if (!turma) { container.innerHTML = ''; return; }
 
     const alunos = CACHE_ALUNOS.filter(a => (a.turma || a.Turma) === turma);
-    const baseUrl = window.location.origin + window.location.pathname.replace('professor.html', 'aluno.html');
+    
+    // Pega o caminho base exato de onde o site está rodando
+    const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/')) + '/aluno.html';
 
     container.innerHTML = alunos.map(a => {
-        const id = a.id || a.ID;
+        const id = String(a.id || a.ID).replace(/['"\s]/g, '');
         const nome = a.nome || a.Nome;
         const link = `${baseUrl}?id=${id}`;
-        const msg = encodeURIComponent(`Olá ${nome}! Seu acesso ao JonasXP: ${link}`);
+        const msg = encodeURIComponent(`Olá ${nome}! Confira seu progresso no JonasXP: ${link}`);
 
         return `
             <div class="p-3 bg-black border border-secondary rounded d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -240,7 +243,6 @@ function gerarLinksWhatsAppTurma() {
         `;
     }).join('');
 }
-
 function copiarLink(link) {
     navigator.clipboard.writeText(link);
     alert("Link copiado para a área de transferência!");

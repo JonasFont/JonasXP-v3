@@ -1,8 +1,19 @@
-// js/professor.js - Sistema JonasXP V3 (Proteção contra TypeError)
+// js/professor.js - Sistema JonasXP V3
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Garantir que existam dados mínimos
+    inicializarDadosSeVazio();
     carregarDadosIniciais();
 });
+
+function inicializarDadosSeVazio() {
+    let turmas = API.getTurmas();
+    if (!turmas || turmas.length === 0) {
+        // Se estiver totalmente sem turmas, cadastra duas por padrão para não ficar em branco
+        API.salvarTurma({ nome: '6º Ano A' });
+        API.salvarTurma({ nome: '7º Ano B' });
+    }
+}
 
 // CARREGAMENTO INICIAL E MÉTRICAS
 function carregarDadosIniciais() {
@@ -16,8 +27,13 @@ function atualizarMetricas() {
     const alunos = Array.isArray(API.getAlunos()) ? API.getAlunos() : [];
     const turmas = Array.isArray(API.getTurmas()) ? API.getTurmas() : [];
 
-    document.getElementById('metricTotalAlunos').innerText = alunos.length;
-    document.getElementById('metricTotalTurmas').innerText = turmas.length;
+    const elTotalAlunos = document.getElementById('metricTotalAlunos');
+    const elTotalTurmas = document.getElementById('metricTotalTurmas');
+    const elTotalXP = document.getElementById('metricTotalXP');
+    const elMediaNivel = document.getElementById('metricMediaNivel');
+
+    if (elTotalAlunos) elTotalAlunos.innerText = alunos.length;
+    if (elTotalTurmas) elTotalTurmas.innerText = turmas.length;
 
     let xpTotal = 0;
     let somaNiveis = 0;
@@ -29,11 +45,39 @@ function atualizarMetricas() {
         somaNiveis += (infoNivel ? infoNivel.nivel : 1);
     });
 
-    document.getElementById('metricTotalXP').innerText = xpTotal.toLocaleString();
+    if (elTotalXP) elTotalXP.innerText = xpTotal.toLocaleString();
     const mediaNivel = alunos.length > 0 ? (somaNiveis / alunos.length).toFixed(1) : 0;
-    document.getElementById('metricMediaNivel').innerText = mediaNivel;
+    if (elMediaNivel) elMediaNivel.innerText = mediaNivel;
 }
 
+// 1. RENDERIZAR TURMAS NA TABELA
+function renderizarTurmas() {
+    const tbody = document.getElementById('tabelaTurmas');
+    if (!tbody) {
+        console.warn("Elemento 'tabelaTurmas' não foi encontrado no HTML!");
+        return;
+    }
+
+    const turmas = Array.isArray(API.getTurmas()) ? API.getTurmas() : [];
+
+    if (turmas.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="2" class="text-center py-4 text-muted">Nenhuma turma cadastrada.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = turmas.map(t => `
+        <tr>
+            <td class="fw-bold text-light">${t.nome}</td>
+            <td class="text-end">
+                <button class="btn btn-sm btn-outline-danger" onclick="excluirTurma(${t.id})" title="Excluir Turma">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+// 2. ATUALIZAR SELECTS/DROPDOWNS DE TURMAS
 function atualizarSelectsTurmas() {
     const turmas = Array.isArray(API.getTurmas()) ? API.getTurmas() : [];
     const selects = ['filtroTurmaAluno', 'selectTurmaLote', 'selectTurmaWp', 'selectTurmaCracha', 'alunoTurma'];
@@ -59,12 +103,13 @@ function atualizarSelectsTurmas() {
     });
 }
 
-// 1. TABELA DE ALUNOS & RANKING
+// 3. TABELA DE ALUNOS & RANKING
 function renderizarTabelaAlunos() {
     const tbody = document.getElementById('tabelaAlunos');
     if (!tbody) return;
 
-    const filtro = document.getElementById('filtroTurmaAluno') ? document.getElementById('filtroTurmaAluno').value : '';
+    const elFiltro = document.getElementById('filtroTurmaAluno');
+    const filtro = elFiltro ? elFiltro.value : '';
     let alunos = Array.isArray(API.getAlunos()) ? API.getAlunos() : [];
 
     if (filtro) {
@@ -76,7 +121,6 @@ function renderizarTabelaAlunos() {
         return;
     }
 
-    // Ordenar por XP (Ranking)
     alunos.sort((a, b) => (API.getAlunoXP(b.id) || 0) - (API.getAlunoXP(a.id) || 0));
 
     tbody.innerHTML = alunos.map(aluno => {
@@ -114,11 +158,14 @@ function renderizarTabelaAlunos() {
     }).join('');
 }
 
-// 2. LANÇAMENTO EM LOTE (OBSERVAÇÃO AMPLIADA + COMPORTAMENTO)
+// 4. LANÇAMENTO EM LOTE
 function carregarAlunosParaLote() {
-    const turma = document.getElementById('selectTurmaLote').value;
+    const elTurma = document.getElementById('selectTurmaLote');
     const tbody = document.getElementById('tabelaLote');
     const btnSalvar = document.getElementById('btnSalvarLote');
+
+    if (!elTurma || !tbody) return;
+    const turma = elTurma.value;
 
     if (!turma) {
         tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">Selecione uma turma para carregar a lista de lançamento.</td></tr>`;
@@ -158,6 +205,8 @@ function salvarLoteXP(e) {
     e.preventDefault();
 
     const form = document.getElementById('formLote');
+    if (!form) return;
+
     const alunoIds = Array.from(form.querySelectorAll('input[name="alunoId[]"]')).map(i => i.value);
     const atividades = Array.from(form.querySelectorAll('input[name="atividade[]"]')).map(i => Number(i.value) || 0);
     const equipes = Array.from(form.querySelectorAll('input[name="equipe[]"]')).map(i => Number(i.value) || 0);
@@ -193,160 +242,48 @@ function salvarLoteXP(e) {
     carregarDadosIniciais();
 }
 
-// 3. WHATSAPP EM MASSA
-function gerarLinksWhatsAppTurma() {
-    const turma = document.getElementById('selectTurmaWp').value;
-    const container = document.getElementById('containerLinksWp');
-    const template = document.getElementById('msgWpTemplate').value;
-
-    if (!turma) {
-        container.innerHTML = `<div class="text-center text-muted py-4">Selecione uma turma para carregar a lista.</div>`;
-        return;
-    }
-
-    const todosAlunos = Array.isArray(API.getAlunos()) ? API.getAlunos() : [];
-    const alunos = todosAlunos.filter(a => a.turma === turma);
-
-    if (alunos.length === 0) {
-        container.innerHTML = `<div class="text-center text-muted py-4">Nenhum aluno cadastrado nesta turma.</div>`;
-        return;
-    }
-
-    const baseUrl = window.location.origin + window.location.pathname.replace('professor.html', 'aluno.html');
-
-    container.innerHTML = alunos.map(aluno => {
-        const link = `${baseUrl}?id=${aluno.id}`;
-        const mensagemPronta = template.replace(/{nome}/g, aluno.nome).replace(/{link}/g, link);
-        const urlWp = `https://api.whatsapp.com/send?text=${encodeURIComponent(mensagemPronta)}`;
-
-        return `
-            <div class="p-3 bg-black border border-secondary rounded d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
-                <div>
-                    <div class="fw-bold text-light">${aluno.nome}</div>
-                    <div class="small font-mono text-info">${link}</div>
-                </div>
-                <div class="d-flex gap-2">
-                    <button class="btn btn-sm btn-outline-secondary" onclick="navigator.clipboard.writeText('${mensagemPronta.replace(/'/g, "\\'")}'); alert('Mensagem copiada!')">
-                        <i class="fa-regular fa-copy me-1"></i>Copiar
-                    </button>
-                    <a href="${urlWp}" target="_blank" class="btn btn-sm btn-success fw-bold">
-                        <i class="fa-brands fa-whatsapp me-1"></i>Enviar WhatsApp
-                    </a>
-                </div>
-            </div>
-        `;
-    }).join('');
-}
-
-// 4. DETALHES DO ALUNO
-function verDetalhesAluno(id) {
-    const aluno = API.getAlunoPorId(id);
-    if (!aluno) return;
-
-    const xp = API.getAlunoXP(id) || 0;
-    const nivelInfo = API.calcularNivel(xp);
-    const historico = Array.isArray(API.getLancamentosPorAluno(id)) ? API.getLancamentosPorAluno(id) : [];
-
-    document.getElementById('modalDetalhesNome').innerText = aluno.nome + " (" + aluno.turma + ")";
-    document.getElementById('detalheNivel').innerText = nivelInfo.nivel;
-    document.getElementById('detalheTitulo').innerText = nivelInfo.titulo;
-    document.getElementById('detalheXP').innerText = xp + " XP";
-    document.getElementById('detalheProximoNivel').innerText = `Faltam ${nivelInfo.xpRestante} XP para o Nível ${nivelInfo.nivel + 1}`;
-
-    const tbody = document.getElementById('detalhesHistorico');
-    if (historico.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">Nenhum lançamento registrado.</td></tr>`;
-    } else {
-        tbody.innerHTML = historico.map(h => `
-            <tr>
-                <td>${h.data}</td>
-                <td class="text-success">+${h.atividade || 0}</td>
-                <td class="text-success">+${h.equipe || 0}</td>
-                <td class="text-success">+${h.comportamento || h.atitude || 0}</td>
-                <td class="text-success">+${h.participacao || 0}</td>
-                <td class="fw-bold text-warning">+${(h.atividade || 0) + (h.equipe || 0) + (h.comportamento || h.atitude || 0) + (h.participacao || 0)}</td>
-                <td class="small text-muted">${h.observacao || '-'}</td>
-            </tr>
-        `).join('');
-    }
-
-    new bootstrap.Modal(document.getElementById('modalDetalhesAluno')).show();
-}
-
-// 5. QR CODE & MODAIS
-function abrirQRModal(id) {
-    const aluno = API.getAlunoPorId(id);
-    if (!aluno) return;
-
-    const baseUrl = window.location.origin + window.location.pathname.replace('professor.html', 'aluno.html');
-    const link = `${baseUrl}?id=${aluno.id}`;
-
-    document.getElementById('modalQRTitulo').innerText = `QR Code - ${aluno.nome}`;
-
-    const qrDiv = document.getElementById('qrcode');
-    qrDiv.innerHTML = '';
-
-    const qr = qrcode(4, 'L');
-    qr.addData(link);
-    qr.make();
-    qrDiv.innerHTML = qr.createImgTag(5);
-
-    const btnCopiar = document.getElementById('btnCopiarModal');
-    btnCopiar.onclick = () => {
-        navigator.clipboard.writeText(link);
-        alert('Link de acesso copiado!');
-    };
-
-    new bootstrap.Modal(document.getElementById('modalQR')).show();
-}
-
-// TURMAS E ALUNOS (CRUD)
-function renderizarTurmas() {
-    const tbody = document.getElementById('tabelaTurmas');
-    if (!tbody) return;
-
-    const turmas = Array.isArray(API.getTurmas()) ? API.getTurmas() : [];
-
-    if (turmas.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="2" class="text-center py-4 text-muted">Nenhuma turma cadastrada.</td></tr>`;
-        return;
-    }
-
-    tbody.innerHTML = turmas.map(t => `
-        <tr>
-            <td class="fw-bold text-light">${t.nome}</td>
-            <td class="text-end">
-                <button class="btn btn-sm btn-outline-danger" onclick="excluirTurma(${t.id})"><i class="fa-solid fa-trash"></i></button>
-            </td>
-        </tr>
-    `).join('');
-}
-
+// 5. GERENCIAMENTO DE TURMAS E ALUNOS (CRUD)
 function modalNovaTurma() {
-    document.getElementById('turmaId').value = '';
-    document.getElementById('turmaNome').value = '';
-    new bootstrap.Modal(document.getElementById('modalTurma')).show();
+    const elId = document.getElementById('turmaId');
+    const elNome = document.getElementById('turmaNome');
+    if (elId) elId.value = '';
+    if (elNome) elNome.value = '';
+
+    const elModal = document.getElementById('modalTurma');
+    if (elModal) new bootstrap.Modal(elModal).show();
 }
 
 function salvarTurma(e) {
     e.preventDefault();
-    const nome = document.getElementById('turmaNome').value;
-    API.salvarTurma({ nome });
-    bootstrap.Modal.getInstance(document.getElementById('modalTurma')).hide();
+    const nomeInput = document.getElementById('turmaNome');
+    if (!nomeInput || !nomeInput.value.trim()) return;
+
+    API.salvarTurma({ nome: nomeInput.value.trim() });
+
+    const elModal = document.getElementById('modalTurma');
+    if (elModal) {
+        const instance = bootstrap.Modal.getInstance(elModal);
+        if (instance) instance.hide();
+    }
+
     carregarDadosIniciais();
 }
 
 function excluirTurma(id) {
-    if (confirm("Remover esta turma?")) {
+    if (confirm("Deseja realmente remover esta turma?")) {
         API.excluirTurma(id);
         carregarDadosIniciais();
     }
 }
 
 function modalNovoAluno() {
-    document.getElementById('alunoId').value = '';
-    document.getElementById('alunoNome').value = '';
-    new bootstrap.Modal(document.getElementById('modalAluno')).show();
+    const elId = document.getElementById('alunoId');
+    const elNome = document.getElementById('alunoNome');
+    if (elId) elId.value = '';
+    if (elNome) elNome.value = '';
+
+    const elModal = document.getElementById('modalAluno');
+    if (elModal) new bootstrap.Modal(elModal).show();
 }
 
 function salvarAluno(e) {
@@ -356,7 +293,13 @@ function salvarAluno(e) {
     const turma = document.getElementById('alunoTurma').value;
 
     API.salvarAluno({ id: id ? Number(id) : null, nome, turma });
-    bootstrap.Modal.getInstance(document.getElementById('modalAluno')).hide();
+
+    const elModal = document.getElementById('modalAluno');
+    if (elModal) {
+        const instance = bootstrap.Modal.getInstance(elModal);
+        if (instance) instance.hide();
+    }
+
     carregarDadosIniciais();
 }
 
@@ -367,7 +310,9 @@ function editarAluno(id) {
     document.getElementById('alunoId').value = aluno.id;
     document.getElementById('alunoNome').value = aluno.nome;
     document.getElementById('alunoTurma').value = aluno.turma;
-    new bootstrap.Modal(document.getElementById('modalAluno')).show();
+
+    const elModal = document.getElementById('modalAluno');
+    if (elModal) new bootstrap.Modal(elModal).show();
 }
 
 function excluirAluno(id) {

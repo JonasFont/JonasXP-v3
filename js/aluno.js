@@ -1,86 +1,133 @@
-// js/aluno.js - Carregamento Ultra Resiliente
+// js/aluno.js - Gamificação e Renderização de Registros e Poderes
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // 1. Extrai e limpa o ID da URL
     const urlParams = new URLSearchParams(window.location.search);
     let alunoIdRaw = urlParams.get('id');
 
     if (!alunoIdRaw) {
-        exibirMensagemErro("URL Inválida", "Nenhum ID de aluno foi passado no link.");
+        exibirMensagemErro("URL Inválida", "Nenhum ID de aluno foi passado no link de acesso.");
         return;
     }
 
-    // Limpa caracteres especiais, aspas e espaços do ID
     const alunoId = String(alunoIdRaw).replace(/['"\s]/g, '');
 
-    exibirStatusCarregando();
-
     try {
-        // 2. Busca o aluno na API
+        // 1. Busca Aluno na API (com suporte a fallback)
         let aluno = await buscarAlunoSeguro(alunoId);
 
         if (!aluno) {
-            exibirMensagemErro("Aluno não encontrado", `Não foi possível localizar o cadastro para o ID: ${alunoId}`);
+            exibirMensagemErro("Aluno Não Encontrado", `Não localizamos o cadastro para o ID: #${alunoId}`);
             return;
         }
 
-        // 3. Busca o histórico de lançamentos do aluno
         const idFinal = String(aluno.id || aluno.ID || alunoId).replace(/['"\s]/g, '');
+
+        // 2. Busca histórico de lançamentos/observações
         const historico = await API.getLancamentosPorAluno(idFinal).catch(() => []);
 
-        // 4. Renderiza na interface
-        renderizarPerfilAluno(aluno, historico);
+        // 3. Renderiza o perfil completo
+        renderizarPerfilCompleto(aluno, historico, idFinal);
 
     } catch (err) {
-        console.error("Erro fatal ao carregar aluno:", err);
-        exibirMensagemErro("Erro de Conexão", "Houve um problema ao conectar com o banco de dados. Atualize a página.");
+        console.error("Erro ao carregar painel do aluno:", err);
+        exibirMensagemErro("Erro de Conexão", "Não foi possível conectar com o banco de dados.");
     }
 });
 
-// Estratégia de Dupla Busca (Direta + Varredura Geral)
 async function buscarAlunoSeguro(idProcurado) {
     try {
-        // Tenta a rota direta
         let res = await API.getAlunoPorId(idProcurado);
-        if (res && (res.id || res.ID || res.nome || res.Nome)) {
-            return res;
-        }
+        if (res && (res.id || res.ID || res.nome || res.Nome)) return res;
     } catch (e) {
-        console.warn("Busca por ID falhou, tentando varredura geral...", e);
+        console.warn("Busca por ID falhou, tentando varredura na lista geral...", e);
     }
 
-    // Fallback: Busca todos e compara IDs normalizados
     const todosAlunos = await API.getAlunos();
     if (!Array.isArray(todosAlunos)) return null;
 
     return todosAlunos.find(a => {
         const idCadastrado = String(a.id || a.ID || '').replace(/['"\s]/g, '');
-        return idCadastrado === idProcurado || idCadastrado.includes(idProcurado) || idProcurado.includes(idCadastrado);
+        return idCadastrado === idProcurado;
     });
 }
 
-function renderizarPerfilAluno(aluno, historico) {
-    const nome = aluno.nome || aluno.Nome || 'Aluno';
-    const turma = aluno.turma || aluno.Turma || 'Turma não informada';
-    const xp = Number(aluno.xp || aluno.XP) || 0;
-    const infoNivel = API.calcularNivel(xp);
+function renderizarPerfilCompleto(aluno, historico, idFinal) {
+    const nome = aluno.nome || aluno.Nome || 'Herói sem nome';
+    const turma = aluno.turma || aluno.Turma || 'Geral';
+    const xpTotal = Number(aluno.xp || aluno.XP) || 0;
+    const infoNivel = API.calcularNivel(xpTotal);
 
-    // Preenche elementos do HTML caso existam
-    if (document.getElementById('alunoNome')) document.getElementById('alunoNome').innerText = nome;
-    if (document.getElementById('alunoTurma')) document.getElementById('alunoTurma').innerText = turma;
-    if (document.getElementById('alunoNivel')) document.getElementById('alunoNivel').innerText = infoNivel.nivel;
-    if (document.getElementById('alunoTitulo')) document.getElementById('alunoTitulo').innerText = infoNivel.titulo;
-    if (document.getElementById('alunoXP')) document.getElementById('alunoXP').innerText = `${xp.toLocaleString()} XP`;
+    // Preenche informações básicas do herói
+    document.getElementById('alunoNome').innerText = nome;
+    document.getElementById('alunoTurma').innerText = turma;
+    document.getElementById('alunoIdDisplay').innerText = `#${idFinal}`;
+    document.getElementById('alunoNivelBadge').innerText = `Nível ${infoNivel.nivel}`;
+    document.getElementById('alunoTitulo').innerText = infoNivel.titulo;
+    document.getElementById('alunoXP').innerText = `${xpTotal.toLocaleString()} XP`;
+    document.getElementById('alunoProxXP').innerText = `${infoNivel.xpProxNivel.toLocaleString()} XP`;
+    document.getElementById('alunoPorcentagem').innerText = `${infoNivel.porcentagem}%`;
+    document.getElementById('txtProgressoXP').innerText = `${xpTotal} / ${infoNivel.xpProxNivel} XP`;
+    document.getElementById('alunoProgresso').style.width = `${infoNivel.porcentagem}%`;
 
-    const progressBar = document.getElementById('alunoProgresso');
-    if (progressBar) progressBar.style.width = `${infoNivel.porcentagem}%`;
+    // Renderiza Conquistas e Poderes
+    renderizarConquistasEPoderes(infoNivel.nivel, xpTotal);
 
-    // Renderiza tabela de histórico
+    // Renderiza Histórico de Lançamentos e Observações
+    renderizarTabelaHistorico(historico);
+}
+
+function renderizarConquistasEPoderes(nivelAtual, xpTotal) {
+    const container = document.getElementById('containerConquistas');
+    
+    // Lista de Conquistas e Poderes Gamificados por Nível
+    const conquistas = [
+        { nivel: 1, titulo: "Escudo do Novato", desc: "Acesso à Arena XP e cadastro ativado.", icon: "fa-shield-halved", cor: "bg-primary" },
+        { nivel: 2, titulo: "Espada da Frequência", desc: "Poder: Escolher lugar na sala 1x na semana.", icon: "fa-sword", cor: "bg-info" },
+        { nivel: 3, titulo: "Arco do Estrategista", desc: "Poder: Ganhar +5 minutos de intervalo.", icon: "fa-bow-arrow", cor: "bg-warning" },
+        { nivel: 4, titulo: "Pergaminho do Conhecimento", desc: "Poder: Eliminar a menor nota de uma atividade.", icon: "fa-scroll", cor: "bg-success" },
+        { nivel: 5, titulo: "Coroa do Mestre", desc: "Poder: Formar grupo prioritário em trabalhos.", icon: "fa-crown", cor: "bg-danger" },
+        { nivel: 6, titulo: "Lorde Lendário", desc: "Poder supremo: Imunidade a 1 tarefa de casa.", icon: "fa-gem", cor: "bg-purple" }
+    ];
+
+    container.innerHTML = conquistas.map(c => {
+        const desbloqueado = nivelAtual >= c.nivel;
+        const classeBloqueio = desbloqueado ? '' : 'card-bloqueado';
+        const statusBadge = desbloqueado 
+            ? `<span class="badge bg-success"><i class="fa-solid fa-check me-1"></i>Desbloqueado</span>`
+            : `<span class="badge bg-secondary"><i class="fa-solid fa-lock me-1"></i>Nível ${c.nivel}</span>`;
+
+        return `
+            <div class="col-md-6">
+                <div class="card card-conquista p-3 ${classeBloqueio}">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="icon-box ${c.cor} text-white">
+                            <i class="fa-solid ${c.icon}"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="fw-bold mb-0 text-white">${c.titulo}</h6>
+                                ${statusBadge}
+                            </div>
+                            <p class="small text-muted mb-0 mt-1">${c.desc}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function renderizarTabelaHistorico(historico) {
     const tbody = document.getElementById('tabelaHistoricoAluno');
-    if (!tbody) return;
 
     if (!historico || historico.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-4">Nenhum histórico de XP registrado ainda.</td></tr>`;
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" class="text-center py-4 text-muted">
+                    <i class="fa-solid fa-folder-open display-6 d-block mb-2"></i>
+                    Nenhum lançamento ou observação foi registrado para você ainda.
+                </td>
+            </tr>`;
         return;
     }
 
@@ -90,35 +137,32 @@ function renderizarPerfilAluno(aluno, historico) {
         const comp = Number(h.comportamento || h.Comportamento) || 0;
         const part = Number(h.participacao || h.Participacao) || 0;
         const total = atv + eqp + comp + part;
+        const obs = h.observacao || h.Observacao || h.OBSERVACAO || '';
 
         return `
             <tr>
-                <td class="fw-bold">${h.data || h.Data || '-'}</td>
+                <td class="fw-bold text-nowrap">${h.data || h.Data || '-'}</td>
                 <td class="text-success">+${atv}</td>
                 <td class="text-success">+${eqp}</td>
                 <td class="text-success">+${comp}</td>
                 <td class="text-success">+${part}</td>
                 <td class="fw-bold text-warning">+${total} XP</td>
-                <td class="small text-muted">${h.observacao || h.Observacao || '-'}</td>
+                <td>
+                    ${obs ? `<span class="badge bg-dark border border-secondary text-wrap text-start">${obs}</span>` : '<span class="text-muted small">-</span>'}
+                </td>
             </tr>
         `;
     }).join('');
 }
 
-function exibirStatusCarregando() {
-    const tbody = document.getElementById('tabelaHistoricoAluno');
-    if (tbody) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-info"><i class="fa-solid fa-spinner fa-spin me-2"></i>Carregando os dados do aluno...</td></tr>`;
-    }
-}
-
 function exibirMensagemErro(titulo, detalhe) {
     document.body.innerHTML = `
         <div class="container py-5 text-center">
-            <div class="card bg-dark text-white border-danger shadow p-4 mx-auto" style="max-width: 500px;">
-                <h3 class="text-danger fw-bold mb-3">${titulo}</h3>
+            <div class="card bg-dark text-white border-danger shadow p-4 mx-auto" style="max-width: 500px; border-radius: 16px;">
+                <i class="fa-solid fa-triangle-exclamation text-danger display-3 mb-3"></i>
+                <h3 class="text-danger fw-bold mb-2">${titulo}</h3>
                 <p class="text-muted mb-4">${detalhe}</p>
-                <button onclick="window.location.reload()" class="btn btn-outline-light">Tentar Novamente</button>
+                <button onclick="window.location.reload()" class="btn btn-outline-light"><i class="fa-solid fa-rotate-right me-2"></i>Recarregar Página</button>
             </div>
         </div>
     `;

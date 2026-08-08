@@ -1,26 +1,40 @@
 // Substitua pela URL da sua implantação do Apps Script
 const API_URL = "https://script.google.com/macros/s/AKfycbwdKDdXRr_arUOyOz0eliAGSDiySaFqVrvtTX0oleeGK0MEAiZoBEDKGpyQCBE2mawg/exec";
 
-// js/api.js - Módulo de Dados
-
-// js/api.js - Sistema Módulo de Dados JonasXP V3
+// js/api.js - Módulo do Banco de Dados Anti-Quebra
 
 const API = {
-    // === TURMAS ===
-    getTurmas: function() {
+    // DB RESET & RECUPERAÇÃO AUTOMÁTICA
+    _lerDB: function(chave) {
         try {
-            const dados = localStorage.getItem('jonasxp_turmas');
+            const dados = localStorage.getItem(chave);
+            if (!dados) return null;
             const parsed = JSON.parse(dados);
-            return Array.isArray(parsed) ? parsed : [];
+            return Array.isArray(parsed) ? parsed : null;
         } catch(e) {
-            return [];
+            console.warn(`Erro ao ler ${chave}, restaurando banco...`, e);
+            return null;
         }
+    },
+
+    // 1. TURMAS
+    getTurmas: function() {
+        let turmas = this._lerDB('jonasxp_turmas');
+        if (!turmas || turmas.length === 0) {
+            // Turmas Padrão para o sistema nunca iniciar zerado/quebrado
+            turmas = [
+                { id: 101, nome: '6º Ano A' },
+                { id: 102, nome: '7º Ano B' }
+            ];
+            localStorage.setItem('jonasxp_turmas', JSON.stringify(turmas));
+        }
+        return turmas;
     },
 
     salvarTurma: function(turma) {
         const turmas = this.getTurmas();
         if (turma.id) {
-            const index = turmas.findIndex(t => t.id === turma.id);
+            const index = turmas.findIndex(t => Number(t.id) === Number(turma.id));
             if (index !== -1) turmas[index] = turma;
         } else {
             turma.id = Date.now();
@@ -31,25 +45,26 @@ const API = {
     },
 
     excluirTurma: function(id) {
-        let turmas = this.getTurmas();
-        turmas = turmas.filter(t => Number(t.id) !== Number(id));
+        let turmas = this.getTurmas().filter(t => Number(t.id) !== Number(id));
         localStorage.setItem('jonasxp_turmas', JSON.stringify(turmas));
     },
 
-    // === ALUNOS ===
+    // 2. ALUNOS
     getAlunos: function() {
-        try {
-            const dados = localStorage.getItem('jonasxp_alunos');
-            const parsed = JSON.parse(dados);
-            return Array.isArray(parsed) ? parsed : [];
-        } catch(e) {
-            return [];
+        let alunos = this._lerDB('jonasxp_alunos');
+        if (!alunos) {
+            // Alunos Padrão para teste inicial
+            alunos = [
+                { id: 1001, nome: 'Lucas Silva', turma: '6º Ano A' },
+                { id: 1002, nome: 'Mariana Costa', turma: '7º Ano B' }
+            ];
+            localStorage.setItem('jonasxp_alunos', JSON.stringify(alunos));
         }
+        return alunos;
     },
 
     getAlunoPorId: function(id) {
-        const alunos = this.getAlunos();
-        return alunos.find(a => Number(a.id) === Number(id));
+        return this.getAlunos().find(a => Number(a.id) === Number(id));
     },
 
     salvarAluno: function(aluno) {
@@ -66,25 +81,17 @@ const API = {
     },
 
     excluirAluno: function(id) {
-        let alunos = this.getAlunos();
-        alunos = alunos.filter(a => Number(a.id) !== Number(id));
+        let alunos = this.getAlunos().filter(a => Number(a.id) !== Number(id));
         localStorage.setItem('jonasxp_alunos', JSON.stringify(alunos));
     },
 
-    // === LANÇAMENTOS E XP ===
+    // 3. LANÇAMENTOS E XP
     getLancamentos: function() {
-        try {
-            const dados = localStorage.getItem('jonasxp_lancamentos');
-            const parsed = JSON.parse(dados);
-            return Array.isArray(parsed) ? parsed : [];
-        } catch(e) {
-            return [];
-        }
+        return this._lerDB('jonasxp_lancamentos') || [];
     },
 
     getLancamentosPorAluno: function(alunoId) {
-        const lancamentos = this.getLancamentos();
-        return lancamentos.filter(l => Number(l.alunoId) === Number(alunoId));
+        return this.getLancamentos().filter(l => Number(l.alunoId) === Number(alunoId));
     },
 
     adicionarLancamento: function(lancamento) {
@@ -99,7 +106,7 @@ const API = {
         return lancamentos.reduce((total, l) => {
             const atv = Number(l.atividade) || 0;
             const eqp = Number(l.equipe) || 0;
-            const comp = Number(l.comportamento || l.atitude) || 0;
+            const comp = Number(l.comportamento) || 0;
             const part = Number(l.participacao) || 0;
             return total + atv + eqp + comp + part;
         }, 0);

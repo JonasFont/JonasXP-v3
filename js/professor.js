@@ -364,9 +364,15 @@ function gerarCrachasTurma() {
 }
 
 // TURMAS E ALUNOS (CRUD)
+// CORREÇÃO: Garante que turmas seja sempre um Array antes de chamar o .map()
 function renderizarTurmas() {
     const tbody = document.getElementById('tabelaTurmas');
-    const turmas = API.getTurmas();
+    let turmas = API.getTurmas();
+
+    // Proteção contra valores nulos/indefinidos
+    if (!Array.isArray(turmas)) {
+        turmas = [];
+    }
 
     if (turmas.length === 0) {
         tbody.innerHTML = `<tr><td colspan="2" class="text-center py-4 text-muted">Nenhuma turma cadastrada.</td></tr>`;
@@ -383,6 +389,36 @@ function renderizarTurmas() {
     `).join('');
 }
 
+function atualizarSelectsTurmas() {
+    let turmas = API.getTurmas();
+    
+    // Proteção contra valores nulos/indefinidos
+    if (!Array.isArray(turmas)) {
+        turmas = [];
+    }
+
+    const selects = ['filtroTurmaAluno', 'selectTurmaLote', 'selectTurmaWp', 'selectTurmaCracha', 'alunoTurma'];
+
+    selects.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+
+        const valAtual = el.value;
+        if (id === 'filtroTurmaAluno') {
+            el.innerHTML = '<option value="">Todas as Turmas</option>';
+        } else if (id === 'alunoTurma') {
+            el.innerHTML = '<option value="" disabled selected>Selecione uma turma...</option>';
+        } else {
+            el.innerHTML = '<option value="">Selecione uma Turma...</option>';
+        }
+
+        turmas.forEach(t => {
+            el.innerHTML += `<option value="${t.nome}">${t.nome}</option>`;
+        });
+
+        el.value = valAtual;
+    });
+}
 function modalNovaTurma() {
     document.getElementById('turmaId').value = '';
     document.getElementById('turmaNome').value = '';

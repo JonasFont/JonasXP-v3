@@ -1,86 +1,90 @@
-// js/professor.js - Sistema JonasXP V3
+// js/professor.js - Controle Geral do Painel
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Garantir que existam dados mínimos
-    inicializarDadosSeVazio();
+    // 1. Inicializar Eventos dos Formulários e Botoes
+    configurarEventos();
+    
+    // 2. Carregar Dados Iniciais
     carregarDadosIniciais();
 });
 
-function inicializarDadosSeVazio() {
-    let turmas = API.getTurmas();
-    if (!turmas || turmas.length === 0) {
-        // Se estiver totalmente sem turmas, cadastra duas por padrão para não ficar em branco
-        API.salvarTurma({ nome: '6º Ano A' });
-        API.salvarTurma({ nome: '7º Ano B' });
-    }
+function configurarEventos() {
+    // Modal Turma
+    document.getElementById('btnAbrirModalTurma').addEventListener('click', () => {
+        document.getElementById('turmaId').value = '';
+        document.getElementById('turmaNome').value = '';
+        new bootstrap.Modal(document.getElementById('modalTurma')).show();
+    });
+
+    document.getElementById('formTurma').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const nome = document.getElementById('turmaNome').value;
+        API.salvarTurma({ nome: nome });
+        bootstrap.Modal.getInstance(document.getElementById('modalTurma')).hide();
+        carregarDadosIniciais();
+    });
+
+    // Modal Aluno
+    document.getElementById('btnAbrirModalAluno').addEventListener('click', () => {
+        document.getElementById('alunoId').value = '';
+        document.getElementById('alunoNome').value = '';
+        new bootstrap.Modal(document.getElementById('modalAluno')).show();
+    });
+
+    document.getElementById('formAluno').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const id = document.getElementById('alunoId').value;
+        const nome = document.getElementById('alunoNome').value;
+        const turma = document.getElementById('alunoTurma').value;
+
+        API.salvarAluno({ id: id ? Number(id) : null, nome, turma });
+        bootstrap.Modal.getInstance(document.getElementById('modalAluno')).hide();
+        carregarDadosIniciais();
+    });
+
+    // Filtro de Alunos
+    document.getElementById('filtroTurmaAluno').addEventListener('change', renderizarTabelaAlunos);
+
+    // Lançamento em Lote
+    document.getElementById('selectTurmaLote').addEventListener('change', carregarAlunosParaLote);
+    document.getElementById('formLote').addEventListener('submit', salvarLoteXP);
+
+    // WhatsApp
+    document.getElementById('selectTurmaWp').addEventListener('change', gerarLinksWhatsAppTurma);
 }
 
-// CARREGAMENTO INICIAL E MÉTRICAS
 function carregarDadosIniciais() {
     renderizarTurmas();
-    renderizarTabelaAlunos();
     atualizarSelectsTurmas();
+    renderizarTabelaAlunos();
     atualizarMetricas();
 }
 
 function atualizarMetricas() {
-    const alunos = Array.isArray(API.getAlunos()) ? API.getAlunos() : [];
-    const turmas = Array.isArray(API.getTurmas()) ? API.getTurmas() : [];
+    const alunos = API.getAlunos();
+    const turmas = API.getTurmas();
 
-    const elTotalAlunos = document.getElementById('metricTotalAlunos');
-    const elTotalTurmas = document.getElementById('metricTotalTurmas');
-    const elTotalXP = document.getElementById('metricTotalXP');
-    const elMediaNivel = document.getElementById('metricMediaNivel');
-
-    if (elTotalAlunos) elTotalAlunos.innerText = alunos.length;
-    if (elTotalTurmas) elTotalTurmas.innerText = turmas.length;
+    document.getElementById('metricTotalAlunos').innerText = alunos.length;
+    document.getElementById('metricTotalTurmas').innerText = turmas.length;
 
     let xpTotal = 0;
     let somaNiveis = 0;
 
     alunos.forEach(aluno => {
-        const totalAlunoXP = API.getAlunoXP(aluno.id) || 0;
+        const totalAlunoXP = API.getAlunoXP(aluno.id);
         const infoNivel = API.calcularNivel(totalAlunoXP);
         xpTotal += totalAlunoXP;
-        somaNiveis += (infoNivel ? infoNivel.nivel : 1);
+        somaNiveis += infoNivel.nivel;
     });
 
-    if (elTotalXP) elTotalXP.innerText = xpTotal.toLocaleString();
+    document.getElementById('metricTotalXP').innerText = xpTotal.toLocaleString();
     const mediaNivel = alunos.length > 0 ? (somaNiveis / alunos.length).toFixed(1) : 0;
-    if (elMediaNivel) elMediaNivel.innerText = mediaNivel;
+    document.getElementById('metricMediaNivel').innerText = mediaNivel;
 }
 
-// 1. RENDERIZAR TURMAS NA TABELA
-function renderizarTurmas() {
-    const tbody = document.getElementById('tabelaTurmas');
-    if (!tbody) {
-        console.warn("Elemento 'tabelaTurmas' não foi encontrado no HTML!");
-        return;
-    }
-
-    const turmas = Array.isArray(API.getTurmas()) ? API.getTurmas() : [];
-
-    if (turmas.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="2" class="text-center py-4 text-muted">Nenhuma turma cadastrada.</td></tr>`;
-        return;
-    }
-
-    tbody.innerHTML = turmas.map(t => `
-        <tr>
-            <td class="fw-bold text-light">${t.nome}</td>
-            <td class="text-end">
-                <button class="btn btn-sm btn-outline-danger" onclick="excluirTurma(${t.id})" title="Excluir Turma">
-                    <i class="fa-solid fa-trash"></i>
-                </button>
-            </td>
-        </tr>
-    `).join('');
-}
-
-// 2. ATUALIZAR SELECTS/DROPDOWNS DE TURMAS
 function atualizarSelectsTurmas() {
-    const turmas = Array.isArray(API.getTurmas()) ? API.getTurmas() : [];
-    const selects = ['filtroTurmaAluno', 'selectTurmaLote', 'selectTurmaWp', 'selectTurmaCracha', 'alunoTurma'];
+    const turmas = API.getTurmas();
+    const selects = ['filtroTurmaAluno', 'selectTurmaLote', 'selectTurmaWp', 'alunoTurma'];
 
     selects.forEach(id => {
         const el = document.getElementById(id);
@@ -103,43 +107,69 @@ function atualizarSelectsTurmas() {
     });
 }
 
-// 3. TABELA DE ALUNOS & RANKING
+// 1. RENDERIZAR TURMAS
+function renderizarTurmas() {
+    const tbody = document.getElementById('tabelaTurmas');
+    const turmas = API.getTurmas();
+
+    if (turmas.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="2" class="text-center py-4 text-muted">Nenhuma turma cadastrada ainda. Clique em "Nova Turma" acima!</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = turmas.map(t => `
+        <tr>
+            <td class="fw-bold text-light">${t.nome}</td>
+            <td class="text-end">
+                <button class="btn btn-sm btn-outline-danger" onclick="excluirTurma(${t.id})">
+                    <i class="fa-solid fa-trash me-1"></i>Excluir
+                </button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function excluirTurma(id) {
+    if (confirm("Remover esta turma?")) {
+        API.excluirTurma(id);
+        carregarDadosIniciais();
+    }
+}
+
+// 2. RENDERIZAR ALUNOS
 function renderizarTabelaAlunos() {
     const tbody = document.getElementById('tabelaAlunos');
-    if (!tbody) return;
-
-    const elFiltro = document.getElementById('filtroTurmaAluno');
-    const filtro = elFiltro ? elFiltro.value : '';
-    let alunos = Array.isArray(API.getAlunos()) ? API.getAlunos() : [];
+    const filtro = document.getElementById('filtroTurmaAluno').value;
+    let alunos = API.getAlunos();
 
     if (filtro) {
         alunos = alunos.filter(a => a.turma === filtro);
     }
 
     if (alunos.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-muted">Nenhum aluno encontrado.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-muted">Nenhum aluno cadastrado.</td></tr>`;
         return;
     }
 
-    alunos.sort((a, b) => (API.getAlunoXP(b.id) || 0) - (API.getAlunoXP(a.id) || 0));
+    alunos.sort((a, b) => API.getAlunoXP(b.id) - API.getAlunoXP(a.id));
 
     tbody.innerHTML = alunos.map(aluno => {
-        const xp = API.getAlunoXP(aluno.id) || 0;
-        const nivelInfo = API.calcularNivel(xp) || { nivel: 1, titulo: 'Novato', porcentagem: 0 };
+        const xp = API.getAlunoXP(aluno.id);
+        const nivelInfo = API.calcularNivel(xp);
 
         return `
             <tr>
                 <td>
                     <div class="fw-bold text-light">${aluno.nome}</div>
-                    <small class="text-muted font-mono">ID: #${aluno.id}</small>
+                    <small class="text-muted">ID: #${aluno.id}</small>
                 </td>
                 <td><span class="badge bg-dark border border-secondary">${aluno.turma}</span></td>
                 <td>
-                    <span class="badge bg-primary badge-level">Nível ${nivelInfo.nivel}</span>
+                    <span class="badge bg-primary">Nível ${nivelInfo.nivel}</span>
                     <div class="small text-warning mt-0.5">${nivelInfo.titulo}</div>
                 </td>
                 <td>
-                    <div class="d-flex justify-between text-xs mb-1">
+                    <div class="d-flex justify-content-between text-xs mb-1">
                         <span class="text-success fw-bold">${xp} XP</span>
                         <span class="text-muted">${nivelInfo.porcentagem}%</span>
                     </div>
@@ -148,9 +178,7 @@ function renderizarTabelaAlunos() {
                     </div>
                 </td>
                 <td class="text-end">
-                    <button class="btn btn-sm btn-outline-info me-1" onclick="verDetalhesAluno(${aluno.id})" title="Ver Histórico"><i class="fa-solid fa-eye"></i></button>
-                    <button class="btn btn-sm btn-outline-warning me-1" onclick="abrirQRModal(${aluno.id})" title="QR Code"><i class="fa-solid fa-qrcode"></i></button>
-                    <button class="btn btn-sm btn-outline-primary me-1" onclick="editarAluno(${aluno.id})"><i class="fa-solid fa-pen"></i></button>
+                    <button class="btn btn-sm btn-outline-info me-1" onclick="verDetalhesAluno(${aluno.id})"><i class="fa-solid fa-eye"></i></button>
                     <button class="btn btn-sm btn-outline-danger" onclick="excluirAluno(${aluno.id})"><i class="fa-solid fa-trash"></i></button>
                 </td>
             </tr>
@@ -158,27 +186,63 @@ function renderizarTabelaAlunos() {
     }).join('');
 }
 
-// 4. LANÇAMENTO EM LOTE
+function excluirAluno(id) {
+    if (confirm("Deseja realmente excluir este aluno?")) {
+        API.excluirAluno(id);
+        carregarDadosIniciais();
+    }
+}
+
+function verDetalhesAluno(id) {
+    const aluno = API.getAlunoPorId(id);
+    if (!aluno) return;
+
+    const xp = API.getAlunoXP(id);
+    const nivelInfo = API.calcularNivel(xp);
+    const historico = API.getLancamentosPorAluno(id);
+
+    document.getElementById('modalDetalhesNome').innerText = aluno.nome + " (" + aluno.turma + ")";
+    document.getElementById('detalheNivel').innerText = nivelInfo.nivel;
+    document.getElementById('detalheTitulo').innerText = nivelInfo.titulo;
+    document.getElementById('detalheXP').innerText = xp + " XP";
+
+    const tbody = document.getElementById('detalhesHistorico');
+    if (historico.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3">Nenhum lançamento registrado.</td></tr>`;
+    } else {
+        tbody.innerHTML = historico.map(h => `
+            <tr>
+                <td>${h.data}</td>
+                <td class="text-success">+${h.atividade || 0}</td>
+                <td class="text-success">+${h.equipe || 0}</td>
+                <td class="text-success">+${h.comportamento || 0}</td>
+                <td class="text-success">+${h.participacao || 0}</td>
+                <td class="fw-bold text-warning">+${(h.atividade || 0) + (h.equipe || 0) + (h.comportamento || 0) + (h.participacao || 0)}</td>
+                <td class="small text-muted">${h.observacao || '-'}</td>
+            </tr>
+        `).join('');
+    }
+
+    new bootstrap.Modal(document.getElementById('modalDetalhesAluno')).show();
+}
+
+// 3. LANÇAMENTO EM LOTE
 function carregarAlunosParaLote() {
-    const elTurma = document.getElementById('selectTurmaLote');
+    const turma = document.getElementById('selectTurmaLote').value;
     const tbody = document.getElementById('tabelaLote');
     const btnSalvar = document.getElementById('btnSalvarLote');
 
-    if (!elTurma || !tbody) return;
-    const turma = elTurma.value;
-
     if (!turma) {
         tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">Selecione uma turma para carregar a lista de lançamento.</td></tr>`;
-        if (btnSalvar) btnSalvar.disabled = true;
+        btnSalvar.disabled = true;
         return;
     }
 
-    const todosAlunos = Array.isArray(API.getAlunos()) ? API.getAlunos() : [];
-    const alunos = todosAlunos.filter(a => a.turma === turma);
+    const alunos = API.getAlunos().filter(a => a.turma === turma);
 
     if (alunos.length === 0) {
         tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">Nenhum aluno cadastrado nesta turma.</td></tr>`;
-        if (btnSalvar) btnSalvar.disabled = true;
+        btnSalvar.disabled = true;
         return;
     }
 
@@ -193,20 +257,18 @@ function carregarAlunosParaLote() {
             <td><input type="number" name="comportamento[]" class="form-control form-control-sm bg-black text-light border-secondary text-center" value="0" min="0"></td>
             <td><input type="number" name="participacao[]" class="form-control form-control-sm bg-black text-light border-secondary text-center" value="0" min="0"></td>
             <td>
-                <textarea name="observacao[]" class="form-control form-control-sm bg-black text-light border-secondary" rows="2" placeholder="Observações..."></textarea>
+                <textarea name="observacao[]" class="form-control form-control-sm bg-black text-light border-secondary" rows="1" placeholder="Observações..."></textarea>
             </td>
         </tr>
     `).join('');
 
-    if (btnSalvar) btnSalvar.disabled = false;
+    btnSalvar.disabled = false;
 }
 
 function salvarLoteXP(e) {
     e.preventDefault();
 
     const form = document.getElementById('formLote');
-    if (!form) return;
-
     const alunoIds = Array.from(form.querySelectorAll('input[name="alunoId[]"]')).map(i => i.value);
     const atividades = Array.from(form.querySelectorAll('input[name="atividade[]"]')).map(i => Number(i.value) || 0);
     const equipes = Array.from(form.querySelectorAll('input[name="equipe[]"]')).map(i => Number(i.value) || 0);
@@ -214,7 +276,7 @@ function salvarLoteXP(e) {
     const participacoes = Array.from(form.querySelectorAll('input[name="participacao[]"]')).map(i => Number(i.value) || 0);
     const observacoes = Array.from(form.querySelectorAll('textarea[name="observacao[]"]')).map(i => i.value);
 
-    let lancamentosContador = 0;
+    let count = 0;
 
     alunoIds.forEach((id, idx) => {
         const atv = atividades[idx];
@@ -233,91 +295,50 @@ function salvarLoteXP(e) {
                 participacao: part,
                 observacao: obs
             });
-            lancamentosContador++;
+            count++;
         }
     });
 
-    alert(`${lancamentosContador} lançamentos salvos com sucesso!`);
+    alert(`${count} lançamentos de XP gravados com sucesso!`);
     carregarAlunosParaLote();
     carregarDadosIniciais();
 }
 
-// 5. GERENCIAMENTO DE TURMAS E ALUNOS (CRUD)
-function modalNovaTurma() {
-    const elId = document.getElementById('turmaId');
-    const elNome = document.getElementById('turmaNome');
-    if (elId) elId.value = '';
-    if (elNome) elNome.value = '';
+// 4. GERADOR WHATSAPP
+function gerarLinksWhatsAppTurma() {
+    const turma = document.getElementById('selectTurmaWp').value;
+    const container = document.getElementById('containerLinksWp');
+    const template = document.getElementById('msgWpTemplate').value;
 
-    const elModal = document.getElementById('modalTurma');
-    if (elModal) new bootstrap.Modal(elModal).show();
-}
-
-function salvarTurma(e) {
-    e.preventDefault();
-    const nomeInput = document.getElementById('turmaNome');
-    if (!nomeInput || !nomeInput.value.trim()) return;
-
-    API.salvarTurma({ nome: nomeInput.value.trim() });
-
-    const elModal = document.getElementById('modalTurma');
-    if (elModal) {
-        const instance = bootstrap.Modal.getInstance(elModal);
-        if (instance) instance.hide();
+    if (!turma) {
+        container.innerHTML = `<div class="text-center text-muted py-4">Selecione uma turma para carregar a lista.</div>`;
+        return;
     }
 
-    carregarDadosIniciais();
-}
+    const alunos = API.getAlunos().filter(a => a.turma === turma);
 
-function excluirTurma(id) {
-    if (confirm("Deseja realmente remover esta turma?")) {
-        API.excluirTurma(id);
-        carregarDadosIniciais();
-    }
-}
-
-function modalNovoAluno() {
-    const elId = document.getElementById('alunoId');
-    const elNome = document.getElementById('alunoNome');
-    if (elId) elId.value = '';
-    if (elNome) elNome.value = '';
-
-    const elModal = document.getElementById('modalAluno');
-    if (elModal) new bootstrap.Modal(elModal).show();
-}
-
-function salvarAluno(e) {
-    e.preventDefault();
-    const id = document.getElementById('alunoId').value;
-    const nome = document.getElementById('alunoNome').value;
-    const turma = document.getElementById('alunoTurma').value;
-
-    API.salvarAluno({ id: id ? Number(id) : null, nome, turma });
-
-    const elModal = document.getElementById('modalAluno');
-    if (elModal) {
-        const instance = bootstrap.Modal.getInstance(elModal);
-        if (instance) instance.hide();
+    if (alunos.length === 0) {
+        container.innerHTML = `<div class="text-center text-muted py-4">Nenhum aluno cadastrado nesta turma.</div>`;
+        return;
     }
 
-    carregarDadosIniciais();
-}
+    const baseUrl = window.location.origin + window.location.pathname.replace('professor.html', 'aluno.html');
 
-function editarAluno(id) {
-    const aluno = API.getAlunoPorId(id);
-    if (!aluno) return;
+    container.innerHTML = alunos.map(aluno => {
+        const link = `${baseUrl}?id=${aluno.id}`;
+        const mensagemPronta = template.replace(/{nome}/g, aluno.nome).replace(/{link}/g, link);
+        const urlWp = `https://api.whatsapp.com/send?text=${encodeURIComponent(mensagemPronta)}`;
 
-    document.getElementById('alunoId').value = aluno.id;
-    document.getElementById('alunoNome').value = aluno.nome;
-    document.getElementById('alunoTurma').value = aluno.turma;
-
-    const elModal = document.getElementById('modalAluno');
-    if (elModal) new bootstrap.Modal(elModal).show();
-}
-
-function excluirAluno(id) {
-    if (confirm("Deseja realmente excluir este aluno?")) {
-        API.excluirAluno(id);
-        carregarDadosIniciais();
-    }
+        return `
+            <div class="p-3 bg-black border border-secondary rounded d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="fw-bold text-light">${aluno.nome}</div>
+                    <div class="small text-info">${link}</div>
+                </div>
+                <a href="${urlWp}" target="_blank" class="btn btn-sm btn-success fw-bold">
+                    <i class="fa-brands fa-whatsapp me-1"></i>Enviar
+                </a>
+            </div>
+        `;
+    }).join('');
 }

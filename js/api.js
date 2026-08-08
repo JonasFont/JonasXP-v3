@@ -3,22 +3,16 @@ const API_URL = "https://script.google.com/macros/s/AKfycbwdKDdXRr_arUOyOz0eliAG
 
 // js/api.js - Módulo de Dados
 
+// js/api.js - Sistema Módulo de Dados JonasXP V3
+
 const API = {
-    // 1. TURMAS
+    // === TURMAS ===
     getTurmas: function() {
-        const dados = localStorage.getItem('jonasxp_turmas');
-        if (!dados) {
-            // Turmas padrão de teste caso esteja totalmente limpo
-            const turmasIniciais = [
-                { id: 1, nome: '6º Ano A' },
-                { id: 2, nome: '7º Ano B' }
-            ];
-            localStorage.setItem('jonasxp_turmas', JSON.stringify(turmasIniciais));
-            return turmasIniciais;
-        }
         try {
-            return JSON.parse(dados) || [];
-        } catch (e) {
+            const dados = localStorage.getItem('jonasxp_turmas');
+            const parsed = JSON.parse(dados);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch(e) {
             return [];
         }
     },
@@ -33,20 +27,22 @@ const API = {
             turmas.push(turma);
         }
         localStorage.setItem('jonasxp_turmas', JSON.stringify(turmas));
+        return turma;
     },
 
     excluirTurma: function(id) {
         let turmas = this.getTurmas();
-        turmas = turmas.filter(t => t.id !== id);
+        turmas = turmas.filter(t => Number(t.id) !== Number(id));
         localStorage.setItem('jonasxp_turmas', JSON.stringify(turmas));
     },
 
-    // 2. ALUNOS
+    // === ALUNOS ===
     getAlunos: function() {
-        const dados = localStorage.getItem('jonasxp_alunos');
         try {
-            return JSON.parse(dados) || [];
-        } catch (e) {
+            const dados = localStorage.getItem('jonasxp_alunos');
+            const parsed = JSON.parse(dados);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch(e) {
             return [];
         }
     },
@@ -66,6 +62,7 @@ const API = {
             alunos.push(aluno);
         }
         localStorage.setItem('jonasxp_alunos', JSON.stringify(alunos));
+        return aluno;
     },
 
     excluirAluno: function(id) {
@@ -74,12 +71,13 @@ const API = {
         localStorage.setItem('jonasxp_alunos', JSON.stringify(alunos));
     },
 
-    // 3. LANÇAMENTOS E XP
+    // === LANÇAMENTOS E XP ===
     getLancamentos: function() {
-        const dados = localStorage.getItem('jonasxp_lancamentos');
         try {
-            return JSON.parse(dados) || [];
-        } catch (e) {
+            const dados = localStorage.getItem('jonasxp_lancamentos');
+            const parsed = JSON.parse(dados);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch(e) {
             return [];
         }
     },

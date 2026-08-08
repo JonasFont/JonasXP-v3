@@ -3,19 +3,27 @@
 const API_URL = "https://script.google.com/macros/s/AKfycbxsOr7vf038H0zxZP3RT6FHixBDzbREwqqy-DvaXDUu1Uq0ol-GSlhtD2hj88Kpr1XR/exec";
 
 const API = {
-    // 1. Busca lista de turmas únicas
+    // 1. Busca lista de turmas únicas e limpas (sem undefined)
     getTurmas: async function() {
         try {
             const alunos = await this.getAlunos();
-            if (!Array.isArray(alunos)) return [];
-            
-            // Extrai turmas únicas eliminando duplicados
-            const turmas = alunos
-                .map(a => a.turma || a.Turma)
-                .filter((v, i, a) => v && a.indexOf(v) === i)
-                .sort();
+            if (!Array.isArray(alunos) || alunos.length === 0) return [];
 
-            return turmas;
+            const turmasBrutas = alunos.map(aluno => {
+                if (!aluno) return null;
+                return aluno.turma || 
+                       aluno.Turma || 
+                       aluno.TURMA || 
+                       aluno.curso || 
+                       aluno.Curso || 
+                       aluno.serie || 
+                       aluno.Serie || 
+                       '';
+            });
+
+            // Remove nulos, undefined e duplicados
+            const turmasValidas = turmasBrutas.filter(t => t && String(t).trim() !== '' && String(t).trim() !== 'undefined');
+            return [...new Set(turmasValidas)].sort();
         } catch (error) {
             console.error("Erro ao carregar turmas:", error);
             return [];
@@ -34,12 +42,15 @@ const API = {
         }
     },
 
-    // 3. Busca um aluno por ID
+    // 3. Busca um aluno por ID (Comparações flexíveis de string)
     getAlunoPorId: async function(id) {
         try {
             const idBuscado = String(id).replace(/['"\s]/g, '');
             const todos = await this.getAlunos();
-            return todos.find(a => String(a.id || a.ID).replace(/['"\s]/g, '') === idBuscado);
+            return todos.find(a => {
+                const idAluno = String(a.id || a.ID || '').replace(/['"\s]/g, '');
+                return idAluno === idBuscado || idAluno.includes(idBuscado) || idBuscado.includes(idAluno);
+            });
         } catch (error) {
             console.error("Erro ao buscar aluno por ID:", error);
             return null;
@@ -58,7 +69,7 @@ const API = {
         }
     },
 
-    // 5. Busca lançamentos filtrados por Aluno
+    // 5. Busca lançamentos filtrados por Aluno (Resiliente a IDs Longos e Concatenados)
     getLancamentosPorAluno: async function(alunoId) {
         try {
             const idProcurado = String(alunoId).replace(/['"\s]/g, '');
@@ -68,7 +79,13 @@ const API = {
 
             return todosLancamentos.filter(item => {
                 const idRegistro = String(
-                    item.alunoId || item.idAluno || item.aluno_id || item.ID_ALUNO || item.id || item.ID || ''
+                    item.alunoId || 
+                    item.idAluno || 
+                    item.aluno_id || 
+                    item.ID_ALUNO || 
+                    item.id || 
+                    item.ID || 
+                    ''
                 ).replace(/['"\s]/g, '');
 
                 return idRegistro.includes(idProcurado) || idProcurado.includes(idRegistro);
@@ -79,12 +96,12 @@ const API = {
         }
     },
 
-    // 6. Salva novos lançamentos de XP (Post para o Apps Script)
+    // 6. Salvar novo lançamento de XP
     salvarLancamento: async function(dados) {
         try {
             const response = await fetch(API_URL, {
                 method: 'POST',
-                mode: 'no-cors', // Evita erro de CORS com Apps Script
+                mode: 'no-cors',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'salvarLancamento', ...dados })
             });
@@ -95,7 +112,7 @@ const API = {
         }
     },
 
-    // 7. Cálculo de Nível e Progresso
+    // 7. Cálculo de Nível e Progresso de XP
     calcularNivel: function(xp) {
         const xpAtual = Number(xp) || 0;
         
@@ -127,4 +144,4 @@ const API = {
             porcentagem: porcentagem
         };
     }
-}
+};

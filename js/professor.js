@@ -1,4 +1,4 @@
-// js/professor.js - Painel do Professor JonasXP (Versão Atualizada e Corrigida)
+// js/professor.js - Painel do Professor JonasXP
 
 let CACHE_ALUNOS = [];
 let CACHE_TURMAS = [];
@@ -8,9 +8,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     configurarEventos();
 });
 
-// ----------------------------------------------------------------------------
+// ============================================================================
 // 1. CARREGAMENTO INICIAL DE DADOS
-// ----------------------------------------------------------------------------
+// ============================================================================
 async function carregarDadosIniciais() {
     try {
         const [turmas, alunos] = await Promise.all([
@@ -40,9 +40,9 @@ async function carregarDadosIniciais() {
     }
 }
 
-// ----------------------------------------------------------------------------
+// ============================================================================
 // 2. MÉTRICAS DO PAINEL
-// ----------------------------------------------------------------------------
+// ============================================================================
 function atualizarMetricas() {
     const totalAlunos = CACHE_ALUNOS.length;
     const totalTurmas = CACHE_TURMAS.length;
@@ -55,9 +55,9 @@ function atualizarMetricas() {
     if (document.getElementById('metricMediaNivel')) document.getElementById('metricMediaNivel').innerText = `Nível ${mediaNivel}`;
 }
 
-// ----------------------------------------------------------------------------
+// ============================================================================
 // 3. POVOAMENTO E VALIDAÇÃO DE TURMAS
-// ----------------------------------------------------------------------------
+// ============================================================================
 function preencherTodosSelectsTurmas() {
     const idsSelects = [
         'filtroTurmaAluno',
@@ -79,12 +79,14 @@ function preencherTodosSelectsTurmas() {
 
         CACHE_TURMAS.forEach(t => {
             if (!t) return;
-            
-            // Suporta tanto objeto quanto string direta
-            const val = typeof t === 'object' ? (t.id || t.ID || t.nome || t.Nome) : t;
-            const label = typeof t === 'object' ? (t.nome || t.Nome || t.id || t.ID) : t;
 
-            htmlOpcoes += `<option value="${val}">${label}</option>`;
+            // Busca priorizando a coluna "Turma"
+            const nomeExibicao = typeof t === 'object' ? (t.turma || t.Turma || t.nome || t.Nome) : t;
+            const valorInterno = typeof t === 'object' ? (t.id || t.ID || nomeExibicao) : t;
+
+            if (nomeExibicao) {
+                htmlOpcoes += `<option value="${valorInterno}">${nomeExibicao}</option>`;
+            }
         });
 
         select.innerHTML = htmlOpcoes;
@@ -92,20 +94,37 @@ function preencherTodosSelectsTurmas() {
     });
 }
 
-// Comparação flexível que aceita o ID da turma ou o Nome da Turma
+// Comparação flexível que aceita o ID ou o Nome da Turma
 function turmaBateComSelecao(turmaAluno, turmaSelecionada) {
-    if (!turmaSelecionada) return true;
+    if (!turmaSelecionada) return true; // Se selecionar "Todas", traz todos
     if (!turmaAluno) return false;
 
     const tAluno = String(turmaAluno).trim().toLowerCase();
     const tSel = String(turmaSelecionada).trim().toLowerCase();
 
-    return tAluno === tSel;
+    // 1. Verificação direta
+    if (tAluno === tSel) return true;
+
+    // 2. Verificação cruzada no cache de turmas
+    const objetoTurma = CACHE_TURMAS.find(t => {
+        if (typeof t !== 'object') return String(t).trim().toLowerCase() === tSel;
+        const idT = String(t.id || t.ID || '').trim().toLowerCase();
+        const nomeT = String(t.turma || t.Turma || t.nome || t.Nome || '').trim().toLowerCase();
+        return idT === tSel || nomeT === tSel;
+    });
+
+    if (objetoTurma) {
+        const idT = String(objetoTurma.id || objetoTurma.ID || '').trim().toLowerCase();
+        const nomeT = String(objetoTurma.turma || objetoTurma.Turma || '').trim().toLowerCase();
+        return tAluno === idT || tAluno === nomeT;
+    }
+
+    return false;
 }
 
-// ----------------------------------------------------------------------------
+// ============================================================================
 // 4. TABELA PRINCIPAL DE ALUNOS E FILTRO
-// ----------------------------------------------------------------------------
+// ============================================================================
 function renderizarTabelaAlunos(listaAlunos) {
     const tbody = document.getElementById('tabelaAlunos');
     if (!tbody) return;
@@ -165,9 +184,9 @@ function filtrarAlunos() {
     renderizarTabelaAlunos(filtrados);
 }
 
-// ----------------------------------------------------------------------------
+// ============================================================================
 // 5. LANÇAMENTO EM LOTE (AULAS)
-// ----------------------------------------------------------------------------
+// ============================================================================
 function carregarTabelaLote() {
     const turmaSel = document.getElementById('selectTurmaLote')?.value;
     const tbody = document.getElementById('tabelaLote');
@@ -265,9 +284,9 @@ async function salvarPontuacoesLote(e) {
     }
 }
 
-// ----------------------------------------------------------------------------
+// ============================================================================
 // 6. GERADOR DE LINKS WHATSAPP
-// ----------------------------------------------------------------------------
+// ============================================================================
 function gerarLinksWhatsAppTurma() {
     const turmaSel = document.getElementById('selectTurmaWp')?.value;
     const container = document.getElementById('containerLinksWp');
@@ -312,9 +331,9 @@ function gerarLinksWhatsAppTurma() {
     }).join('');
 }
 
-// ----------------------------------------------------------------------------
+// ============================================================================
 // 7. HISTÓRICO INDIVIDUAL (MODAL)
-// ----------------------------------------------------------------------------
+// ============================================================================
 async function verHistoricoAluno(id, nome, totalXP) {
     const modalNome = document.getElementById('modalDetalhesNome');
     const detalheNivel = document.getElementById('detalheNivel');
@@ -364,9 +383,9 @@ async function verHistoricoAluno(id, nome, totalXP) {
     }
 }
 
-// ----------------------------------------------------------------------------
-// 8. CONFIGURAÇÃO DE EVENTOS DO SISTEMA
-// ----------------------------------------------------------------------------
+// ============================================================================
+// 8. CONFIGURAÇÃO DE EVENTOS
+// ============================================================================
 function configurarEventos() {
     const busca = document.getElementById('buscaAluno');
     const filtro = document.getElementById('filtroTurmaAluno') || document.getElementById('filtroTurma');

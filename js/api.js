@@ -1,11 +1,11 @@
 // js/api.js - Módulo de Comunicação com Google Apps Script
 
 const API_CONFIG = {
-    URL: "https://script.google.com/macros/s/AKfycbx4UYuGkCI61POD4QHuqjT2T-4K2wV6RFU9ZrRhrcVuXtgGQSyGmIuL_ceIDV1XgWYm/exechttps://script.google.com/macros/s/AKfycbzSBIoOr-XOLsmsqNFRjz0iEGxVVIjOda6JUcdgtn3Jk-e5mUp1a11v7AQKUjcovoaT/exec",
+    // Apenas UMA url válida aqui:
+    URL: "https://script.google.com/macros/s/AKfycbzSBIoOr-XOLsmsqNFRjz0iEGxVVIjOda6JUcdgtn3Jk-e5mUp1a11v7AQKUjcovoaT/exec",
     TIMEOUT: 15000,
     DEBUG: true
 };
-
 async function fetchComTimeout(resource, options = {}) {
     const { timeout = API_CONFIG.TIMEOUT } = options;
     const controller = new AbortController();
@@ -73,9 +73,6 @@ const API = {
         return await res.json();
     },
 
-    /**
-     * Calculadora de níveis e títulos sincronizada com as Conquistas
-     */
     calcularNivel(totalXP) {
         const xp = Number(totalXP) || 0;
 

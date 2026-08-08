@@ -1,126 +1,77 @@
-// Substitua pela URL da sua implantação do Apps Script
-const API_URL = "https://script.google.com/macros/s/AKfycbwdKDdXRr_arUOyOz0eliAGSDiySaFqVrvtTX0oleeGK0MEAiZoBEDKGpyQCBE2mawg/exec";
+// js/api.js - Módulo de Conexão com Google Sheets
 
-// js/api.js - Módulo do Banco de Dados Anti-Quebra
+const API_URL = "https://script.google.com/macros/s/AKfycbx8vYuXAgGXJ0y72jh9P0_0ZpBM_bL3aoA431u1D4G_8Fw7d1fVDSblIushkrlFIKTS/exec";
 
 const API = {
-    // DB RESET & RECUPERAÇÃO AUTOMÁTICA
-    _lerDB: function(chave) {
+    // Chamada JSONP dinamarquesa para evitar travamentos de CORS
+    _request: function(action, params = {}) {
+        return new Promise((resolve, reject) => {
+            const callbackName = 'jsonp_cb_' + Math.round(100000 * Math.random());
+            window[callbackName] = function(data) {
+                delete window[callbackName];
+                document.body.removeChild(script);
+                resolve(data);
+            };
+
+            const script = document.createElement('script');
+            let query = `?action=${action}&callback=${callbackName}`;
+            
+            Object.keys(params).forEach(key => {
+                query += `&${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`;
+            });
+
+            script.src = API_URL + query;
+            script.onerror = () => {
+                delete window[callbackName];
+                if (script.parentNode) document.body.removeChild(script);
+                reject(new Error("Falha na conexão com a planilha."));
+            };
+            document.body.appendChild(script);
+        });
+    },
+
+    getTurmas: async function() {
         try {
-            const dados = localStorage.getItem(chave);
-            if (!dados) return null;
-            const parsed = JSON.parse(dados);
-            return Array.isArray(parsed) ? parsed : null;
-        } catch(e) {
-            console.warn(`Erro ao ler ${chave}, restaurando banco...`, e);
-            return null;
-        }
+            const res = await this._request('getTurmas');
+            return Array.isArray(res) ? res : [];
+        } catch(e) { console.error(e); return []; }
     },
 
-    // 1. TURMAS
-    getTurmas: function() {
-        let turmas = this._lerDB('jonasxp_turmas');
-        if (!turmas || turmas.length === 0) {
-            // Turmas Padrão para o sistema nunca iniciar zerado/quebrado
-            turmas = [
-                { id: 101, nome: '6º Ano A' },
-                { id: 102, nome: '7º Ano B' }
-            ];
-            localStorage.setItem('jonasxp_turmas', JSON.stringify(turmas));
-        }
-        return turmas;
+    salvarTurma: async function(nome) {
+        return await this._request('salvarTurma', { nome });
     },
 
-    salvarTurma: function(turma) {
-        const turmas = this.getTurmas();
-        if (turma.id) {
-            const index = turmas.findIndex(t => Number(t.id) === Number(turma.id));
-            if (index !== -1) turmas[index] = turma;
-        } else {
-            turma.id = Date.now();
-            turmas.push(turma);
-        }
-        localStorage.setItem('jonasxp_turmas', JSON.stringify(turmas));
-        return turma;
+    getAlunos: async function() {
+        try {
+            const res = await this._request('getAlunos');
+            return Array.isArray(res) ? res : [];
+        } catch(e) { console.error(e); return []; }
     },
 
-    excluirTurma: function(id) {
-        let turmas = this.getTurmas().filter(t => Number(t.id) !== Number(id));
-        localStorage.setItem('jonasxp_turmas', JSON.stringify(turmas));
+    salvarAluno: async function(nome, turma) {
+        return await this._request('salvarAluno', { nome, turma });
     },
 
-    // 2. ALUNOS
-    getAlunos: function() {
-        let alunos = this._lerDB('jonasxp_alunos');
-        if (!alunos) {
-            // Alunos Padrão para teste inicial
-            alunos = [
-                { id: 1001, nome: 'Lucas Silva', turma: '6º Ano A' },
-                { id: 1002, nome: 'Mariana Costa', turma: '7º Ano B' }
-            ];
-            localStorage.setItem('jonasxp_alunos', JSON.stringify(alunos));
-        }
-        return alunos;
+    getLancamentosPorAluno: async function(alunoId) {
+        try {
+            const res = await this._request('getLancamentosPorAluno', { alunoId });
+            return Array.isArray(res) ? res : [];
+        } catch(e) { console.error(e); return []; }
     },
 
-    getAlunoPorId: function(id) {
-        return this.getAlunos().find(a => Number(a.id) === Number(id));
-    },
-
-    salvarAluno: function(aluno) {
-        const alunos = this.getAlunos();
-        if (aluno.id) {
-            const index = alunos.findIndex(a => Number(a.id) === Number(aluno.id));
-            if (index !== -1) alunos[index] = aluno;
-        } else {
-            aluno.id = Date.now();
-            alunos.push(aluno);
-        }
-        localStorage.setItem('jonasxp_alunos', JSON.stringify(alunos));
-        return aluno;
-    },
-
-    excluirAluno: function(id) {
-        let alunos = this.getAlunos().filter(a => Number(a.id) !== Number(id));
-        localStorage.setItem('jonasxp_alunos', JSON.stringify(alunos));
-    },
-
-    // 3. LANÇAMENTOS E XP
-    getLancamentos: function() {
-        return this._lerDB('jonasxp_lancamentos') || [];
-    },
-
-    getLancamentosPorAluno: function(alunoId) {
-        return this.getLancamentos().filter(l => Number(l.alunoId) === Number(alunoId));
-    },
-
-    adicionarLancamento: function(lancamento) {
-        const lancamentos = this.getLancamentos();
-        lancamento.id = Date.now();
-        lancamentos.push(lancamento);
-        localStorage.setItem('jonasxp_lancamentos', JSON.stringify(lancamentos));
-    },
-
-    getAlunoXP: function(alunoId) {
-        const lancamentos = this.getLancamentosPorAluno(alunoId);
-        return lancamentos.reduce((total, l) => {
-            const atv = Number(l.atividade) || 0;
-            const eqp = Number(l.equipe) || 0;
-            const comp = Number(l.comportamento) || 0;
-            const part = Number(l.participacao) || 0;
-            return total + atv + eqp + comp + part;
-        }, 0);
+    adicionarLancamento: async function(dados) {
+        return await this._request('salvarLancamento', dados);
     },
 
     calcularNivel: function(xpTotal) {
         const xp = Number(xpTotal) || 0;
         const niveis = [
-            { nivel: 1, xpNecessario: 0, titulo: "Novato" },
-            { nivel: 2, xpNecessario: 100, titulo: "Aprendiz" },
-            { nivel: 3, xpNecessario: 300, titulo: "Explorador" },
-            { nivel: 4, xpNecessario: 600, titulo: "Estrategista" },
-            { nivel: 5, xpNecessario: 1000, titulo: "Mestre" },
-            { nivel: 6, xpNecessario: 1500, titulo: "Lorde do XP" }
+            { nivel: 1, xpNecessario: 0, titulo: "Novato 🛡️" },
+            { nivel: 2, xpNecessario: 100, titulo: "Aprendiz ⚔️" },
+            { nivel: 3, xpNecessario: 300, titulo: "Explorador 🏹" },
+            { nivel: 4, xpNecessario: 600, titulo: "Estrategista 📜" },
+            { nivel: 5, xpNecessario: 1000, titulo: "Mestre 👑" },
+            { nivel: 6, xpNecessario: 1500, titulo: "Lorde do XP 🌟" }
         ];
 
         let nivelAtual = niveis[0];
@@ -136,19 +87,13 @@ const API = {
 
         const xpInicio = nivelAtual.xpNecessario;
         const xpFim = proximoNivel.xpNecessario;
-        const progressoXP = xp - xpInicio;
-        const faixaXP = xpFim - xpInicio;
-
-        let porcentagem = Math.floor((progressoXP / faixaXP) * 100);
-        if (porcentagem > 100) porcentagem = 100;
-        if (porcentagem < 0) porcentagem = 0;
+        const progresso = Math.min(100, Math.max(0, Math.floor(((xp - xpInicio) / (xpFim - xpInicio)) * 100)));
 
         return {
             nivel: nivelAtual.nivel,
             titulo: nivelAtual.titulo,
-            porcentagem: porcentagem,
-            xpProxNivel: xpFim,
-            xpRestante: Math.max(0, xpFim - xp)
+            porcentagem: progresso,
+            xpProxNivel: xpFim
         };
     }
 };

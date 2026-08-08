@@ -1,4 +1,4 @@
-// js/professor.js - Controlador Front-end Dinâmico
+// js/professor.js - Atualizado com QR Code e Copiar Link
 
 let CACHE_ALUNOS = [];
 let CACHE_TURMAS = [];
@@ -9,7 +9,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function configurarEventos() {
-    // Abertura Limpa dos Modais (Resolve avisos de aria-hidden)
     document.getElementById('btnAbrirModalTurma')?.addEventListener('click', () => {
         document.getElementById('turmaNome').value = '';
         bootstrap.Modal.getOrCreateInstance(document.getElementById('modalTurma')).show();
@@ -20,20 +19,10 @@ function configurarEventos() {
         bootstrap.Modal.getOrCreateInstance(document.getElementById('modalAluno')).show();
     });
 
-    // Submissão de Formulários
     document.getElementById('formTurma')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         if (document.activeElement) document.activeElement.blur();
-
-        const nome = document.getElementById('turmaNome').value;
-        const btn = e.target.querySelector('button[type="submit"]');
-        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin me-1"></i>Salvando...`;
-        btn.disabled = true;
-
-        await API.salvarTurma(nome);
-
-        btn.innerHTML = `Salvar Turma`;
-        btn.disabled = false;
+        await API.salvarTurma(document.getElementById('turmaNome').value);
         bootstrap.Modal.getInstance(document.getElementById('modalTurma'))?.hide();
         carregarDadosIniciais();
     });
@@ -41,27 +30,13 @@ function configurarEventos() {
     document.getElementById('formAluno')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         if (document.activeElement) document.activeElement.blur();
-
-        const nome = document.getElementById('alunoNome').value;
-        const turma = document.getElementById('alunoTurma').value;
-        const btn = e.target.querySelector('button[type="submit"]');
-        
-        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin me-1"></i>Salvando...`;
-        btn.disabled = true;
-
-        await API.salvarAluno(nome, turma);
-
-        btn.innerHTML = `Salvar Aluno`;
-        btn.disabled = false;
+        await API.salvarAluno(document.getElementById('alunoNome').value, document.getElementById('alunoTurma').value);
         bootstrap.Modal.getInstance(document.getElementById('modalAluno'))?.hide();
         carregarDadosIniciais();
     });
 
-    // Filtro e Busca em Tempo Real
     document.getElementById('buscaAluno')?.addEventListener('input', renderizarTabelaAlunos);
     document.getElementById('filtroTurmaAluno')?.addEventListener('change', renderizarTabelaAlunos);
-
-    // Lote e WhatsApp
     document.getElementById('selectTurmaLote')?.addEventListener('change', carregarAlunosParaLote);
     document.getElementById('formLote')?.addEventListener('submit', salvarLoteXP);
     document.getElementById('selectTurmaWp')?.addEventListener('change', gerarLinksWhatsAppTurma);
@@ -85,7 +60,7 @@ function atualizarMetricas() {
     let somaNiveis = 0;
 
     CACHE_ALUNOS.forEach(a => {
-        const xp = Number(a.xp) || 0;
+        const xp = Number(a.xp || a.XP) || 0;
         totalXP += xp;
         somaNiveis += API.calcularNivel(xp).nivel;
     });
@@ -96,41 +71,24 @@ function atualizarMetricas() {
 
 function atualizarSelectsTurmas() {
     const selects = ['filtroTurmaAluno', 'selectTurmaLote', 'selectTurmaWp', 'alunoTurma'];
-
     selects.forEach(id => {
         const el = document.getElementById(id);
         if (!el) return;
-
         const valAtual = el.value;
-        if (id === 'filtroTurmaAluno') {
-            el.innerHTML = '<option value="">Todas as Turmas</option>';
-        } else if (id === 'alunoTurma') {
-            el.innerHTML = '<option value="" disabled selected>Selecione a turma...</option>';
-        } else {
-            el.innerHTML = '<option value="">Selecione...</option>';
-        }
+        el.innerHTML = (id === 'filtroTurmaAluno') ? '<option value="">Todas as Turmas</option>' : '<option value="">Selecione...</option>';
 
         CACHE_TURMAS.forEach(t => {
             const nome = t.nome || t.Nome;
             el.innerHTML += `<option value="${nome}">${nome}</option>`;
         });
-
         el.value = valAtual;
     });
 }
 
 function renderizarTurmas() {
     const tbody = document.getElementById('tabelaTurmas');
-    if (!CACHE_TURMAS || CACHE_TURMAS.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="2" class="text-center py-4 text-muted">Nenhuma turma cadastrada.</td></tr>`;
-        return;
-    }
-
     tbody.innerHTML = CACHE_TURMAS.map(t => `
-        <tr>
-            <td class="fw-bold text-light">${t.nome || t.Nome}</td>
-            <td class="text-muted font-monospace">#${t.id || t.ID}</td>
-        </tr>
+        <tr><td class="fw-bold">${t.nome || t.Nome}</td><td class="text-muted font-monospace">#${t.id || t.ID}</td></tr>
     `).join('');
 }
 
@@ -142,17 +100,10 @@ function renderizarTabelaAlunos() {
     let filtrados = CACHE_ALUNOS.filter(a => {
         const nome = (a.nome || a.Nome || '').toLowerCase();
         const turma = a.turma || a.Turma;
-        const bateNome = nome.includes(termoBusca);
-        const bateTurma = !filtroTurma || turma === filtroTurma;
-        return bateNome && bateTurma;
+        return nome.includes(termoBusca) && (!filtroTurma || turma === filtroTurma);
     });
 
-    if (filtrados.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-muted">Nenhum aluno encontrado.</td></tr>`;
-        return;
-    }
-
-    filtrados.sort((a, b) => (Number(b.xp) || 0) - (Number(a.xp) || 0));
+    filtrados.sort((a, b) => (Number(b.xp || b.XP) || 0) - (Number(a.xp || a.XP) || 0));
 
     tbody.innerHTML = filtrados.map(aluno => {
         const id = aluno.id || aluno.ID;
@@ -163,26 +114,12 @@ function renderizarTabelaAlunos() {
 
         return `
             <tr>
-                <td>
-                    <div class="fw-bold text-light">${nome}</div>
-                    <small class="text-muted">ID: #${id}</small>
-                </td>
+                <td><div class="fw-bold">${nome}</div><small class="text-muted">ID: #${id}</small></td>
                 <td><span class="badge bg-dark border border-secondary">${turma}</span></td>
-                <td>
-                    <span class="badge badge-level">Nível ${info.nivel}</span>
-                    <div class="small text-warning mt-1">${info.titulo}</div>
-                </td>
-                <td style="min-width: 150px;">
-                    <div class="d-flex justify-content-between small mb-1">
-                        <span class="text-success fw-bold">${xp} XP</span>
-                        <span class="text-muted">${info.porcentagem}%</span>
-                    </div>
-                    <div class="progress bg-black border border-secondary" style="height: 6px;">
-                        <div class="progress-bar bg-warning" style="width: ${info.porcentagem}%"></div>
-                    </div>
-                </td>
+                <td><span class="badge badge-level">Nível ${info.nivel}</span><div class="small text-warning mt-1">${info.titulo}</div></td>
+                <td><span class="text-success fw-bold">${xp} XP</span></td>
                 <td class="text-end">
-                    <button class="btn btn-sm btn-outline-info" onclick="verDetalhesAluno('${id}')"><i class="fa-solid fa-eye me-1"></i>Histórico</button>
+                    <button class="btn btn-sm btn-outline-info" onclick="verDetalhesAluno('${id}')"><i class="fa-solid fa-eye me-1"></i>Ver</button>
                 </td>
             </tr>
         `;
@@ -197,27 +134,23 @@ async function verDetalhesAluno(id) {
     const xp = Number(aluno.xp || aluno.XP) || 0;
     const info = API.calcularNivel(xp);
 
-    document.getElementById('modalDetalhesNome').innerText = (aluno.nome || aluno.Nome) + " (" + (aluno.turma || aluno.Turma) + ")";
+    document.getElementById('modalDetalhesNome').innerText = (aluno.nome || aluno.Nome);
     document.getElementById('detalheNivel').innerText = info.nivel;
     document.getElementById('detalheTitulo').innerText = info.titulo;
     document.getElementById('detalheXP').innerText = xp + " XP";
 
     const tbody = document.getElementById('detalhesHistorico');
-    if (!historico || historico.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3">Sem registros de XP.</td></tr>`;
-    } else {
-        tbody.innerHTML = historico.map(h => `
-            <tr>
-                <td>${h.data || h.Data}</td>
-                <td class="text-success">+${h.atividade || 0}</td>
-                <td class="text-success">+${h.equipe || 0}</td>
-                <td class="text-success">+${h.comportamento || 0}</td>
-                <td class="text-success">+${h.participacao || 0}</td>
-                <td class="fw-bold text-warning">+${(Number(h.atividade)||0)+(Number(h.equipe)||0)+(Number(h.comportamento)||0)+(Number(h.participacao)||0)}</td>
-                <td class="small text-muted">${h.observacao || '-'}</td>
-            </tr>
-        `).join('');
-    }
+    tbody.innerHTML = historico.map(h => `
+        <tr>
+            <td>${h.data || h.Data}</td>
+            <td class="text-success">+${h.atividade || 0}</td>
+            <td class="text-success">+${h.equipe || 0}</td>
+            <td class="text-success">+${h.comportamento || 0}</td>
+            <td class="text-success">+${h.participacao || 0}</td>
+            <td class="fw-bold text-warning">+${(Number(h.atividade)||0)+(Number(h.equipe)||0)+(Number(h.comportamento)||0)+(Number(h.participacao)||0)}</td>
+            <td class="small text-muted">${h.observacao || '-'}</td>
+        </tr>
+    `).join('');
 
     bootstrap.Modal.getOrCreateInstance(document.getElementById('modalDetalhesAluno')).show();
 }
@@ -227,38 +160,26 @@ function carregarAlunosParaLote() {
     const tbody = document.getElementById('tabelaLote');
     const btn = document.getElementById('btnSalvarLote');
 
-    if (!turma) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">Selecione uma turma acima.</td></tr>`;
-        btn.disabled = true;
-        return;
-    }
+    if (!turma) { tbody.innerHTML = ''; btn.disabled = true; return; }
 
     const alunos = CACHE_ALUNOS.filter(a => (a.turma || a.Turma) === turma);
-
-    if (alunos.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">Nenhum aluno nesta turma.</td></tr>`;
-        btn.disabled = true;
-        return;
-    }
-
     tbody.innerHTML = alunos.map(aluno => `
         <tr>
-            <td class="fw-bold align-middle">${aluno.nome || aluno.Nome}<input type="hidden" name="alunoId[]" value="${aluno.id || aluno.ID}"></td>
-            <td><input type="number" name="atividade[]" class="form-control form-control-sm bg-black text-white border-secondary text-center" value="0" min="0"></td>
-            <td><input type="number" name="equipe[]" class="form-control form-control-sm bg-black text-white border-secondary text-center" value="0" min="0"></td>
-            <td><input type="number" name="comportamento[]" class="form-control form-control-sm bg-black text-white border-secondary text-center" value="0" min="0"></td>
-            <td><input type="number" name="participacao[]" class="form-control form-control-sm bg-black text-white border-secondary text-center" value="0" min="0"></td>
-            <td><input type="text" name="observacao[]" class="form-control form-control-sm bg-black text-white border-secondary" placeholder="Obs..."></td>
+            <td class="fw-bold">${aluno.nome || aluno.Nome}<input type="hidden" name="alunoId[]" value="${aluno.id || aluno.ID}"></td>
+            <td><input type="number" name="atividade[]" class="form-control form-control-sm bg-black text-white text-center" value="0"></td>
+            <td><input type="number" name="equipe[]" class="form-control form-control-sm bg-black text-white text-center" value="0"></td>
+            <td><input type="number" name="comportamento[]" class="form-control form-control-sm bg-black text-white text-center" value="0"></td>
+            <td><input type="number" name="participacao[]" class="form-control form-control-sm bg-black text-white text-center" value="0"></td>
+            <td><input type="text" name="observacao[]" class="form-control form-control-sm bg-black text-white" placeholder="Obs..."></td>
         </tr>
     `).join('');
-
     btn.disabled = false;
 }
 
 async function salvarLoteXP(e) {
     e.preventDefault();
     const btn = document.getElementById('btnSalvarLote');
-    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin me-2"></i>Enviando...`;
+    btn.innerText = "Salvando...";
     btn.disabled = true;
 
     const form = document.getElementById('formLote');
@@ -283,8 +204,8 @@ async function salvarLoteXP(e) {
         }
     }
 
-    btn.innerHTML = `<i class="fa-solid fa-floppy-disk me-2"></i>Salvar Pontuações`;
-    alert("Pontuações registradas com sucesso!");
+    btn.innerText = "Salvar Pontuações";
+    alert("XP atualizado!");
     await carregarDadosIniciais();
     carregarAlunosParaLote();
 }
@@ -293,27 +214,41 @@ function gerarLinksWhatsAppTurma() {
     const turma = document.getElementById('selectTurmaWp').value;
     const container = document.getElementById('containerLinksWp');
 
-    if (!turma) {
-        container.innerHTML = `<div class="text-center text-muted py-4">Selecione uma turma acima.</div>`;
-        return;
-    }
+    if (!turma) { container.innerHTML = ''; return; }
 
     const alunos = CACHE_ALUNOS.filter(a => (a.turma || a.Turma) === turma);
     const baseUrl = window.location.origin + window.location.pathname.replace('professor.html', 'aluno.html');
 
     container.innerHTML = alunos.map(a => {
-        const link = `${baseUrl}?id=${a.id || a.ID}`;
-        const msg = encodeURIComponent(`Olá ${a.nome || a.Nome}! Veja seu progresso no JonasXP: ${link}`);
+        const id = a.id || a.ID;
+        const nome = a.nome || a.Nome;
+        const link = `${baseUrl}?id=${id}`;
+        const msg = encodeURIComponent(`Olá ${nome}! Seu acesso ao JonasXP: ${link}`);
+
         return `
-            <div class="p-3 bg-black border border-secondary rounded d-flex justify-content-between align-items-center">
+            <div class="p-3 bg-black border border-secondary rounded d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <div>
-                    <div class="fw-bold text-white">${a.nome || a.Nome}</div>
-                    <small class="text-muted">${link}</small>
+                    <div class="fw-bold text-white">${nome}</div>
+                    <small class="text-info">${link}</small>
                 </div>
-                <a href="https://api.whatsapp.com/send?text=${msg}" target="_blank" class="btn btn-sm btn-success fw-bold">
-                    <i class="fa-brands fa-whatsapp me-1"></i>Enviar
-                </a>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-sm btn-outline-light" onclick="copiarLink('${link}')"><i class="fa-solid fa-copy me-1"></i>Copiar Link</button>
+                    <button class="btn btn-sm btn-outline-warning" onclick="abrirQRCode('${nome}', '${link}')"><i class="fa-solid fa-qrcode me-1"></i>QR Code</button>
+                    <a href="https://api.whatsapp.com/send?text=${msg}" target="_blank" class="btn btn-sm btn-success fw-bold"><i class="fa-brands fa-whatsapp me-1"></i>WhatsApp</a>
+                </div>
             </div>
         `;
     }).join('');
+}
+
+function copiarLink(link) {
+    navigator.clipboard.writeText(link);
+    alert("Link copiado para a área de transferência!");
+}
+
+function abrirQRCode(nome, link) {
+    document.getElementById('qrModalNome').innerText = `QR Code: ${nome}`;
+    document.getElementById('txtLinkQR').innerText = link;
+    document.getElementById('imgQRCode').src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(link)}`;
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('modalQRCode')).show();
 }

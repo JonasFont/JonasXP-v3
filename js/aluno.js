@@ -1,14 +1,54 @@
-document.addEventListener("DOMContentLoaded", async () => {
-  const urlParams = new URLSearchParams(window.location.search);
-  const id = urlParams.get('id');
-  if (!id) return alert('ID do aluno não informado!');
+document.addEventListener('DOMContentLoaded', async () => {
+    const params = new URLSearchParams(window.location.search);
+    const alunoId = params.get('id');
 
-  const res = await API.getAlunoById(id);
-  if (res.error) return alert('Aluno não encontrado!');
+    if (!alunoId) {
+        document.body.innerHTML = `
+            <div class="container text-center py-5">
+                <h3 class="text-danger">Acesso Inválido</h3>
+                <p class="text-muted">Nenhum ID de aluno foi fornecido no link.</p>
+            </div>`;
+        return;
+    }
 
-  renderPerfil(res.aluno, res.avaliacoes);
+    const aluno = await API.getAlunoPorId(alunoId);
+
+    if (!aluno) {
+        document.body.innerHTML = `
+            <div class="container text-center py-5">
+                <h3 class="text-warning">Aluno não encontrado</h3>
+                <p class="text-muted">Não encontramos um cadastro associado a este ID.</p>
+            </div>`;
+        return;
+    }
+
+    const historico = await API.getLancamentosPorAluno(alunoId);
+    const xp = Number(aluno.xp || aluno.XP) || 0;
+    const info = API.calcularNivel(xp);
+
+    document.getElementById('alunoNome').innerText = aluno.nome || aluno.Nome;
+    document.getElementById('alunoTurma').innerText = aluno.turma || aluno.Turma;
+    document.getElementById('alunoNivel').innerText = info.nivel;
+    document.getElementById('alunoTitulo').innerText = info.titulo;
+    document.getElementById('alunoXP').innerText = `${xp} XP`;
+    document.getElementById('alunoProgresso').style.width = `${info.porcentagem}%`;
+
+    const tbody = document.getElementById('tabelaHistoricoAluno');
+    if (!historico || historico.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted">Nenhum lançamento registrado.</td></tr>`;
+    } else {
+        tbody.innerHTML = historico.map(h => `
+            <tr>
+                <td>${h.data || h.Data}</td>
+                <td class="text-success">+${h.atividade || 0}</td>
+                <td class="text-success">+${h.equipe || 0}</td>
+                <td class="text-success">+${h.comportamento || 0}</td>
+                <td class="text-success">+${h.participacao || 0}</td>
+                <td class="small text-muted">${h.observacao || '-'}</td>
+            </tr>
+        `).join('');
+    }
 });
-
 // Configuração dos 10 Níveis e Auras
 const TABELA_PROGRESSAO = [
   { nivel: 1, xpMeta: 100,  titulo: "👤 Humano Comum" },

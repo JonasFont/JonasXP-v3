@@ -1,15 +1,14 @@
 // js/api.js - Módulo de Conexão com Google Sheets
 
-const API_URL = "https://script.google.com/macros/s/AKfycbx8vYuXAgGXJ0y72jh9P0_0ZpBM_bL3aoA431u1D4G_8Fw7d1fVDSblIushkrlFIKTS/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbyxgLrAWxM8XW_d6Yizq7alJfGyZ2JthjMh2Ww1dGTp-ny_hjzAMYg0NQtIgBHzqmFh/exec";
 
 const API = {
-    // Chamada JSONP dinamarquesa para evitar travamentos de CORS
     _request: function(action, params = {}) {
         return new Promise((resolve, reject) => {
             const callbackName = 'jsonp_cb_' + Math.round(100000 * Math.random());
             window[callbackName] = function(data) {
                 delete window[callbackName];
-                document.body.removeChild(script);
+                if (script.parentNode) document.body.removeChild(script);
                 resolve(data);
             };
 
@@ -24,17 +23,15 @@ const API = {
             script.onerror = () => {
                 delete window[callbackName];
                 if (script.parentNode) document.body.removeChild(script);
-                reject(new Error("Falha na conexão com a planilha."));
+                reject(new Error("Erro de conexão."));
             };
             document.body.appendChild(script);
         });
     },
 
     getTurmas: async function() {
-        try {
-            const res = await this._request('getTurmas');
-            return Array.isArray(res) ? res : [];
-        } catch(e) { console.error(e); return []; }
+        const res = await this._request('getTurmas');
+        return Array.isArray(res) ? res : [];
     },
 
     salvarTurma: async function(nome) {
@@ -42,10 +39,13 @@ const API = {
     },
 
     getAlunos: async function() {
-        try {
-            const res = await this._request('getAlunos');
-            return Array.isArray(res) ? res : [];
-        } catch(e) { console.error(e); return []; }
+        const res = await this._request('getAlunos');
+        return Array.isArray(res) ? res : [];
+    },
+
+    getAlunoPorId: async function(id) {
+        const res = await this._request('getAlunoPorId', { id });
+        return (res && !res.erro) ? res : null;
     },
 
     salvarAluno: async function(nome, turma) {
@@ -53,10 +53,8 @@ const API = {
     },
 
     getLancamentosPorAluno: async function(alunoId) {
-        try {
-            const res = await this._request('getLancamentosPorAluno', { alunoId });
-            return Array.isArray(res) ? res : [];
-        } catch(e) { console.error(e); return []; }
+        const res = await this._request('getLancamentosPorAluno', { alunoId });
+        return Array.isArray(res) ? res : [];
     },
 
     adicionarLancamento: async function(dados) {

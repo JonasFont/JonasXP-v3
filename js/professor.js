@@ -1,4 +1,4 @@
-// js/professor.js - Controle Completo do Painel do Professor JonasXP
+// js/professor.js - Painel do Professor (Corrigido para preenchimento de turmas)
 
 let CACHE_ALUNOS = [];
 let CACHE_TURMAS = [];
@@ -8,83 +8,116 @@ document.addEventListener('DOMContentLoaded', async () => {
     configurarEventos();
 });
 
-// 1. Carregamento Inicial do Banco de Dados
 async function carregarDadosIniciais() {
-    exibirStatusCarregando(true);
     try {
-        // Carrega turmas e alunos em paralelo
         const [turmas, alunos] = await Promise.all([
             API.getTurmas(),
             API.getAlunos()
         ]);
 
-        CACHE_TURMAS = turmas;
-        CACHE_ALUNOS = alunos;
+        // Tratamento para aceitar turmas tanto como Array de Strings canto Objetos
+        CACHE_TURMAS = Array.isArray(turmas) ? turmas.map(t => typeof t === 'object' ? (t.nome || t.Nome || t.turma || t.Turma) : t) : [];
+        CACHE_ALUNOS = Array.isArray(alunos) ? alunos : [];
 
-        preencherSelectTurmas();
+        // Se a API de turmas retornar vazia, extrai as turmas diretamente da lista de alunos
+        if (CACHE_TURMAS.length === 0 && CACHE_ALUNOS.length > 0) {
+            const turmasSet = new Set();
+            CACHE_ALUNOS.forEach(a => {
+                const t = a.turma || a.Turma || a.TURMA;
+                if (t) turmasSet.add(String(t).trim());
+            });
+            CACHE_TURMAS = Array.from(turmasSet);
+        }
+
+        atualizarMetricas();
+        preencherTodosSelectsTurmas();
         renderizarTabelaAlunos(CACHE_ALUNOS);
         
     } catch (error) {
         console.error("Erro ao carregar dados iniciais:", error);
-        mostrarAlerta("Erro ao conectar com o banco de dados. Atualize a página.", "danger");
-    } finally {
-        exibirStatusCarregando(false);
     }
 }
 
-// 2. Preenche os Menus Suspensos (Dropdowns) de Turma sem 'undefined'
-function preencherSelectTurmas() {
-    const selects = [
-        document.getElementById('selectTurmaFiltro'),
-        document.getElementById('selectTurmaLancamento'),
-        document.getElementById('selectTurmaWp')
+function atualizarMetricas() {
+    const totalAlunos = CACHE_ALUNOS.length;
+    const totalTurmas = CACHE_TURMAS.length;
+    const totalXP = CACHE_ALUNOS.reduce((acc, a) => acc + (Number(a.xp || a.XP) || 0), 0);
+    const mediaNivel = totalAlunos > 0 ? (CACHE_ALUNOS.reduce((acc, a) => acc + API.calcularNivel(a.xp || a.XP).nivel, 0) / totalAlunos).toFixed(1) : 0;
+
+    if (document.getElementById('metricTotalAlunos')) document.getElementById('metricTotalAlunos').innerText = totalAlunos;
+    if (document.getElementById('metricTotalTurmas')) document.getElementById('metricTotalTurmas').innerText = totalTurmas;
+    if (document.getElementById('metricTotalXP')) document.getElementById('metricTotalXP').innerText = `${totalXP.toLocaleString()} XP`;
+    if (document.getElementById('metricMediaNivel')) document.getElementById('metricMediaNivel').innerText = `Nível ${mediaNivel}`;
+}
+
+/**
+ * Preenche de forma universal todos os selects de turmas da página
+ */
+function preencherTodosSelectsTurmas() {
+    // Mapeamento de todos os IDs possíveis utilizados nas abas do painel do professor
+    const idsSelects = [
+        'filtroTurmaAluno',
+        'filtroTurma',
+        'alunoTurma',
+        'selectTurmaLote',
+        'selectTurmaWp',
+        'turmaSelect'
     ];
 
-    selects.forEach(select => {
+    idsSelects.forEach(id => {
+        const select = document.getElementById(id);
         if (!select) return;
+
         const valorAtual = select.value;
+        const primeiraOpcaoTexto = select.options[0] ? select.options[0].text : 'Todas as Turmas';
+        const primeiraOpcaoVal = select.options[0] ? select.options[0].value : '';
+
+        let htmlOpcoes = `<option value="${primeiraOpcaoVal}">${primeiraOpcaoTexto}</option>`;
         
-        // Mantém a opção padrão (Ex: "Todas as Turmas")
-        const primeiraOpcao = select.options[0] ? select.options[0].outerHTML : '<option value="">Selecione a Turma</option>';
-        
-        select.innerHTML = primeiraOpcao + CACHE_TURMAS.map(t => `<option value="${t}">${t}</option>`).join('');
-        select.value = valorAtual;
+        CACHE_TURMAS.forEach(turma => {
+            if (turma) {
+                htmlOpcoes += `<option value="${turma}">${turma}</option>`;
+            }
+        });
+
+        select.innerHTML = htmlOpcoes;
+        select.value = valorAtual; // Restaura seleção anterior se existir
     });
 }
 
-// 3. Renderiza a Tabela Principal de Alunos e XP
 function renderizarTabelaAlunos(listaAlunos) {
     const tbody = document.getElementById('tabelaAlunos');
     if (!tbody) return;
 
     if (!listaAlunos || listaAlunos.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">Nenhum aluno localizado.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-muted">Nenhum aluno encontrado.</td></tr>`;
         return;
     }
 
     tbody.innerHTML = listaAlunos.map(aluno => {
         const id = String(aluno.id || aluno.ID || '').replace(/['"\s]/g, '');
-        const nome = aluno.nome || aluno.Nome || 'Sem nome';
-        const turma = aluno.turma || aluno.Turma || aluno.TURMA || aluno.curso || aluno.Curso || 'Geral';
+        const nome = aluno.nome || aluno.Nome || 'Sem Nome';
+        const turma = aluno.turma || aluno.Turma || aluno.TURMA || 'Geral';
         const xp = Number(aluno.xp || aluno.XP) || 0;
         const infoNivel = API.calcularNivel(xp);
 
         return `
             <tr>
-                <td class="fw-bold">#${id}</td>
-                <td class="fw-bold text-white">${nome}</td>
+                <td class="fw-bold text-white">${nome} <small class="text-muted d-block">#${id}</small></td>
                 <td><span class="badge bg-secondary">${turma}</span></td>
                 <td>
-                    <span class="badge bg-warning text-dark me-1">Nível ${infoNivel.nivel}</span>
-                    <small class="text-muted">${infoNivel.titulo}</small>
+                    <span class="badge badge-level text-dark me-1">Nível ${infoNivel.nivel}</span>
+                    <small class="text-warning fw-bold">${infoNivel.titulo}</small>
                 </td>
-                <td class="fw-bold text-success">+${xp.toLocaleString()} XP</td>
+                <td>
+                    <div class="progress bg-dark" style="height: 10px; min-width: 120px;">
+                        <div class="progress-bar bg-warning" style="width: ${infoNivel.porcentagem}%"></div>
+                    </div>
+                    <small class="text-success fw-bold mt-1 d-block">+${xp.toLocaleString()} XP</small>
+                </td>
                 <td class="text-end">
-                    <button class="btn btn-sm btn-outline-primary me-1" onclick="abrirModalLancamentoUnico('${id}', '${nome}')">
-                        <i class="fa-solid fa-plus me-1"></i>XP
-                    </button>
-                    <button class="btn btn-sm btn-outline-info" onclick="verHistoricoAluno('${id}', '${nome}')">
-                        <i class="fa-solid fa-clock-rotate-left"></i>
+                    <button class="btn btn-sm btn-outline-info" onclick="verHistoricoAluno('${id}', '${nome}', ${xp})">
+                        <i class="fa-solid fa-clock-rotate-left me-1"></i>Histórico
                     </button>
                 </td>
             </tr>
@@ -92,81 +125,159 @@ function renderizarTabelaAlunos(listaAlunos) {
     }).join('');
 }
 
-// 4. Filtro de Alunos por Nome e Turma
 function configurarEventos() {
-    const inputBusca = document.getElementById('inputBuscaAluno');
-    const selectFiltro = document.getElementById('selectTurmaFiltro');
-    const selectTurmaWp = document.getElementById('selectTurmaWp');
+    const busca = document.getElementById('buscaAluno');
+    const filtro = document.getElementById('filtroTurmaAluno') || document.getElementById('filtroTurma');
+    const selectLote = document.getElementById('selectTurmaLote');
+    const selectWp = document.getElementById('selectTurmaWp');
 
-    if (inputBusca) inputBusca.addEventListener('input', filtrarAlunos);
-    if (selectFiltro) selectFiltro.addEventListener('change', filtrarAlunos);
-    if (selectTurmaWp) selectTurmaWp.addEventListener('change', gerarLinksWhatsAppTurma);
+    if (busca) busca.addEventListener('input', filtrarAlunos);
+    if (filtro) filtro.addEventListener('change', filtrarAlunos);
+    if (selectLote) selectLote.addEventListener('change', carregarTabelaLote);
+    if (selectWp) selectWp.addEventListener('change', gerarLinksWhatsAppTurma);
 
-    const formLancamento = document.getElementById('formLancamentoXP');
-    if (formLancamento) {
-        formLancamento.addEventListener('submit', processarLancamentoXP);
-    }
+    const formLote = document.getElementById('formLote');
+    if (formLote) formLote.addEventListener('submit', salvarPontuacoesLote);
 }
 
 function filtrarAlunos() {
-    const termo = (document.getElementById('inputBuscaAluno')?.value || '').toLowerCase();
-    const turmaSel = document.getElementById('selectTurmaFiltro')?.value || '';
+    const termo = (document.getElementById('buscaAluno')?.value || '').toLowerCase();
+    const selectFiltro = document.getElementById('filtroTurmaAluno') || document.getElementById('filtroTurma');
+    const turmaSel = selectFiltro?.value || '';
 
     const filtrados = CACHE_ALUNOS.filter(aluno => {
         const nome = (aluno.nome || aluno.Nome || '').toLowerCase();
-        const turma = aluno.turma || aluno.Turma || aluno.TURMA || aluno.curso || aluno.Curso || '';
-        
-        const bateNome = nome.includes(termo);
-        const bateTurma = !turmaSel || turma === turmaSel;
-
-        return bateNome && bateTurma;
+        const turma = aluno.turma || aluno.Turma || aluno.TURMA || '';
+        return nome.includes(termo) && (!turmaSel || turma === turmaSel);
     });
 
     renderizarTabelaAlunos(filtrados);
 }
 
-// 5. Geração dos Links do WhatsApp e Acessos
+function carregarTabelaLote() {
+    const turma = document.getElementById('selectTurmaLote')?.value;
+    const tbody = document.getElementById('tabelaLote');
+    const btnSalvar = document.getElementById('btnSalvarLote');
+
+    if (!tbody) return;
+
+    if (!turma) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">Selecione uma turma para carregar os alunos.</td></tr>`;
+        if (btnSalvar) btnSalvar.disabled = true;
+        return;
+    }
+
+    const alunosTurma = CACHE_ALUNOS.filter(a => (a.turma || a.Turma || a.TURMA) === turma);
+
+    if (alunosTurma.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">Nenhum aluno encontrado para a turma selecionada.</td></tr>`;
+        if (btnSalvar) btnSalvar.disabled = true;
+        return;
+    }
+
+    tbody.innerHTML = alunosTurma.map((a, idx) => {
+        const id = String(a.id || a.ID).replace(/['"\s]/g, '');
+        const nome = a.nome || a.Nome;
+
+        return `
+            <tr>
+                <td class="fw-bold text-white">
+                    ${nome}
+                    <input type="hidden" name="alunoId_${idx}" value="${id}">
+                </td>
+                <td><input type="number" class="form-control form-control-sm bg-dark text-white border-secondary" name="atv_${idx}" value="10" min="0"></td>
+                <td><input type="number" class="form-control form-control-sm bg-dark text-white border-secondary" name="eqp_${idx}" value="10" min="0"></td>
+                <td><input type="number" class="form-control form-control-sm bg-dark text-white border-secondary" name="cmp_${idx}" value="10" min="0"></td>
+                <td><input type="number" class="form-control form-control-sm bg-dark text-white border-secondary" name="prt_${idx}" value="10" min="0"></td>
+                <td><input type="text" class="form-control form-control-sm bg-dark text-white border-secondary" name="obs_${idx}" placeholder="Observação individual..."></td>
+            </tr>
+        `;
+    }).join('');
+
+    if (btnSalvar) btnSalvar.disabled = false;
+}
+
+async function salvarPontuacoesLote(e) {
+    e.preventDefault();
+    const turma = document.getElementById('selectTurmaLote')?.value;
+    const alunosTurma = CACHE_ALUNOS.filter(a => (a.turma || a.Turma || a.TURMA) === turma);
+    const btnSalvar = document.getElementById('btnSalvarLote');
+
+    if (btnSalvar) {
+        btnSalvar.disabled = true;
+        btnSalvar.innerHTML = `<i class="fa-solid fa-spinner fa-spin me-2"></i>Salvando...`;
+    }
+
+    try {
+        for (let i = 0; i < alunosTurma.length; i++) {
+            const id = document.querySelector(`input[name="alunoId_${i}"]`)?.value;
+            const atv = Number(document.querySelector(`input[name="atv_${i}"]`)?.value) || 0;
+            const eqp = Number(document.querySelector(`input[name="eqp_${i}"]`)?.value) || 0;
+            const cmp = Number(document.querySelector(`input[name="cmp_${i}"]`)?.value) || 0;
+            const prt = Number(document.querySelector(`input[name="prt_${i}"]`)?.value) || 0;
+            const obs = document.querySelector(`input[name="obs_${i}"]`)?.value || '';
+
+            const payload = {
+                alunoId: id,
+                atividade: atv,
+                equipe: eqp,
+                comportamento: cmp,
+                participacao: prt,
+                observacao: obs,
+                data: new Date().toLocaleDateString('pt-BR') + ' ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+            };
+
+            await API.salvarLancamento(payload);
+        }
+
+        alert("Pontuações registradas com sucesso!");
+        await carregarDadosIniciais();
+
+    } catch (err) {
+        console.error("Erro ao salvar lote:", err);
+        alert("Ocorreu um erro ao salvar as pontuações.");
+    } finally {
+        if (btnSalvar) {
+            btnSalvar.disabled = false;
+            btnSalvar.innerHTML = `<i class="fa-solid fa-floppy-disk me-2"></i>Salvar Pontuações`;
+        }
+    }
+}
+
 function gerarLinksWhatsAppTurma() {
     const turma = document.getElementById('selectTurmaWp')?.value;
     const container = document.getElementById('containerLinksWp');
 
     if (!container) return;
-    if (!turma) { container.innerHTML = ''; return; }
+    if (!turma) { container.innerHTML = '<div class="text-center text-muted py-4">Selecione uma turma acima.</div>'; return; }
 
-    const alunosTurma = CACHE_ALUNOS.filter(a => {
-        const t = a.turma || a.Turma || a.TURMA || a.curso || a.Curso || '';
-        return t === turma;
-    });
+    const alunosTurma = CACHE_ALUNOS.filter(a => (a.turma || a.Turma || a.TURMA) === turma);
 
     if (alunosTurma.length === 0) {
-        container.innerHTML = `<div class="alert alert-warning text-center">Nenhum aluno encontrado para a turma selecionada.</div>`;
+        container.innerHTML = `<div class="alert alert-warning text-center">Nenhum aluno encontrado para esta turma.</div>`;
         return;
     }
 
-    // Pega o caminho base dinâmico onde o sistema está hospedado
     const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/')) + '/aluno.html';
 
     container.innerHTML = alunosTurma.map(a => {
         const id = String(a.id || a.ID).replace(/['"\s]/g, '');
         const nome = a.nome || a.Nome;
         const link = `${baseUrl}?id=${id}`;
-        const msg = encodeURIComponent(`Olá ${nome}! Confira o seu progresso e conquistas no JonasXP: ${link}`);
+        const msg = encodeURIComponent(`Olá ${nome}! Acesse seu painel JonasXP para ver seus pontos e conquistas: ${link}`);
 
         return `
-            <div class="p-3 bg-black border border-secondary rounded d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+            <div class="p-3 bg-black border border-secondary rounded d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <div>
                     <div class="fw-bold text-white">${nome}</div>
                     <small class="text-info">${link}</small>
                 </div>
                 <div class="d-flex gap-2">
-                    <button class="btn btn-sm btn-outline-light" onclick="copiarLink('${link}')">
+                    <button class="btn btn-sm btn-outline-light" onclick="navigator.clipboard.writeText('${link}')">
                         <i class="fa-solid fa-copy me-1"></i>Copiar Link
                     </button>
-                    <button class="btn btn-sm btn-outline-warning" onclick="abrirQRCode('${nome}', '${link}')">
-                        <i class="fa-solid fa-qrcode me-1"></i>QR Code
-                    </button>
                     <a href="https://api.whatsapp.com/send?text=${msg}" target="_blank" class="btn btn-sm btn-success fw-bold">
-                        <i class="fa-brands fa-whatsapp me-1"></i>WhatsApp
+                        <i class="fa-brands fa-whatsapp me-1"></i>Enviar WhatsApp
                     </a>
                 </div>
             </div>
@@ -174,94 +285,51 @@ function gerarLinksWhatsAppTurma() {
     }).join('');
 }
 
-// 6. Gerador Local de QR Code via Canvas/JS
-function abrirQRCode(nome, link) {
-    const title = document.getElementById('qrModalNome');
-    const textLink = document.getElementById('txtLinkQR');
-    const qrContainer = document.getElementById('qrcodeCanvas');
+async function verHistoricoAluno(id, nome, totalXP) {
+    const modalNome = document.getElementById('modalDetalhesNome');
+    const detalheNivel = document.getElementById('detalheNivel');
+    const detalheTitulo = document.getElementById('detalheTitulo');
+    const detalheXP = document.getElementById('detalheXP');
+    const tbody = document.getElementById('detalhesHistorico');
 
-    if (title) title.innerText = `QR Code: ${nome}`;
-    if (textLink) textLink.innerText = link;
+    const infoNivel = API.calcularNivel(totalXP);
 
-    if (qrContainer) {
-        qrContainer.innerHTML = ''; // Limpa QR Code anterior
+    if (modalNome) modalNome.innerText = `Histórico de: ${nome}`;
+    if (detalheNivel) detalheNivel.innerText = infoNivel.nivel;
+    if (detalheTitulo) detalheTitulo.innerText = infoNivel.titulo;
+    if (detalheXP) detalheXP.innerText = totalXP;
 
-        // Renderiza via qrcode.min.js sem depender de servidor externo
-        new QRCode(qrContainer, {
-            text: link,
-            width: 220,
-            height: 220,
-            colorDark: "#000000",
-            colorLight: "#ffffff",
-            correctLevel: QRCode.CorrectLevel.H
-        });
-    }
+    if (tbody) tbody.innerHTML = `<tr><td colspan="7" class="text-center py-3"><i class="fa-solid fa-spinner fa-spin"></i> Buscando histórico...</td></tr>`;
 
-    const modalEl = document.getElementById('modalQRCode');
-    if (modalEl) {
-        bootstrap.Modal.getOrCreateInstance(modalEl).show();
-    }
-}
+    const modalEl = document.getElementById('modalDetalhesAluno');
+    if (modalEl) bootstrap.Modal.getOrCreateInstance(modalEl).show();
 
-// 7. Envio de Lançamentos de XP para a Planilha
-async function processarLancamentoXP(event) {
-    event.preventDefault();
+    const historico = await API.getLancamentosPorAluno(id);
 
-    const idAluno = document.getElementById('selectAlunoLancamento')?.value;
-    const atividade = Number(document.getElementById('xpAtividade')?.value) || 0;
-    const equipe = Number(document.getElementById('xpEquipe')?.value) || 0;
-    const comportamento = Number(document.getElementById('xpComportamento')?.value) || 0;
-    const participacao = Number(document.getElementById('xpParticipacao')?.value) || 0;
-    const observacao = document.getElementById('txtObservacao')?.value || '';
-
-    if (!idAluno) {
-        mostrarAlerta("Selecione um aluno para lançar XP.", "warning");
+    if (!historico || historico.length === 0) {
+        if (tbody) tbody.innerHTML = `<tr><td colspan="7" class="text-center py-3 text-muted">Nenhum lançamento registrado.</td></tr>`;
         return;
     }
 
-    const payload = {
-        alunoId: idAluno,
-        atividade: atividade,
-        equipe: equipe,
-        comportamento: comportamento,
-        participacao: participacao,
-        observacao: observacao,
-        data: new Date().toLocaleDateString('pt-BR') + ' ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-    };
+    if (tbody) {
+        tbody.innerHTML = historico.map(h => {
+            const atv = Number(h.atividade || h.Atividade) || 0;
+            const eqp = Number(h.equipe || h.Equipe) || 0;
+            const comp = Number(h.comportamento || h.Comportamento) || 0;
+            const part = Number(h.participacao || h.Participacao) || 0;
+            const total = (atv + eqp + comp + part) || Number(h.total || h.Total || h.xp || h.XP) || 0;
 
-    try {
-        mostrarAlerta("Salvando lançamento...", "info");
-        await API.salvarLancamento(payload);
-        
-        mostrarAlerta("XP lançado com sucesso!", "success");
-        document.getElementById('formLancamentoXP').reset();
-        
-        // Atualiza a tabela
-        await carregarDadosIniciais();
-
-    } catch (err) {
-        console.error("Erro ao salvar:", err);
-        mostrarAlerta("Ocorreu um erro ao salvar o XP.", "danger");
-    }
-}
-
-// Auxiliares
-function copiarLink(link) {
-    navigator.clipboard.writeText(link);
-    mostrarAlerta("Link copiado para a área de transferência!", "success");
-}
-
-function exibirStatusCarregando(ativo) {
-    const spinner = document.getElementById('spinnerCarregando');
-    if (spinner) spinner.style.display = ativo ? 'block' : 'none';
-}
-
-function mostrarAlerta(mensagem, tipo) {
-    const alertBox = document.getElementById('alertaNotificacao');
-    if (alertBox) {
-        alertBox.className = `alert alert-${tipo} alert-dismissible fade show`;
-        alertBox.innerHTML = `${mensagem} <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
-        alertBox.style.display = 'block';
-        setTimeout(() => { alertBox.style.display = 'none'; }, 4000);
+            return `
+                <tr>
+                    <td>${h.data || h.Data || '-'}</td>
+                    <td class="text-success">+${atv}</td>
+                    <td class="text-success">+${eqp}</td>
+                    <td class="text-success">+${comp}</td>
+                    <td class="text-success">+${part}</td>
+                    <td class="fw-bold text-warning">+${total} XP</td>
+                    <td class="small">${h.observacao || h.Observacao || '-'}</td>
+                </tr>
+            `;
+        }).join('');
     }
 }

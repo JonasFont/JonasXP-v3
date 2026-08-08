@@ -77,16 +77,11 @@ function preencherTodosSelectsTurmas() {
 
         let htmlOpcoes = `<option value="">${primeiraOpcaoTexto}</option>`;
 
-        CACHE_TURMAS.forEach(t => {
-            if (!t) return;
-
-            // Busca priorizando a coluna "Turma"
-            const nomeExibicao = typeof t === 'object' ? (t.turma || t.Turma || t.nome || t.Nome) : t;
-            const valorInterno = typeof t === 'object' ? (t.id || t.ID || nomeExibicao) : t;
-
-            if (nomeExibicao) {
-                htmlOpcoes += `<option value="${valorInterno}">${nomeExibicao}</option>`;
-            }
+        CACHE_TURMAS.forEach(nomeTurma => {
+            if (!nomeTurma) return;
+            // O valor e o texto exibido passam a ser exatamente a mesma string
+            const texto = String(nomeTurma).trim();
+            htmlOpcoes += `<option value="${texto}">${texto}</option>`;
         });
 
         select.innerHTML = htmlOpcoes;
@@ -94,34 +89,16 @@ function preencherTodosSelectsTurmas() {
     });
 }
 
-// Comparação flexível que aceita o ID ou o Nome da Turma
+// Comparação direta de texto simples entre a turma do aluno e a turma selecionada
 function turmaBateComSelecao(turmaAluno, turmaSelecionada) {
-    if (!turmaSelecionada) return true; // Se selecionar "Todas", traz todos
+    if (!turmaSelecionada) return true; // Se for "Todas", exibe
     if (!turmaAluno) return false;
 
     const tAluno = String(turmaAluno).trim().toLowerCase();
     const tSel = String(turmaSelecionada).trim().toLowerCase();
 
-    // 1. Verificação direta
-    if (tAluno === tSel) return true;
-
-    // 2. Verificação cruzada no cache de turmas
-    const objetoTurma = CACHE_TURMAS.find(t => {
-        if (typeof t !== 'object') return String(t).trim().toLowerCase() === tSel;
-        const idT = String(t.id || t.ID || '').trim().toLowerCase();
-        const nomeT = String(t.turma || t.Turma || t.nome || t.Nome || '').trim().toLowerCase();
-        return idT === tSel || nomeT === tSel;
-    });
-
-    if (objetoTurma) {
-        const idT = String(objetoTurma.id || objetoTurma.ID || '').trim().toLowerCase();
-        const nomeT = String(objetoTurma.turma || objetoTurma.Turma || '').trim().toLowerCase();
-        return tAluno === idT || tAluno === nomeT;
-    }
-
-    return false;
+    return tAluno === tSel;
 }
-
 // ============================================================================
 // 4. TABELA PRINCIPAL DE ALUNOS E FILTRO
 // ============================================================================

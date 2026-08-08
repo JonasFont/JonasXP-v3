@@ -1,7 +1,7 @@
 // js/api.js - Módulo de Comunicação com Google Apps Script
 
 const API_CONFIG = {
-    URL: "https://script.google.com/macros/s/AKfycbwaCDAwFQHyOuc3uR8s-nIy7bA6yYE4Sih99olS4-OAhUaKk-Um9_t-Ziz_mwDLZvWG/exec",
+    URL: "https://script.google.com/macros/s/AKfycbx4UYuGkCI61POD4QHuqjT2T-4K2wV6RFU9ZrRhrcVuXtgGQSyGmIuL_ceIDV1XgWYm/exec",
     TIMEOUT: 15000,
     DEBUG: true
 };

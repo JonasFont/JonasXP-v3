@@ -3,7 +3,26 @@
 const API_URL = "https://script.google.com/macros/s/AKfycbxsOr7vf038H0zxZP3RT6FHixBDzbREwqqy-DvaXDUu1Uq0ol-GSlhtD2hj88Kpr1XR/exec";
 
 const API = {
-    // 1. Busca todos os alunos
+    // 1. Busca lista de turmas únicas
+    getTurmas: async function() {
+        try {
+            const alunos = await this.getAlunos();
+            if (!Array.isArray(alunos)) return [];
+            
+            // Extrai turmas únicas eliminando duplicados
+            const turmas = alunos
+                .map(a => a.turma || a.Turma)
+                .filter((v, i, a) => v && a.indexOf(v) === i)
+                .sort();
+
+            return turmas;
+        } catch (error) {
+            console.error("Erro ao carregar turmas:", error);
+            return [];
+        }
+    },
+
+    // 2. Busca todos os alunos
     getAlunos: async function() {
         try {
             const response = await fetch(`${API_URL}?action=getAlunos`);
@@ -15,16 +34,11 @@ const API = {
         }
     },
 
-    // 2. Busca um aluno por ID
+    // 3. Busca um aluno por ID
     getAlunoPorId: async function(id) {
         try {
-            const response = await fetch(`${API_URL}?action=getAluno&id=${id}`);
-            const data = await response.json();
-            if (data && !data.error) return data;
-            
-            // Fallback se a API individual não encontrar
-            const todos = await this.getAlunos();
             const idBuscado = String(id).replace(/['"\s]/g, '');
+            const todos = await this.getAlunos();
             return todos.find(a => String(a.id || a.ID).replace(/['"\s]/g, '') === idBuscado);
         } catch (error) {
             console.error("Erro ao buscar aluno por ID:", error);
@@ -32,7 +46,7 @@ const API = {
         }
     },
 
-    // 3. Busca todos os lançamentos
+    // 4. Busca todos os lançamentos
     getLancamentos: async function() {
         try {
             const response = await fetch(`${API_URL}?action=getLancamentos`);
@@ -44,7 +58,7 @@ const API = {
         }
     },
 
-    // 4. Busca lançamentos filtrados por Aluno (Resiliente a IDs Longos/Concatenados)
+    // 5. Busca lançamentos filtrados por Aluno
     getLancamentosPorAluno: async function(alunoId) {
         try {
             const idProcurado = String(alunoId).replace(/['"\s]/g, '');
@@ -53,18 +67,10 @@ const API = {
             if (!Array.isArray(todosLancamentos)) return [];
 
             return todosLancamentos.filter(item => {
-                // Tenta mapear qualquer coluna que guarde a referência do Aluno ou do Lançamento
                 const idRegistro = String(
-                    item.alunoId || 
-                    item.idAluno || 
-                    item.aluno_id || 
-                    item.ID_ALUNO || 
-                    item.id || 
-                    item.ID || 
-                    ''
+                    item.alunoId || item.idAluno || item.aluno_id || item.ID_ALUNO || item.id || item.ID || ''
                 ).replace(/['"\s]/g, '');
 
-                // Compara se o ID do aluno está exato ou contido na string concatenada
                 return idRegistro.includes(idProcurado) || idProcurado.includes(idRegistro);
             });
         } catch (error) {
@@ -73,11 +79,26 @@ const API = {
         }
     },
 
-    // 5. Cálculo de Nível e Progresso
+    // 6. Salva novos lançamentos de XP (Post para o Apps Script)
+    salvarLancamento: async function(dados) {
+        try {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                mode: 'no-cors', // Evita erro de CORS com Apps Script
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'salvarLancamento', ...dados })
+            });
+            return { status: 'success' };
+        } catch (error) {
+            console.error("Erro ao salvar lançamento:", error);
+            throw error;
+        }
+    },
+
+    // 7. Cálculo de Nível e Progresso
     calcularNivel: function(xp) {
         const xpAtual = Number(xp) || 0;
         
-        // Tabela de progresso de Nível por XP
         const niveis = [
             { nivel: 1, titulo: "Novato da Arena", min: 0, max: 100 },
             { nivel: 2, titulo: "Aventureiro da Frequência", min: 100, max: 300 },
@@ -89,9 +110,7 @@ const API = {
 
         let nivelAtual = niveis[0];
         for (let n of niveis) {
-            if (xpAtual >= n.min) {
-                nivelAtual = n;
-            }
+            if (xpAtual >= n.min) nivelAtual = n;
         }
 
         const xpNoNivel = xpAtual - nivelAtual.min;
@@ -108,4 +127,4 @@ const API = {
             porcentagem: porcentagem
         };
     }
-};
+}

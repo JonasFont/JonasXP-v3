@@ -25,7 +25,7 @@ async function carregarDadosIniciais() {
         if (CACHE_TURMAS.length === 0 && CACHE_ALUNOS.length > 0) {
             const turmasSet = new Set();
             CACHE_ALUNOS.forEach(a => {
-                const t = a.turma || a.Turma || a.TURMA || a.idTurma || a.turmaId;
+                const t = a.turma || a.Turma || a.TURMA || a.idTurma || a.turmaId || a.nomeTurma;
                 if (t) turmasSet.add(String(t).trim());
             });
             CACHE_TURMAS = Array.from(turmasSet);
@@ -79,7 +79,6 @@ function preencherTodosSelectsTurmas() {
 
         CACHE_TURMAS.forEach(nomeTurma => {
             if (!nomeTurma) return;
-            // O valor e o texto exibido passam a ser exatamente a mesma string
             const texto = String(nomeTurma).trim();
             htmlOpcoes += `<option value="${texto}">${texto}</option>`;
         });
@@ -89,16 +88,19 @@ function preencherTodosSelectsTurmas() {
     });
 }
 
-// Comparação direta de texto simples entre a turma do aluno e a turma selecionada
-function turmaBateComSelecao(turmaAluno, turmaSelecionada) {
-    if (!turmaSelecionada) return true; // Se for "Todas", exibe
-    if (!turmaAluno) return false;
+// Comparação flexível que verifica se a seleção bate com o Nome da Turma ou com o ID cadastrado no aluno
+function turmaBateComSelecao(aluno, turmaSelecionada) {
+    if (!turmaSelecionada) return true; // Se for "Todas", exibe todos
 
-    const tAluno = String(turmaAluno).trim().toLowerCase();
-    const tSel = String(turmaSelecionada).trim().toLowerCase();
+    const selecao = String(turmaSelecionada).trim().toLowerCase();
 
-    return tAluno === tSel;
+    // Captura variadas chaves onde a turma/idTurma possa estar cadastrada no aluno
+    const tNome = String(aluno.turma || aluno.Turma || aluno.TURMA || aluno.nomeTurma || '').trim().toLowerCase();
+    const tId = String(aluno.idTurma || aluno.turmaId || aluno.id_turma || aluno.ID_TURMA || '').trim().toLowerCase();
+
+    return tNome === selecao || tId === selecao;
 }
+
 // ============================================================================
 // 4. TABELA PRINCIPAL DE ALUNOS E FILTRO
 // ============================================================================
@@ -114,7 +116,7 @@ function renderizarTabelaAlunos(listaAlunos) {
     tbody.innerHTML = listaAlunos.map(aluno => {
         const id = String(aluno.id || aluno.ID || '').replace(/['"\s]/g, '');
         const nome = aluno.nome || aluno.Nome || 'Sem Nome';
-        const turma = aluno.turma || aluno.Turma || aluno.TURMA || aluno.idTurma || 'Geral';
+        const turma = aluno.turma || aluno.Turma || aluno.TURMA || aluno.nomeTurma || 'Geral';
         const xp = Number(aluno.xp || aluno.XP) || 0;
         const infoNivel = API.calcularNivel(xp);
 
@@ -143,17 +145,16 @@ function renderizarTabelaAlunos(listaAlunos) {
 }
 
 function filtrarAlunos() {
-    const termo = (document.getElementById('buscaAluno')?.value || '').toLowerCase();
+    const termo = (document.getElementById('buscaAluno')?.value || '').toLowerCase().trim();
     const selectFiltro = document.getElementById('filtroTurmaAluno') || document.getElementById('filtroTurma');
     const turmaSel = selectFiltro?.value || '';
 
     const filtrados = CACHE_ALUNOS.filter(aluno => {
-        const nome = (aluno.nome || aluno.Nome || '').toLowerCase();
-        const idAluno = (aluno.id || aluno.ID || '').toLowerCase();
-        const turma = aluno.turma || aluno.Turma || aluno.TURMA || aluno.idTurma || aluno.turmaId || '';
+        const nome = String(aluno.nome || aluno.Nome || '').toLowerCase();
+        const idAluno = String(aluno.id || aluno.ID || '').toLowerCase();
 
         const bateTexto = nome.includes(termo) || idAluno.includes(termo);
-        const bateTurma = turmaBateComSelecao(turma, turmaSel);
+        const bateTurma = turmaBateComSelecao(aluno, turmaSel);
 
         return bateTexto && bateTurma;
     });
@@ -177,10 +178,7 @@ function carregarTabelaLote() {
         return;
     }
 
-    const alunosTurma = CACHE_ALUNOS.filter(a => {
-        const turma = a.turma || a.Turma || a.TURMA || a.idTurma || a.turmaId || '';
-        return turmaBateComSelecao(turma, turmaSel);
-    });
+    const alunosTurma = CACHE_ALUNOS.filter(a => turmaBateComSelecao(a, turmaSel));
 
     if (alunosTurma.length === 0) {
         tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">Nenhum aluno encontrado para a turma selecionada.</td></tr>`;
@@ -213,10 +211,7 @@ function carregarTabelaLote() {
 async function salvarPontuacoesLote(e) {
     e.preventDefault();
     const turmaSel = document.getElementById('selectTurmaLote')?.value;
-    const alunosTurma = CACHE_ALUNOS.filter(a => {
-        const turma = a.turma || a.Turma || a.TURMA || a.idTurma || a.turmaId || '';
-        return turmaBateComSelecao(turma, turmaSel);
-    });
+    const alunosTurma = CACHE_ALUNOS.filter(a => turmaBateComSelecao(a, turmaSel));
 
     const btnSalvar = document.getElementById('btnSalvarLote');
 
@@ -271,10 +266,7 @@ function gerarLinksWhatsAppTurma() {
     if (!container) return;
     if (!turmaSel) { container.innerHTML = '<div class="text-center text-muted py-4">Selecione uma turma acima.</div>'; return; }
 
-    const alunosTurma = CACHE_ALUNOS.filter(a => {
-        const turma = a.turma || a.Turma || a.TURMA || a.idTurma || a.turmaId || '';
-        return turmaBateComSelecao(turma, turmaSel);
-    });
+    const alunosTurma = CACHE_ALUNOS.filter(a => turmaBateComSelecao(a, turmaSel));
 
     if (alunosTurma.length === 0) {
         container.innerHTML = `<div class="alert alert-warning text-center">Nenhum aluno encontrado para esta turma.</div>`;

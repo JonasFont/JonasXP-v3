@@ -1,7 +1,7 @@
-// js/professor.js - Painel do Professor JonasXP (Corrigido para IDs e Nomes de Turmas)
-
+// js/professor.js - Painel JonasXP
 let CACHE_ALUNOS = [];
-let CACHE_TURMAS = [];
+let CACHE_TURMAS = []; // Estrutura: [{ id: "...", nome: "..." }]
+let MAPA_TURMAS = {};  // Mapeamento rápido: ID/Nome -> Nome Exibição
 
 document.addEventListener('DOMContentLoaded', async () => {
     await carregarDadosIniciais();
@@ -20,8 +20,15 @@ async function carregarDadosIniciais() {
 
         CACHE_ALUNOS = Array.isArray(alunos) ? alunos : [];
         
-        // Padroniza as turmas em um formato de objeto { id, nome }
-        CACHE_TURMAS = normalizarListaTurmas(turmas, CACHE_ALUNOS);
+        // Padroniza a lista de turmas
+        CACHE_TURMAS = normalizarTurmas(turmas, CACHE_ALUNOS);
+        
+        // Constrói mapa para tradução rápida de IDs em Nomes
+        MAPA_TURMAS = {};
+        CACHE_TURMAS.forEach(t => {
+            MAPA_TURMAS[String(t.id).toLowerCase()] = t.nome;
+            MAPA_TURMAS[String(t.nome).toLowerCase()] = t.nome;
+        });
 
         atualizarMetricas();
         preencherTodosSelectsTurmas();
@@ -32,36 +39,37 @@ async function carregarDadosIniciais() {
     }
 }
 
-// Normaliza turmas recebidas (seja array de strings, ou array de objetos com ID/Nome)
-function normalizarListaTurmas(turmasAPI, alunos) {
-    let lista = [];
+function normalizarTurmas(turmasAPI, alunos) {
+    const lista = [];
+    const idsVistos = new Set();
 
     if (Array.isArray(turmasAPI)) {
         turmasAPI.forEach(t => {
             if (typeof t === 'object' && t !== null) {
-                const id = String(t.id || t.ID || t.idTurma || t.turma || '').trim();
+                const id = String(t.id || t.idTurma || t.turma || '').trim();
                 const nome = String(t.nome || t.Nome || t.turma || t.Turma || id).trim();
-                if (nome || id) lista.push({ id: id || nome, nome: nome || id });
-            } else if (typeof t === 'string' || typeof t === 'number') {
+                if ((id || nome) && !idsVistos.has(id || nome)) {
+                    idsVistos.add(id || nome);
+                    lista.push({ id: id || nome, nome: nome || id });
+                }
+            } else if (t) {
                 const val = String(t).trim();
-                if (val) lista.push({ id: val, nome: val });
+                if (!idsVistos.has(val)) {
+                    idsVistos.add(val);
+                    lista.push({ id: val, nome: val });
+                }
             }
         });
     }
 
-    // Se ainda assim não houver turmas na lista, extrai dos alunos cadastrados
+    // Se a aba Turmas estiver vazia, tenta extrair dos Alunos
     if (lista.length === 0 && alunos.length > 0) {
-        const mapaTurmas = new Map();
         alunos.forEach(a => {
-            const tNome = String(a.turma || a.Turma || a.TURMA || '').trim();
-            const tId = String(a.idTurma || a.turmaId || tNome).trim();
-            if (tNome || tId) {
-                mapaTurmas.set(tId || tNome, tNome || tId);
+            const tVal = String(a.turma || a.Turma || '').trim();
+            if (tVal && !idsVistos.has(tVal)) {
+                idsVistos.add(tVal);
+                lista.push({ id: tVal, nome: tVal });
             }
-        });
-
-        mapaTurmas.forEach((nome, id) => {
-            lista.push({ id, nome });
         });
     }
 
@@ -84,7 +92,7 @@ function atualizarMetricas() {
 }
 
 // ============================================================================
-// 3. POVOAMENTO E VALIDAÇÃO DE TURMAS
+// 3. SELECTS E FILTROS DE TURMA
 // ============================================================================
 function preencherTodosSelectsTurmas() {
     const idsSelects = [
@@ -100,40 +108,40 @@ function preencherTodosSelectsTurmas() {
         const select = document.getElementById(id);
         if (!select) return;
 
-        const valorAtual = select.value;
-        const primeiraOpcaoTexto = select.options[0] ? select.options[0].text : 'Todas as Turmas';
+        const valorAnterior = select.value;
+        const textoPadrao = select.options[0] ? select.options[0].text : 'Todas as Turmas';
 
-        let htmlOpcoes = `<option value="">${primeiraOpcaoTexto}</option>`;
+        let html = `<option value="">${textoPadrao}</option>`;
 
         CACHE_TURMAS.forEach(t => {
-            // Guarda tanto o ID quanto o Nome separados por pipe "|" no value para garantir o match no filtro
-            const valCombo = `${t.id}|||${t.nome}`;
-            htmlOpcoes += `<option value="${valCombo}">${t.nome || t.id}</option>`;
+            // Salva como valor uma chave combinada ID|NOME
+            const val = `${t.id}|||${t.nome}`;
+            html += `<option value="${val}">${t.nome}</option>`;
         });
 
-        select.innerHTML = htmlOpcoes;
-        select.value = valorAtual;
+        select.innerHTML = html;
+        select.value = valorAnterior;
     });
 }
 
-// Comparação universal que valida ID e Nome do aluno contra a seleção
-function turmaBateComSelecao(aluno, turmaSelecionadaCombo) {
-    if (!turmaSelecionadaCombo) return true; // Todas as turmas
+function turmaBateComSelecao(aluno, turmaSelecionada) {
+    if (!turmaSelecionada) return true; // Mostrar todos se nada for selecionado
 
-    // Desmembra a seleção
-    const partes = turmaSelecionadaCombo.split('|||');
+    const partes = turmaSelecionada.split('|||');
     const selId = (partes[0] || '').toLowerCase().trim();
     const selNome = (partes[1] || partes[0] || '').toLowerCase().trim();
 
-    // Captura dados de turma do aluno
-    const aTurmaNome = String(aluno.turma || aluno.Turma || aluno.TURMA || aluno.nomeTurma || '').toLowerCase().trim();
-    const aTurmaId = String(aluno.idTurma || aluno.turmaId || aluno.id_turma || aTurmaNome).toLowerCase().trim();
+    const aTurmaRaw = String(aluno.turma || aluno.Turma || aluno.idTurma || '').toLowerCase().trim();
 
-    return aTurmaNome === selNome || aTurmaNome === selId || aTurmaId === selId || aTurmaId === selNome;
+    // Compara se bate com o ID, com o Nome, ou com o Mapeamento
+    if (aTurmaRaw === selId || aTurmaRaw === selNome) return true;
+    if (MAPA_TURMAS[aTurmaRaw] && MAPA_TURMAS[aTurmaRaw].toLowerCase() === selNome) return true;
+
+    return false;
 }
 
 // ============================================================================
-// 4. TABELA PRINCIPAL DE ALUNOS E FILTRO
+// 4. TABELA DE ALUNOS E BUSCA
 // ============================================================================
 function renderizarTabelaAlunos(listaAlunos) {
     const tbody = document.getElementById('tabelaAlunos');
@@ -147,14 +155,18 @@ function renderizarTabelaAlunos(listaAlunos) {
     tbody.innerHTML = listaAlunos.map(aluno => {
         const id = String(aluno.id || aluno.ID || '').replace(/['"\s]/g, '');
         const nome = aluno.nome || aluno.Nome || 'Sem Nome';
-        const turma = aluno.turma || aluno.Turma || aluno.TURMA || aluno.nomeTurma || 'Geral';
+        
+        // Traduz ID numérico para o Nome da Turma se necessário
+        const turmaRaw = String(aluno.turma || aluno.Turma || 'Geral').trim();
+        const turmaNome = MAPA_TURMAS[turmaRaw.toLowerCase()] || turmaRaw;
+
         const xp = Number(aluno.xp || aluno.XP) || 0;
         const infoNivel = API.calcularNivel(xp);
 
         return `
             <tr>
                 <td class="fw-bold text-white">${nome} <small class="text-muted d-block">#${id}</small></td>
-                <td><span class="badge bg-secondary">${turma}</span></td>
+                <td><span class="badge bg-secondary">${turmaNome}</span></td>
                 <td>
                     <span class="badge badge-level text-dark me-1">Nível ${infoNivel.nivel}</span>
                     <small class="text-warning fw-bold">${infoNivel.titulo}</small>
@@ -194,7 +206,7 @@ function filtrarAlunos() {
 }
 
 // ============================================================================
-// 5. LANÇAMENTO EM LOTE (AULAS)
+// 5. LANÇAMENTO EM LOTE
 // ============================================================================
 function carregarTabelaLote() {
     const turmaSel = document.getElementById('selectTurmaLote')?.value;
@@ -243,7 +255,6 @@ async function salvarPontuacoesLote(e) {
     e.preventDefault();
     const turmaSel = document.getElementById('selectTurmaLote')?.value;
     const alunosTurma = CACHE_ALUNOS.filter(a => turmaBateComSelecao(a, turmaSel));
-
     const btnSalvar = document.getElementById('btnSalvarLote');
 
     if (btnSalvar) {

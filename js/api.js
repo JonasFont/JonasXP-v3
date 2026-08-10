@@ -2,7 +2,7 @@
 
 const API_CONFIG = {
     // Apenas UMA url válida aqui:
-    URL: "https://script.google.com/macros/s/AKfycbxnZrZ7kHO_DS-OWktLI1U5eKVSQNeXWM9p5Cjy01oYwZYs8aAyQMKwF5H6TEO7g-va/exec",
+    URL: "https://script.google.com/macros/s/AKfycbw-mPBMRrBYXxdiq63200HBaji7x43mxA5MPFSWLlzcA3LbmOo88kzA9JUkc0ueC89T/exec",
     TIMEOUT: 15000,
     DEBUG: true
 };

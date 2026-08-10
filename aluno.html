@@ -84,6 +84,13 @@
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
             padding: 12px 16px;
         }
+
+        /* Estilo da caixa de regras/sumário */
+        .box-legenda {
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+        }
     </style>
 </head>
 <body class="pb-5">
@@ -177,7 +184,8 @@
                 <i class="fa-solid fa-scroll text-info fs-5"></i> 
                 Histórico de Aulas & Feedbacks
             </h5>
-            <div class="table-responsive">
+            
+            <div class="table-responsive mb-4">
                 <table class="table table-custom align-middle mb-0">
                     <thead>
                         <tr class="text-muted small">
@@ -199,6 +207,70 @@
                     </tbody>
                 </table>
             </div>
+
+            <!-- 📌 GUIA / LEGENDA COMPLETA DE PONTUAÇÃO PARA OS PAIS -->
+            <div class="box-legenda p-3">
+                <h6 class="fw-bold text-warning mb-3 d-flex align-items-center gap-2" style="font-size: 0.9rem;">
+                    <i class="fa-solid fa-circle-info"></i> GUIA DE AVALIAÇÃO (ENTENDA A PONTUAÇÃO DO SEU FILHO)
+                </h6>
+
+                <div class="row g-3">
+                    
+                    <!-- 1. ATIVIDADES (ATV) -->
+                    <div class="col-md-6 col-12">
+                        <div class="p-3 bg-black bg-opacity-30 rounded-3 border border-secondary border-opacity-25 h-100">
+                            <span class="badge bg-primary text-white mb-2"><i class="fa-solid fa-book-open me-1"></i> ATV - ATIVIDADES & TAREFAS</span>
+                            <ul class="list-unstyled mb-0 small text-muted pe-2" style="font-size: 0.78rem; line-height: 1.4;">
+                                <li class="mb-1"><strong class="text-danger">0 a 4 pts:</strong> Não realizou a atividade em sala e não fez a tarefa.</li>
+                                <li class="mb-1"><strong class="text-warning">5 a 7 pts:</strong> Fez as atividades da sala, porém não fez a tarefa.</li>
+                                <li class="mb-1"><strong class="text-info">8 a 9 pts:</strong> Entregou atividade de sala e tarefa parcialmente.</li>
+                                <li><strong class="text-success">10 pts:</strong> Atividades de sala e tarefas concluídas com 100% de êxito!</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- 2. COMPORTAMENTO (COMP) -->
+                    <div class="col-md-6 col-12">
+                        <div class="p-3 bg-black bg-opacity-30 rounded-3 border border-secondary border-opacity-25 h-100">
+                            <span class="badge bg-warning text-dark mb-2"><i class="fa-solid fa-user-shield me-1"></i> COMP - COMPORTAMENTO</span>
+                            <ul class="list-unstyled mb-0 small text-muted pe-2" style="font-size: 0.78rem; line-height: 1.4;">
+                                <li class="mb-1"><strong class="text-danger">0 a 4 pts:</strong> Conversas excessivas, indisciplina ou atrapalhou a aula.</li>
+                                <li class="mb-1"><strong class="text-warning">5 a 7 pts:</strong> Precisou de avisos do professor para manter o foco.</li>
+                                <li class="mb-1"><strong class="text-info">8 a 9 pts:</strong> Bom comportamento na maior parte da aula.</li>
+                                <li><strong class="text-success">10 pts:</strong> Exemplar! Respeito às regras, foco e postura de líder.</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- 3. PARTICIPAÇÃO (PART) -->
+                    <div class="col-md-6 col-12">
+                        <div class="p-3 bg-black bg-opacity-30 rounded-3 border border-secondary border-opacity-25 h-100">
+                            <span class="badge bg-info text-dark mb-2"><i class="fa-solid fa-comments me-1"></i> PART - PARTICIPAÇÃO</span>
+                            <ul class="list-unstyled mb-0 small text-muted pe-2" style="font-size: 0.78rem; line-height: 1.4;">
+                                <li class="mb-1"><strong class="text-danger">0 a 4 pts:</strong> Apático/desinteressado, recusou-se a responder perguntas.</li>
+                                <li class="mb-1"><strong class="text-warning">5 a 7 pts:</strong> Participação discreta, só interagiu quando solicitado.</li>
+                                <li class="mb-1"><strong class="text-info">8 a 9 pts:</strong> Acompanhou a aula com atenção e fez boas intervenções.</li>
+                                <li><strong class="text-success">10 pts:</strong> Ativo! Tirou dúvidas, contribuiu com ideias e ajudou no debate.</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- 4. EQUIPE (EQP) -->
+                    <div class="col-md-6 col-12">
+                        <div class="p-3 bg-black bg-opacity-30 rounded-3 border border-secondary border-opacity-25 h-100">
+                            <span class="badge bg-success text-white mb-2"><i class="fa-solid fa-people-group me-1"></i> EQP - TRABALHO EM EQUIPE</span>
+                            <ul class="list-unstyled mb-0 small text-muted pe-2" style="font-size: 0.78rem; line-height: 1.4;">
+                                <li class="mb-1"><strong class="text-danger">0 a 4 pts:</strong> Isolou-se do grupo ou gerou conflitos na equipe.</li>
+                                <li class="mb-1"><strong class="text-warning">5 a 7 pts:</strong> Ajudou pouco a dupla/grupo no desenvolvimento.</li>
+                                <li class="mb-1"><strong class="text-info">8 a 9 pts:</strong> Bom trabalho em equipe, cumpriu sua parte.</li>
+                                <li><strong class="text-success">10 pts:</strong> Excelente espírito de equipe, ajudou colegas a evoluírem!</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
         </div>
 
     </div>

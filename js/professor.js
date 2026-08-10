@@ -393,6 +393,118 @@ async function verHistoricoAluno(id, nome, totalXP) {
         }).join('');
     }
 }
+async function carregarDadosIniciais() {
+    try {
+        const [turmas, alunos] = await Promise.all([
+            API.getTurmas(),
+            API.getAlunos()
+        ]);
+
+        CACHE_ALUNOS = Array.isArray(alunos) ? alunos : [];
+        CACHE_TURMAS = normalizarTurmas(turmas, CACHE_ALUNOS);
+        
+        MAPA_TURMAS = {};
+        CACHE_TURMAS.forEach(t => {
+            MAPA_TURMAS[String(t.id).toLowerCase()] = t.nome;
+            MAPA_TURMAS[String(t.nome).toLowerCase()] = t.nome;
+        });
+
+        atualizarMetricas();
+        preencherTodosSelectsTurmas();
+        renderizarTabelaAlunos(CACHE_ALUNOS);
+        renderizarTabelaTurmas(); // <-- ADICIONADO AQUI
+
+    } catch (error) {
+        console.error("Erro ao carregar dados iniciais:", error);
+    }
+}
+
+// 2. Renderizar a tabela na Aba Turmas
+function renderizarTabelaTurmas() {
+    const tbody = document.getElementById('tabelaTurmas');
+    if (!tbody) return;
+
+    if (CACHE_TURMAS.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="2" class="text-center py-4 text-muted">Nenhuma turma cadastrada.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = CACHE_TURMAS.map(t => `
+        <tr>
+            <td class="fw-bold text-white"><i class="fa-solid fa-users me-2 text-info"></i>${t.nome}</td>
+            <td><code class="text-warning">${t.id}</code></td>
+        </tr>
+    `).join('');
+}
+
+// 3. Adicionar tratadores para abrir modais e salvar Turma / Aluno
+function configurarEventos() {
+    const busca = document.getElementById('buscaAluno');
+    const filtro = document.getElementById('filtroTurmaAluno') || document.getElementById('filtroTurma');
+    const selectLote = document.getElementById('selectTurmaLote');
+    const selectWp = document.getElementById('selectTurmaWp');
+
+    if (busca) busca.addEventListener('input', filtrarAlunos);
+    if (filtro) filtro.addEventListener('change', filtrarAlunos);
+    if (selectLote) selectLote.addEventListener('change', carregarTabelaLote);
+    if (selectWp) selectWp.addEventListener('change', gerarLinksWhatsAppTurma);
+
+    const formLote = document.getElementById('formLote');
+    if (formLote) formLote.addEventListener('submit', salvarPontuacoesLote);
+
+    // --- ABRIR MODAIS ---
+    document.getElementById('btnAbrirModalTurma')?.addEventListener('click', () => {
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('modalTurma')).show();
+    });
+
+    document.getElementById('btnAbrirModalAluno')?.addEventListener('click', () => {
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('modalAluno')).show();
+    });
+
+    // --- FORMULÁRIO: CADASTRAR TURMA ---
+    document.getElementById('formTurma')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const nome = document.getElementById('turmaNome').value.trim();
+        if (!nome) return;
+
+        const res = await API.cadastrarTurma(nome);
+        if (res && res.sucesso) {
+            alert("Turma salva com sucesso!");
+            bootstrap.Modal.getInstance(document.getElementById('modalTurma')).hide();
+            document.getElementById('formTurma').reset();
+            await carregarDadosIniciais();
+        } else {
+            alert(res.mensagem || "Erro ao salvar turma.");
+        }
+    });
+
+    // --- FORMULÁRIO: CADASTRAR ALUNO ---
+    document.getElementById('formAluno')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const nome = document.getElementById('alunoNome').value.trim();
+        let turmaVal = document.getElementById('alunoTurma').value;
+
+        // Se o valor do select for uma chave combinada (ex: ID|||NOME), extrai só o nome
+        if (turmaVal.includes('|||')) {
+            turmaVal = turmaVal.split('|||')[1];
+        }
+
+        if (!nome || !turmaVal) {
+            alert("Preencha todos os campos!");
+            return;
+        }
+
+        const res = await API.salvarAluno({ nome: nome, turma: turmaVal });
+        if (res && res.sucesso) {
+            alert("Aluno cadastrado com sucesso!");
+            bootstrap.Modal.getInstance(document.getElementById('modalAluno')).hide();
+            document.getElementById('formAluno').reset();
+            await carregarDadosIniciais();
+        } else {
+            alert(res.mensagem || "Erro ao salvar aluno.");
+        }
+    });
+}
 
 // ============================================================================
 // 8. CONFIGURAÇÃO DE EVENTOS

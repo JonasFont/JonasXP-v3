@@ -2,7 +2,7 @@
 
 const API_CONFIG = {
     // Apenas UMA url válida aqui:
-    URL: "https://script.google.com/macros/s/AKfycbx_s2CN-H0U7hmPaCE_4N9AvxLMXQGP7t2md6E9jpFPXjfRWHCP7SrAHCw1eBEYoigk/exec",
+    URL: "https://script.google.com/macros/s/AKfycbxQRPMgyh5MgfpucbkbaOZBZjx9QxWCFxjx6kWwDftcdRnDQh5wM2qjp_ORUaUGLBQM/exec",
     TIMEOUT: 15000,
     DEBUG: true
 };
@@ -96,5 +96,32 @@ const API = {
 
         // Nível 1 - Inicial
         return { nivel: 1, titulo: "NPC Sem Aura", cor: "#888888", icone: "👤", porcentagem: Math.min(100, (pontos / 150) * 100) };
-    }
+    },
+    async cadastrarTurma(nomeTurma) {
+        try {
+            const res = await fetchComTimeout(API_CONFIG.URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ acao: 'cadastrarTurma', nomeTurma })
+            });
+            return await res.json();
+        } catch (e) {
+            console.error("Erro ao cadastrar turma:", e);
+            return { sucesso: false, mensagem: "Erro na conexão." };
+        }
+    },
+
+    async salvarAluno(alunoData) {
+        try {
+            const res = await fetchComTimeout(API_CONFIG.URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ acao: 'salvarAluno', ...alunoData })
+            });
+            return await res.json();
+        } catch (e) {
+            console.error("Erro ao salvar aluno:", e);
+            return { sucesso: false, mensagem: "Erro na conexão." };
+        }
+    },
 };

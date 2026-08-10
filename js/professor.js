@@ -1,4 +1,4 @@
-// js/professor.js - Painel do Professor JonasXP
+// js/professor.js - Painel do Professor JonasXP (Corrigido para IDs e Nomes de Turmas)
 
 let CACHE_ALUNOS = [];
 let CACHE_TURMAS = [];
@@ -18,18 +18,10 @@ async function carregarDadosIniciais() {
             API.getAlunos()
         ]);
 
-        CACHE_TURMAS = Array.isArray(turmas) ? turmas : [];
         CACHE_ALUNOS = Array.isArray(alunos) ? alunos : [];
-
-        // Se a API de turmas não retornar nada, extrai as turmas diretamente dos alunos cadastrados
-        if (CACHE_TURMAS.length === 0 && CACHE_ALUNOS.length > 0) {
-            const turmasSet = new Set();
-            CACHE_ALUNOS.forEach(a => {
-                const t = a.turma || a.Turma || a.TURMA || a.idTurma || a.turmaId || a.nomeTurma;
-                if (t) turmasSet.add(String(t).trim());
-            });
-            CACHE_TURMAS = Array.from(turmasSet);
-        }
+        
+        // Padroniza as turmas em um formato de objeto { id, nome }
+        CACHE_TURMAS = normalizarListaTurmas(turmas, CACHE_ALUNOS);
 
         atualizarMetricas();
         preencherTodosSelectsTurmas();
@@ -38,6 +30,42 @@ async function carregarDadosIniciais() {
     } catch (error) {
         console.error("Erro ao carregar dados iniciais:", error);
     }
+}
+
+// Normaliza turmas recebidas (seja array de strings, ou array de objetos com ID/Nome)
+function normalizarListaTurmas(turmasAPI, alunos) {
+    let lista = [];
+
+    if (Array.isArray(turmasAPI)) {
+        turmasAPI.forEach(t => {
+            if (typeof t === 'object' && t !== null) {
+                const id = String(t.id || t.ID || t.idTurma || t.turma || '').trim();
+                const nome = String(t.nome || t.Nome || t.turma || t.Turma || id).trim();
+                if (nome || id) lista.push({ id: id || nome, nome: nome || id });
+            } else if (typeof t === 'string' || typeof t === 'number') {
+                const val = String(t).trim();
+                if (val) lista.push({ id: val, nome: val });
+            }
+        });
+    }
+
+    // Se ainda assim não houver turmas na lista, extrai dos alunos cadastrados
+    if (lista.length === 0 && alunos.length > 0) {
+        const mapaTurmas = new Map();
+        alunos.forEach(a => {
+            const tNome = String(a.turma || a.Turma || a.TURMA || '').trim();
+            const tId = String(a.idTurma || a.turmaId || tNome).trim();
+            if (tNome || tId) {
+                mapaTurmas.set(tId || tNome, tNome || tId);
+            }
+        });
+
+        mapaTurmas.forEach((nome, id) => {
+            lista.push({ id, nome });
+        });
+    }
+
+    return lista;
 }
 
 // ============================================================================
@@ -77,10 +105,10 @@ function preencherTodosSelectsTurmas() {
 
         let htmlOpcoes = `<option value="">${primeiraOpcaoTexto}</option>`;
 
-        CACHE_TURMAS.forEach(nomeTurma => {
-            if (!nomeTurma) return;
-            const texto = String(nomeTurma).trim();
-            htmlOpcoes += `<option value="${texto}">${texto}</option>`;
+        CACHE_TURMAS.forEach(t => {
+            // Guarda tanto o ID quanto o Nome separados por pipe "|" no value para garantir o match no filtro
+            const valCombo = `${t.id}|||${t.nome}`;
+            htmlOpcoes += `<option value="${valCombo}">${t.nome || t.id}</option>`;
         });
 
         select.innerHTML = htmlOpcoes;
@@ -88,17 +116,20 @@ function preencherTodosSelectsTurmas() {
     });
 }
 
-// Comparação flexível que verifica se a seleção bate com o Nome da Turma ou com o ID cadastrado no aluno
-function turmaBateComSelecao(aluno, turmaSelecionada) {
-    if (!turmaSelecionada) return true; // Se for "Todas", exibe todos
+// Comparação universal que valida ID e Nome do aluno contra a seleção
+function turmaBateComSelecao(aluno, turmaSelecionadaCombo) {
+    if (!turmaSelecionadaCombo) return true; // Todas as turmas
 
-    const selecao = String(turmaSelecionada).trim().toLowerCase();
+    // Desmembra a seleção
+    const partes = turmaSelecionadaCombo.split('|||');
+    const selId = (partes[0] || '').toLowerCase().trim();
+    const selNome = (partes[1] || partes[0] || '').toLowerCase().trim();
 
-    // Captura variadas chaves onde a turma/idTurma possa estar cadastrada no aluno
-    const tNome = String(aluno.turma || aluno.Turma || aluno.TURMA || aluno.nomeTurma || '').trim().toLowerCase();
-    const tId = String(aluno.idTurma || aluno.turmaId || aluno.id_turma || aluno.ID_TURMA || '').trim().toLowerCase();
+    // Captura dados de turma do aluno
+    const aTurmaNome = String(aluno.turma || aluno.Turma || aluno.TURMA || aluno.nomeTurma || '').toLowerCase().trim();
+    const aTurmaId = String(aluno.idTurma || aluno.turmaId || aluno.id_turma || aTurmaNome).toLowerCase().trim();
 
-    return tNome === selecao || tId === selecao;
+    return aTurmaNome === selNome || aTurmaNome === selId || aTurmaId === selId || aTurmaId === selNome;
 }
 
 // ============================================================================

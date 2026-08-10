@@ -73,30 +73,28 @@ const API = {
         return await res.json();
     },
 
-    calcularNivel(totalXP) {
-        const xp = Number(totalXP) || 0;
+    // Dentro do objeto API em js/api.js:
+    calcularNivel: function(xp) {
+        const pontos = Number(xp) || 0;
 
-        if (xp >= 10000) {
-            return { nivel: 6, titulo: "Lorde Lendário", xpProxNivel: 10000, porcentagem: 100 };
+        // Sistema de Níveis & Auras estilo Anime (Ajuste os valores de XP se preferir)
+        if (pontos >= 2000) {
+            return { nivel: 6, titulo: "Kage / Aura Divina SSJ", cor: "#ff0055", icone: "🌌", porcentagem: 100 };
         }
-        if (xp >= 5000) {
-            const pct = Math.min(100, Math.round(((xp - 5000) / 5000) * 100));
-            return { nivel: 5, titulo: "Mestre Supremo", xpProxNivel: 10000, porcentagem: pct };
+        if (pontos >= 1200) {
+            return { nivel: 5, titulo: "Proton / Aura Dourada", cor: "#ffaa00", icone: "🔥", porcentagem: Math.min(100, ((pontos - 1200) / 800) * 100) };
         }
-        if (xp >= 3000) {
-            const pct = Math.min(100, Math.round(((xp - 3000) / 2000) * 100));
-            return { nivel: 4, titulo: "Especialista", xpProxNivel: 5000, porcentagem: pct };
+        if (pontos >= 700) {
+            return { nivel: 4, titulo: "Caçador / Aura Roxa", cor: "#9d00ff", icone: "⚡", porcentagem: Math.min(100, ((pontos - 700) / 500) * 100) };
         }
-        if (xp >= 1500) {
-            const pct = Math.min(100, Math.round(((xp - 1500) / 1500) * 100));
-            return { nivel: 3, titulo: "Avançado", xpProxNivel: 3000, porcentagem: pct };
+        if (pontos >= 350) {
+            return { nivel: 3, titulo: "Chunin / Aura Azul", cor: "#00d4ff", icone: "🌊", porcentagem: Math.min(100, ((pontos - 350) / 350) * 100) };
         }
-        if (xp >= 500) {
-            const pct = Math.min(100, Math.round(((xp - 500) / 1000) * 100));
-            return { nivel: 2, titulo: "Aprendiz", xpProxNivel: 1500, porcentagem: pct };
+        if (pontos >= 150) {
+            return { nivel: 2, titulo: "Recruta / Aura Verde", cor: "#00ff66", icone: "🍃", porcentagem: Math.min(100, ((pontos - 150) / 200) * 100) };
         }
 
-        const pct = Math.min(100, Math.round((xp / 500) * 100));
-        return { nivel: 1, titulo: "Iniciante", xpProxNivel: 500, porcentagem: pct };
+        // Nível 1 - Inicial
+        return { nivel: 1, titulo: "NPC Sem Aura", cor: "#888888", icone: "👤", porcentagem: Math.min(100, (pontos / 150) * 100) };
     }
 };

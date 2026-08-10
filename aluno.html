@@ -4,105 +4,198 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JonasXP - Arena do Aluno</title>
+    <!-- Bootstrap CSS & FontAwesome -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
     <style>
-        body { background-color: #0b0f19; color: #f3f4f6; font-family: system-ui, sans-serif; }
-        .card-custom { background-color: #111827; border: 1px solid #1f2937; border-radius: 16px; }
-        .grad-text { background: linear-gradient(135deg, #60a5fa, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .badge-level { background: linear-gradient(135deg, #f59e0b, #d97706); }
-        .card-conquista { background-color: #1f2937; border: 1px solid #374151; border-radius: 12px; transition: transform 0.2s; }
-        .card-conquista:hover { transform: translateY(-3px); }
-        .card-bloqueado { opacity: 0.4; filter: grayscale(1); }
-        .icon-box { width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border-radius: 12px; font-size: 1.4rem; }
+        body { 
+            background-color: #0b0f19; 
+            color: #f3f4f6; 
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            min-height: 100vh;
+        }
+
+        /* Efeito Glassmorphism nos Cards */
+        .card-custom { 
+            background: rgba(17, 24, 39, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08); 
+            border-radius: 18px; 
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .grad-text { 
+            background: linear-gradient(135deg, #60a5fa, #a78bfa, #f43f5e); 
+            -webkit-background-clip: text; 
+            -webkit-text-fill-color: transparent; 
+        }
+
+        .badge-level { 
+            font-size: 0.9rem;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            box-shadow: 0 0 12px rgba(0,0,0,0.4);
+        }
+
+        .card-conquista { 
+            background-color: rgba(31, 41, 55, 0.6); 
+            border: 1px solid #374151; 
+            border-radius: 14px; 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+        }
+
+        .card-conquista:hover { 
+            transform: translateY(-4px); 
+        }
+
+        .icon-box { 
+            width: 52px; 
+            height: 52px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            border-radius: 14px; 
+            font-size: 2rem; 
+        }
+
+        .progress {
+            background-color: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.6);
+        }
+
+        /* Estilização Gamificada para a Tabela */
+        .table-custom {
+            --bs-table-bg: transparent;
+            --bs-table-color: #e5e7eb;
+        }
+
+        .table-custom th {
+            border-bottom: 2px solid #374151;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .table-custom td {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 12px 16px;
+        }
     </style>
 </head>
 <body class="pb-5">
 
-    <!-- TOPBAR -->
-    <nav class="navbar border-bottom border-secondary mb-4 bg-black bg-opacity-50 px-4">
-        <span class="navbar-brand fw-bold fs-4 grad-text"><i class="fa-solid fa-shield-halved me-2"></i>JonasXP - Painel do Heroi</span>
-        <span id="alunoTurma" class="badge bg-secondary">--</span>
+    <!-- TOPBAR / NAV -->
+    <nav class="navbar border-bottom border-secondary border-opacity-25 mb-4 bg-black bg-opacity-60 px-4 backdrop-blur">
+        <div class="container-fluid max-width-container" style="max-width: 950px;">
+            <span class="navbar-brand fw-bold fs-4 grad-text">
+                <i class="fa-solid fa-shield-halved me-2"></i>JonasXP - Painel do Herói
+            </span>
+            <span id="alunoTurma" class="badge bg-secondary fs-6 px-3 py-2 border border-secondary">
+                <i class="fa-solid fa-spinner fa-spin me-1"></i> Carregando...
+            </span>
+        </div>
     </nav>
 
-    <div class="container" style="max-width: 900px;">
+    <div class="container" style="max-width: 950px;">
         
-        <!-- CARD PRINCIPAL DO HERÓI -->
-        <div class="card card-custom p-4 mb-4 shadow-lg border-start border-4 border-primary">
+        <!-- CARD PRINCIPAL DE STATUS DO ALUNO -->
+        <div class="card card-custom p-4 mb-4 border-start border-4 border-primary">
             <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
                 <div>
-                    <span class="badge bg-primary mb-2">PASSAPORTE DO JOGADOR</span>
-                    <h2 id="alunoNome" class="fw-bold mb-1 grad-text display-6">Carregando...</h2>
-                    <p class="text-muted small mb-0"><i class="fa-solid fa-id-badge me-1"></i>ID: <span id="alunoIdDisplay">#--</span></p>
+                    <span class="badge bg-primary bg-opacity-20 text-primary border border-primary border-opacity-30 mb-2 px-3 py-1 fw-bold">
+                        <i class="fa-solid fa-address-card me-1"></i> PASSAPORTE DO JOGADOR
+                    </span>
+                    <h1 id="alunoNome" class="fw-extrabold mb-1 grad-text display-5">Carregando...</h1>
+                    <p class="text-muted small mb-0">
+                        <i class="fa-solid fa-id-badge me-1"></i> ID REGISTRO: <span id="alunoIdDisplay" class="fw-bold text-light">#--</span>
+                    </p>
                 </div>
                 <div class="text-end">
-                    <span id="alunoNivelBadge" class="badge badge-level fs-6 px-3 py-2 mb-1">Nível --</span>
-                    <h5 id="alunoTitulo" class="text-warning fw-bold mb-0">--</h5>
+                    <span id="alunoNivelBadge" class="badge badge-level bg-secondary mb-2">Nível --</span>
+                    <h4 id="alunoTitulo" class="fw-bold mb-0 text-warning">
+                        <i class="fa-solid fa-spinner fa-spin me-1"></i> Buscando Ki...
+                    </h4>
                 </div>
             </div>
 
-            <hr class="border-secondary my-3">
+            <hr class="border-secondary border-opacity-25 my-4">
 
-            <!-- MÉTRICAS DE XP -->
-            <div class="row g-3 text-center my-1">
+            <!-- MÉTRICAS PRINCIPAIS DE PONTUAÇÃO -->
+            <div class="row g-3 text-center mb-3">
                 <div class="col-4">
-                    <div class="p-3 bg-black bg-opacity-50 rounded-3 border border-secondary">
-                        <small class="text-muted d-block fw-bold">TOTAL XP</small>
+                    <div class="p-3 bg-black bg-opacity-40 rounded-3 border border-secondary border-opacity-25 h-100 d-flex flex-column justify-content-center">
+                        <small class="text-muted d-block fw-bold mb-1">TOTAL XP</small>
                         <h3 id="alunoXP" class="text-success fw-bold mb-0">0</h3>
                     </div>
                 </div>
                 <div class="col-4">
-                    <div class="p-3 bg-black bg-opacity-50 rounded-3 border border-secondary">
-                        <small class="text-muted d-block fw-bold">PRÓX. NÍVEL</small>
-                        <h3 id="alunoProxXP" class="text-info fw-bold mb-0">100 XP</h3>
+                    <div class="p-3 bg-black bg-opacity-40 rounded-3 border border-secondary border-opacity-25 h-100 d-flex flex-column justify-content-center">
+                        <small class="text-muted d-block fw-bold mb-1">XP ACUMULADO</small>
+                        <h3 id="txtProgressoXP" class="text-info fw-bold mb-0">0 XP</h3>
                     </div>
                 </div>
                 <div class="col-4">
-                    <div class="p-3 bg-black bg-opacity-50 rounded-3 border border-secondary">
-                        <small class="text-muted d-block fw-bold">PROGRESSO</small>
+                    <div class="p-3 bg-black bg-opacity-40 rounded-3 border border-secondary border-opacity-25 h-100 d-flex flex-column justify-content-center">
+                        <small class="text-muted d-block fw-bold mb-1">EVOLUÇÃO</small>
                         <h3 id="alunoPorcentagem" class="text-warning fw-bold mb-0">0%</h3>
                     </div>
                 </div>
             </div>
 
-            <!-- BARRA DE PROGRESSO -->
-            <div class="mt-3">
-                <div class="d-flex justify-content-between small text-muted mb-1">
-                    <span>Evolução de Nível</span>
-                    <span id="txtProgressoXP">0 / 100 XP</span>
+            <!-- BARRA DE ENERGIA / KI DE PROGRESSO -->
+            <div class="mt-2">
+                <div class="d-flex justify-content-between small text-muted mb-2 fw-semibold">
+                    <span><i class="fa-solid fa-bolt me-1 text-warning"></i>Progresso para a Próxima Aura</span>
+                    <span>Nível Atual</span>
                 </div>
-                <div class="progress bg-dark" style="height: 16px;">
-                    <div id="alunoProgresso" class="progress-bar progress-bar-striped progress-bar-animated bg-warning" style="width: 0%"></div>
+                <div class="progress" style="height: 18px;">
+                    <div id="alunoProgresso" class="progress-bar progress-bar-striped progress-bar-animated bg-warning" role="progressbar" style="width: 0%"></div>
                 </div>
             </div>
         </div>
 
-        <!-- SEÇÃO DE PODERES E CONQUISTAS -->
+        <!-- SEÇÃO DE PODERES E CONQUISTAS (ANIME & AURA) -->
         <div class="card card-custom p-4 mb-4">
-            <h5 class="fw-bold mb-3"><i class="fa-solid fa-wand-magic-sparkles text-warning me-2"></i>Poderes & Conquistas Desbloqueadas</h5>
+            <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
+                <i class="fa-solid fa-wand-magic-sparkles text-warning fs-5"></i> 
+                Poderes & Conquistas Desbloqueadas
+            </h5>
             <div id="containerConquistas" class="row g-3">
-                <!-- Injetado via JS -->
+                <div class="col-12 text-center py-4 text-muted">
+                    <i class="fa-solid fa-circle-notch fa-spin me-2"></i> Carregando catálogo de conquistas...
+                </div>
             </div>
         </div>
 
-        <!-- HISTÓRICO DE REGISTROS E OBSERVAÇÕES -->
+        <!-- HISTÓRICO DE ATIVIDADES E FEEDBACK DO PROFESSOR -->
         <div class="card card-custom p-4">
-            <h5 class="fw-bold mb-3"><i class="fa-solid fa-scroll text-info me-2"></i>Histórico de Atividades & Observações</h5>
+            <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
+                <i class="fa-solid fa-scroll text-info fs-5"></i> 
+                Histórico de Aulas & Feedbacks
+            </h5>
             <div class="table-responsive">
-                <table class="table table-dark align-middle mb-0">
+                <table class="table table-custom align-middle mb-0">
                     <thead>
                         <tr class="text-muted small">
                             <th>DATA</th>
-                            <th>ATIVIDADE</th>
-                            <th>EQUIPE</th>
-                            <th>COMPORT.</th>
-                            <th>PARTICIP.</th>
-                            <th>TOTAL</th>
-                            <th>OBSERVAÇÃO DO PROFESSOR</th>
+                            <th class="text-center">ATV</th>
+                            <th class="text-center">EQP</th>
+                            <th class="text-center">COMP</th>
+                            <th class="text-center">PART</th>
+                            <th class="text-end">TOTAL</th>
+                            <th class="ps-4">OBSERVAÇÕES DO PROFESSOR</th>
                         </tr>
                     </thead>
                     <tbody id="tabelaHistoricoAluno">
-                        <tr><td colspan="7" class="text-center py-4 text-muted"><i class="fa-solid fa-spinner fa-spin me-2"></i>Buscando registros na planilha...</td></tr>
+                        <tr>
+                            <td colspan="7" class="text-center py-4 text-muted">
+                                <i class="fa-solid fa-spinner fa-spin me-2"></i> Sincronizando dados da planilha...
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -110,7 +203,7 @@
 
     </div>
 
-    <!-- SCRIPTS -->
+    <!-- CARREGAMENTO DOS SCRIPTS -->
     <script src="js/api.js"></script>
     <script src="js/aluno.js"></script>
 </body>

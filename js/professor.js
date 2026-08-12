@@ -13,14 +13,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 // ============================================================================
 async function carregarDadosIniciais() {
     try {
+        if (!window.API) {
+            console.error("Erro: API não inicializada.");
+            return;
+        }
+
         const [turmas, alunos] = await Promise.all([
-            API.getTurmas(),
-            API.getAlunos()
+            window.API.getTurmas(),
+            window.API.getAlunos()
         ]);
 
         CACHE_ALUNOS = Array.isArray(alunos) ? alunos : [];
-        
-        // Padroniza a lista de turmas
         CACHE_TURMAS = normalizarTurmas(turmas, CACHE_ALUNOS);
         
         // Constrói mapa para tradução rápida de IDs em Nomes
@@ -33,6 +36,7 @@ async function carregarDadosIniciais() {
         atualizarMetricas();
         preencherTodosSelectsTurmas();
         renderizarTabelaAlunos(CACHE_ALUNOS);
+        renderizarTabelaTurmas();
 
     } catch (error) {
         console.error("Erro ao carregar dados iniciais:", error);
@@ -83,7 +87,7 @@ function atualizarMetricas() {
     const totalAlunos = CACHE_ALUNOS.length;
     const totalTurmas = CACHE_TURMAS.length;
     const totalXP = CACHE_ALUNOS.reduce((acc, a) => acc + (Number(a.xp || a.XP) || 0), 0);
-    const mediaNivel = totalAlunos > 0 ? (CACHE_ALUNOS.reduce((acc, a) => acc + API.calcularNivel(a.xp || a.XP).nivel, 0) / totalAlunos).toFixed(1) : 0;
+    const mediaNivel = totalAlunos > 0 ? (CACHE_ALUNOS.reduce((acc, a) => acc + window.API.calcularNivel(a.xp || a.XP).nivel, 0) / totalAlunos).toFixed(1) : 0;
 
     if (document.getElementById('metricTotalAlunos')) document.getElementById('metricTotalAlunos').innerText = totalAlunos;
     if (document.getElementById('metricTotalTurmas')) document.getElementById('metricTotalTurmas').innerText = totalTurmas;
@@ -114,7 +118,6 @@ function preencherTodosSelectsTurmas() {
         let html = `<option value="">${textoPadrao}</option>`;
 
         CACHE_TURMAS.forEach(t => {
-            // Salva como valor uma chave combinada ID|NOME
             const val = `${t.id}|||${t.nome}`;
             html += `<option value="${val}">${t.nome}</option>`;
         });
@@ -125,7 +128,7 @@ function preencherTodosSelectsTurmas() {
 }
 
 function turmaBateComSelecao(aluno, turmaSelecionada) {
-    if (!turmaSelecionada) return true; // Mostrar todos se nada for selecionado
+    if (!turmaSelecionada) return true;
 
     const partes = turmaSelecionada.split('|||');
     const selId = (partes[0] || '').toLowerCase().trim();
@@ -133,7 +136,6 @@ function turmaBateComSelecao(aluno, turmaSelecionada) {
 
     const aTurmaRaw = String(aluno.turma || aluno.Turma || aluno.idTurma || '').toLowerCase().trim();
 
-    // Compara se bate com o ID, com o Nome, ou com o Mapeamento
     if (aTurmaRaw === selId || aTurmaRaw === selNome) return true;
     if (MAPA_TURMAS[aTurmaRaw] && MAPA_TURMAS[aTurmaRaw].toLowerCase() === selNome) return true;
 
@@ -141,7 +143,7 @@ function turmaBateComSelecao(aluno, turmaSelecionada) {
 }
 
 // ============================================================================
-// 4. TABELA DE ALUNOS E BUSCA
+// 4. TABELAS (ALUNOS E TURMAS)
 // ============================================================================
 function renderizarTabelaAlunos(listaAlunos) {
     const tbody = document.getElementById('tabelaAlunos');
@@ -156,12 +158,11 @@ function renderizarTabelaAlunos(listaAlunos) {
         const id = String(aluno.id || aluno.ID || '').replace(/['"\s]/g, '');
         const nome = aluno.nome || aluno.Nome || 'Sem Nome';
         
-        // Traduz ID numérico para o Nome da Turma se necessário
         const turmaRaw = String(aluno.turma || aluno.Turma || 'Geral').trim();
         const turmaNome = MAPA_TURMAS[turmaRaw.toLowerCase()] || turmaRaw;
 
         const xp = Number(aluno.xp || aluno.XP) || 0;
-        const infoNivel = API.calcularNivel(xp);
+        const infoNivel = window.API.calcularNivel(xp);
 
         return `
             <tr>
@@ -185,6 +186,23 @@ function renderizarTabelaAlunos(listaAlunos) {
             </tr>
         `;
     }).join('');
+}
+
+function renderizarTabelaTurmas() {
+    const tbody = document.getElementById('tabelaTurmas');
+    if (!tbody) return;
+
+    if (CACHE_TURMAS.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="2" class="text-center py-4 text-muted">Nenhuma turma cadastrada.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = CACHE_TURMAS.map(t => `
+        <tr>
+            <td class="fw-bold text-white"><i class="fa-solid fa-users me-2 text-info"></i>${t.nome}</td>
+            <td><code class="text-warning">${t.id}</code></td>
+        </tr>
+    `).join('');
 }
 
 function filtrarAlunos() {
@@ -281,7 +299,7 @@ async function salvarPontuacoesLote(e) {
                 data: new Date().toLocaleDateString('pt-BR') + ' ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
             };
 
-            await API.salvarLancamento(payload);
+            await window.API.salvarLancamento(payload);
         }
 
         alert("Pontuações registradas com sucesso!");
@@ -352,7 +370,7 @@ async function verHistoricoAluno(id, nome, totalXP) {
     const detalheXP = document.getElementById('detalheXP');
     const tbody = document.getElementById('detalhesHistorico');
 
-    const infoNivel = API.calcularNivel(totalXP);
+    const infoNivel = window.API.calcularNivel(totalXP);
 
     if (modalNome) modalNome.innerText = `Histórico de: ${nome}`;
     if (detalheNivel) detalheNivel.innerText = infoNivel.nivel;
@@ -364,7 +382,7 @@ async function verHistoricoAluno(id, nome, totalXP) {
     const modalEl = document.getElementById('modalDetalhesAluno');
     if (modalEl) bootstrap.Modal.getOrCreateInstance(modalEl).show();
 
-    const historico = await API.getLancamentosPorAluno(id);
+    const historico = await window.API.getLancamentosPorAluno(id);
 
     if (!historico || historico.length === 0) {
         if (tbody) tbody.innerHTML = `<tr><td colspan="7" class="text-center py-3 text-muted">Nenhum lançamento registrado.</td></tr>`;
@@ -393,51 +411,11 @@ async function verHistoricoAluno(id, nome, totalXP) {
         }).join('');
     }
 }
-async function carregarDadosIniciais() {
-    try {
-        const [turmas, alunos] = await Promise.all([
-            API.getTurmas(),
-            API.getAlunos()
-        ]);
+window.verHistoricoAluno = verHistoricoAluno;
 
-        CACHE_ALUNOS = Array.isArray(alunos) ? alunos : [];
-        CACHE_TURMAS = normalizarTurmas(turmas, CACHE_ALUNOS);
-        
-        MAPA_TURMAS = {};
-        CACHE_TURMAS.forEach(t => {
-            MAPA_TURMAS[String(t.id).toLowerCase()] = t.nome;
-            MAPA_TURMAS[String(t.nome).toLowerCase()] = t.nome;
-        });
-
-        atualizarMetricas();
-        preencherTodosSelectsTurmas();
-        renderizarTabelaAlunos(CACHE_ALUNOS);
-        renderizarTabelaTurmas(); // <-- ADICIONADO AQUI
-
-    } catch (error) {
-        console.error("Erro ao carregar dados iniciais:", error);
-    }
-}
-
-// 2. Renderizar a tabela na Aba Turmas
-function renderizarTabelaTurmas() {
-    const tbody = document.getElementById('tabelaTurmas');
-    if (!tbody) return;
-
-    if (CACHE_TURMAS.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="2" class="text-center py-4 text-muted">Nenhuma turma cadastrada.</td></tr>`;
-        return;
-    }
-
-    tbody.innerHTML = CACHE_TURMAS.map(t => `
-        <tr>
-            <td class="fw-bold text-white"><i class="fa-solid fa-users me-2 text-info"></i>${t.nome}</td>
-            <td><code class="text-warning">${t.id}</code></td>
-        </tr>
-    `).join('');
-}
-
-// 3. Adicionar tratadores para abrir modais e salvar Turma / Aluno
+// ============================================================================
+// 8. CONFIGURAÇÃO DE EVENTOS E MODAIS
+// ============================================================================
 function configurarEventos() {
     const busca = document.getElementById('buscaAluno');
     const filtro = document.getElementById('filtroTurmaAluno') || document.getElementById('filtroTurma');
@@ -467,7 +445,7 @@ function configurarEventos() {
         const nome = document.getElementById('turmaNome').value.trim();
         if (!nome) return;
 
-        const res = await API.cadastrarTurma(nome);
+        const res = await window.API.cadastrarTurma(nome);
         if (res && res.sucesso) {
             alert("Turma salva com sucesso!");
             bootstrap.Modal.getInstance(document.getElementById('modalTurma')).hide();
@@ -484,7 +462,6 @@ function configurarEventos() {
         const nome = document.getElementById('alunoNome').value.trim();
         let turmaVal = document.getElementById('alunoTurma').value;
 
-        // Se o valor do select for uma chave combinada (ex: ID|||NOME), extrai só o nome
         if (turmaVal.includes('|||')) {
             turmaVal = turmaVal.split('|||')[1];
         }
@@ -494,7 +471,7 @@ function configurarEventos() {
             return;
         }
 
-        const res = await API.salvarAluno({ nome: nome, turma: turmaVal });
+        const res = await window.API.salvarAluno({ nome: nome, turma: turmaVal });
         if (res && res.sucesso) {
             alert("Aluno cadastrado com sucesso!");
             bootstrap.Modal.getInstance(document.getElementById('modalAluno')).hide();
@@ -504,22 +481,4 @@ function configurarEventos() {
             alert(res.mensagem || "Erro ao salvar aluno.");
         }
     });
-}
-
-// ============================================================================
-// 8. CONFIGURAÇÃO DE EVENTOS
-// ============================================================================
-function configurarEventos() {
-    const busca = document.getElementById('buscaAluno');
-    const filtro = document.getElementById('filtroTurmaAluno') || document.getElementById('filtroTurma');
-    const selectLote = document.getElementById('selectTurmaLote');
-    const selectWp = document.getElementById('selectTurmaWp');
-
-    if (busca) busca.addEventListener('input', filtrarAlunos);
-    if (filtro) filtro.addEventListener('change', filtrarAlunos);
-    if (selectLote) selectLote.addEventListener('change', carregarTabelaLote);
-    if (selectWp) selectWp.addEventListener('change', gerarLinksWhatsAppTurma);
-
-    const formLote = document.getElementById('formLote');
-    if (formLote) formLote.addEventListener('submit', salvarPontuacoesLote);
 }

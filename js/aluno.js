@@ -3,6 +3,11 @@
 // ==========================================
 // 1. CATÁLOGO DE TÍTULOS (PERMANENTES / COSMÉTICOS)
 // ==========================================
+// =================================================================
+// SISTEMA DE FARM DE AURA DE NÍVEL + LOJA DE MOEDAS (MERCADO)
+// =================================================================
+
+// 1. CONSTANTES DE CATALOGO E AURAS
 const NIVEIS_AURA_BASE = [
     { lvl: 1, xpReq: 0,    nomeAura: "Aura Nebulosa",    icone: "⚪", cor: "#adb5bd" },
     { lvl: 2, xpReq: 150,  nomeAura: "Aura Cintilante",  icone: "🟢", cor: "#198754" },
@@ -15,24 +20,17 @@ const NIVEIS_AURA_BASE = [
 ];
 
 const CATALOGO_TITULOS = [
-    // ⛩️ ANIME
     { id: "ani_1", nome: "Recruta Ninja", icone: "🍃", preco: 100, tema: "Anime", desc: "Iniciou o treinamento no dojo." },
     { id: "ani_2", nome: "Gennin Promissor", icone: "📜", preco: 250, tema: "Anime", desc: "Já domina os jutsus básicos da sala." },
     { id: "ani_3", nome: "Caçador de Onis", icone: "⚔️", preco: 500, tema: "Anime", desc: "Membro da corporação contra a preguiça." },
     { id: "ani_4", nome: "Hashira das Tarefas", icone: "⚡", preco: 1200, tema: "Anime", desc: "Mestre Supremo da respiração da dedicação." },
     { id: "ani_5", nome: "Lorde Super Saiyajin", icone: "🔥", preco: 2500, tema: "Anime", desc: "Ultrapassou todos os limites conhecidos!" },
-
-    // ⚔️ RPG
     { id: "rpg_1", nome: "Novato da Guilda", icone: "🛡️", preco: 100, tema: "RPG", desc: "Pegou sua primeira missão no quadro." },
     { id: "rpg_2", nome: "Bardo das Ideias", icone: "🪕", preco: 250, tema: "RPG", desc: "Criatividade e participação ativa em grupo." },
     { id: "rpg_3", nome: "Mestre Arcano", icone: "✨", preco: 500, tema: "RPG", desc: "Conhecimento avançado em fórmulas e teoria." },
     { id: "rpg_4", nome: "Paladino Dourado", icone: "👑", preco: 1200, tema: "RPG", desc: "Honra, foco e excelência nas entregas." },
-
-    // 🎬 FILMES
     { id: "cin_1", nome: "Jovem Padawan", icone: "🌌", preco: 100, tema: "Filmes", desc: "Primeiros passos no domínio da Força." },
     { id: "cin_2", nome: "Cavaleiro Jedi", icone: "🗡️", preco: 500, tema: "Filmes", desc: "Equilíbrio, mente serena e foco nos estudos." },
-
-    // 🎮 GAMER
     { id: "gmr_1", nome: "Player 1", icone: "🎮", preco: 100, tema: "Gamer", desc: "Apertou Start para iniciar a jornada." },
     { id: "gmr_2", nome: "Cyber Samurai", icone: "🦾", preco: 250, tema: "Gamer", desc: "Tecnologia e estratégia em harmonia." }
 ];
@@ -48,6 +46,7 @@ const CATALOGO_PODERES = [
 let alunoGlobalMercado = null;
 let temaFiltroAtual = "Todos";
 
+// 2. FUNÇÕES AUXILIARES E DE RENDERIZAÇÃO (Declaradas antes do uso)
 function calcularAuraFarmAtual(xpTotal) {
     let auraAtual = NIVEIS_AURA_BASE[0];
     for (const aura of NIVEIS_AURA_BASE) {
@@ -57,17 +56,117 @@ function calcularAuraFarmAtual(xpTotal) {
     return auraAtual;
 }
 
+function renderizarAurasFarm(xpTotal) {
+    const container = document.getElementById('containerAurasBase');
+    if (!container) return;
+
+    const tituloEquipado = alunoGlobalMercado?.tituloEscolhido || "";
+
+    container.innerHTML = NIVEIS_AURA_BASE.map(item => {
+        const desbloqueado = xpTotal >= item.xpReq;
+        const estaEquipado = (tituloEquipado === item.nomeAura);
+
+        let btn = estaEquipado
+            ? `<button class="btn btn-sm btn-success w-100 fw-bold" disabled>EQUIPADO</button>`
+            : desbloqueado
+                ? `<button class="btn btn-sm btn-outline-info w-100 fw-bold" onclick="acaoEquiparAuraBase('${item.nomeAura}', '${item.icone}')">EQUIPAR</button>`
+                : `<button class="btn btn-sm btn-secondary w-100 disabled" style="opacity: 0.5;"><i class="fa-solid fa-lock me-1"></i>Lvl ${item.lvl} (${item.xpReq} XP)</button>`;
+
+        return `
+            <div class="col-md-6 col-12">
+                <div class="p-2 bg-black bg-opacity-50 border ${estaEquipado ? 'border-info' : 'border-secondary'} rounded-3 d-flex align-items-center justify-content-between gap-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="fs-3">${item.icone}</span>
+                        <div>
+                            <h6 class="mb-0 fw-bold" style="color: ${item.cor};">${item.nomeAura}</h6>
+                            <small class="text-muted" style="font-size: 0.72rem;">${item.xpReq} XP acumulados</small>
+                        </div>
+                    </div>
+                    <div style="min-width: 105px;">${btn}</div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function renderizarTitulosMercado(saldo) {
+    const container = document.getElementById('containerMercadoTitulos');
+    if (!container) return;
+
+    const comprados = alunoGlobalMercado?.titulosComprados || [];
+    const equipadoId = alunoGlobalMercado?.tituloEscolhidoId || "";
+    const filtrados = CATALOGO_TITULOS.filter(t => temaFiltroAtual === "Todos" || t.tema === temaFiltroAtual);
+
+    container.innerHTML = filtrados.map(item => {
+        const possui = comprados.includes(item.id);
+        const equipado = (equipadoId === item.id);
+        const podeComprar = saldo >= item.preco;
+
+        let btn = equipado
+            ? `<button class="btn btn-sm btn-success w-100 fw-bold" disabled>EQUIPADO</button>`
+            : possui
+                ? `<button class="btn btn-sm btn-outline-warning w-100 fw-bold" onclick="acaoEquiparTituloComprado('${item.id}')">EQUIPAR</button>`
+                : podeComprar
+                    ? `<button class="btn btn-sm btn-warning w-100 fw-bold" onclick="acaoComprarTituloLoja('${item.id}', ${item.preco})">${item.preco} XP</button>`
+                    : `<button class="btn btn-sm btn-secondary w-100 disabled" style="opacity:0.6;"><i class="fa-solid fa-lock me-1"></i>${item.preco} XP</button>`;
+
+        return `
+            <div class="col-md-6 col-12">
+                <div class="p-2 bg-black bg-opacity-50 border ${equipado ? 'border-warning' : 'border-secondary'} rounded-3 d-flex align-items-center justify-content-between gap-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="fs-2">${item.icone}</span>
+                        <div>
+                            <h6 class="mb-0 fw-bold text-white">${item.nome}</h6>
+                            <small class="text-muted d-block" style="font-size: 0.7rem;">${item.desc}</small>
+                        </div>
+                    </div>
+                    <div style="min-width: 100px;">${btn}</div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function renderizarPoderesMercado(saldo) {
+    const container = document.getElementById('containerMercadoPoderes');
+    if (!container) return;
+
+    const inventario = alunoGlobalMercado?.poderesInventario || {};
+
+    container.innerHTML = CATALOGO_PODERES.map(item => {
+        const qtd = inventario[item.id] || 0;
+        const podeComprar = saldo >= item.preco;
+
+        let btn = podeComprar
+            ? `<button class="btn btn-sm btn-warning w-100 fw-bold" onclick="acaoComprarPoderLoja('${item.id}', ${item.preco})">Comprar (${item.preco} XP)</button>`
+            : `<button class="btn btn-sm btn-secondary w-100 disabled" style="opacity:0.6;"><i class="fa-solid fa-lock me-1"></i>${item.preco} XP</button>`;
+
+        return `
+            <div class="col-md-6 col-12">
+                <div class="p-3 bg-black bg-opacity-50 border border-secondary rounded-3 d-flex flex-column justify-content-between h-100">
+                    <div>
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <span class="fs-3">${item.icone}</span>
+                            <span class="badge bg-primary">Possui: ${qtd}</span>
+                        </div>
+                        <h6 class="fw-bold text-white mb-1">${item.nome}</h6>
+                        <small class="text-muted d-block mb-2" style="font-size: 0.75rem;">${item.desc}</small>
+                    </div>
+                    <div>${btn}</div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// 3. INICIALIZAÇÃO DO BOTÃO E ABERTURA DA MODAL
 function inicializarMercado(aluno) {
     alunoGlobalMercado = aluno;
 
-    // 1. Procura o botão no HTML
     let btn = document.getElementById('btnAbrirMercado');
-
-    // 2. Se o botão NÃO existir na tela, nós injetamos ele automaticamente no topo!
     if (!btn) {
         const containerTopo = document.getElementById('alunoTitulo')?.parentElement || 
                               document.querySelector('.text-end') || 
-                              document.querySelector('header') ||
                               document.body;
 
         const novoBtn = document.createElement('button');
@@ -75,20 +174,18 @@ function inicializarMercado(aluno) {
         novoBtn.className = 'btn btn-sm btn-warning fw-bold my-2 shadow-sm d-inline-flex align-items-center gap-2';
         novoBtn.innerHTML = `<i class="fa-solid fa-store"></i> Mercado & Auras`;
         
-        // Insere o botão logo acima do título/nível
         containerTopo.insertBefore(novoBtn, containerTopo.firstChild);
         btn = novoBtn;
     }
 
-    // 3. Associa o evento de clique para abrir o Mercado
     if (btn) {
         btn.onclick = () => abrirModalMercado();
     }
 }
+
 function abrirModalMercado() {
     if (!alunoGlobalMercado) return;
 
-    // 1. Verifica se o HTML da modal já existe na página; se não existir, cria sozinho!
     if (!document.getElementById('modalMercado')) {
         const modalDiv = document.createElement('div');
         modalDiv.className = 'modal fade';
@@ -163,7 +260,6 @@ function abrirModalMercado() {
         document.body.appendChild(modalDiv);
     }
 
-    // 2. Atualiza os dados de status do aluno
     const xpTotal = Number(alunoGlobalMercado.xp || alunoGlobalMercado.XP || 0);
     const saldo = Number(alunoGlobalMercado.saldoXP !== undefined ? alunoGlobalMercado.saldoXP : xpTotal);
     const auraAtual = calcularAuraFarmAtual(xpTotal);
@@ -178,17 +274,14 @@ function abrirModalMercado() {
     renderizarTitulosMercado(saldo);
     renderizarPoderesMercado(saldo);
 
-    // 3. Tenta abrir via Bootstrap ou Força Exibição via JS Nativo se o Bootstrap falhar
     const modalEl = document.getElementById('modalMercado');
     if (window.bootstrap && window.bootstrap.Modal) {
         window.bootstrap.Modal.getOrCreateInstance(modalEl).show();
     } else {
-        // Fallback caso a biblioteca do Bootstrap JS não esteja presente no HTML
         modalEl.classList.add('show');
         modalEl.style.display = 'block';
         modalEl.removeAttribute('aria-hidden');
         
-        // Garante que o botão de fechar (X) funcione no fallback
         const btnClose = modalEl.querySelector('.btn-close');
         if (btnClose) {
             btnClose.onclick = () => {
@@ -198,80 +291,11 @@ function abrirModalMercado() {
         }
     }
 }
-function renderizarTitulosMercado(saldo) {
-    const container = document.getElementById('containerMercadoTitulos');
-    if (!container) return;
 
-    const comprados = alunoGlobalMercado?.titulosComprados || [];
-    const equipadoId = alunoGlobalMercado?.tituloEscolhidoId || "";
-    const filtrados = CATALOGO_TITULOS.filter(t => temaFiltroAtual === "Todos" || t.tema === temaFiltroAtual);
-
-    container.innerHTML = filtrados.map(item => {
-        const possui = comprados.includes(item.id);
-        const equipado = (equipadoId === item.id);
-        const podeComprar = saldo >= item.preco;
-
-        let btn = equipado
-            ? `<button class="btn btn-sm btn-success w-100 fw-bold" disabled>EQUIPADO</button>`
-            : possui
-                ? `<button class="btn btn-sm btn-outline-warning w-100 fw-bold" onclick="acaoEquiparTituloComprado('${item.id}')">EQUIPAR</button>`
-                : podeComprar
-                    ? `<button class="btn btn-sm btn-warning w-100 fw-bold" onclick="acaoComprarTituloLoja('${item.id}', ${item.preco})">${item.preco} XP</button>`
-                    : `<button class="btn btn-sm btn-secondary w-100 disabled" style="opacity:0.6;"><i class="fa-solid fa-lock me-1"></i>${item.preco} XP</button>`;
-
-        return `
-            <div class="col-md-6 col-12">
-                <div class="p-2 bg-black bg-opacity-50 border ${equipado ? 'border-warning' : 'border-secondary'} rounded-3 d-flex align-items-center justify-content-between gap-2">
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="fs-2">${item.icone}</span>
-                        <div>
-                            <h6 class="mb-0 fw-bold text-white">${item.nome}</h6>
-                            <small class="text-muted d-block" style="font-size: 0.7rem;">${item.desc}</small>
-                        </div>
-                    </div>
-                    <div style="min-width: 100px;">${btn}</div>
-                </div>
-            </div>
-        `;
-    }).join('');
-}
-
-function renderizarPoderesMercado(saldo) {
-    const container = document.getElementById('containerMercadoPoderes');
-    if (!container) return;
-
-    const inventario = alunoGlobalMercado?.poderesInventario || {};
-
-    container.innerHTML = CATALOGO_PODERES.map(item => {
-        const qtd = inventario[item.id] || 0;
-        const podeComprar = saldo >= item.preco;
-
-        let btn = podeComprar
-            ? `<button class="btn btn-sm btn-warning w-100 fw-bold" onclick="acaoComprarPoderLoja('${item.id}', ${item.preco})">Comprar (${item.preco} XP)</button>`
-            : `<button class="btn btn-sm btn-secondary w-100 disabled" style="opacity:0.6;"><i class="fa-solid fa-lock me-1"></i>${item.preco} XP</button>`;
-
-        return `
-            <div class="col-md-6 col-12">
-                <div class="p-3 bg-black bg-opacity-50 border border-secondary rounded-3 d-flex flex-column justify-content-between h-100">
-                    <div>
-                        <div class="d-flex align-items-center justify-content-between mb-1">
-                            <span class="fs-3">${item.icone}</span>
-                            <span class="badge bg-primary">Possui: ${qtd}</span>
-                        </div>
-                        <h6 class="fw-bold text-white mb-1">${item.nome}</h6>
-                        <small class="text-muted d-block mb-2" style="font-size: 0.75rem;">${item.desc}</small>
-                    </div>
-                    <div>${btn}</div>
-                </div>
-            </div>
-        `;
-    }).join('');
-}
-
-// Funções Expostas Globalmente no Window para os eventos `onclick` dos botões
+// 4. AÇÕES DE COMPRA E EQUIPAR EXPOSTAS GLOBALMENTE
 window.filtrarTitulos = function(tema, btnEl) {
     temaFiltroAtual = tema;
-    document.querySelectorAll('#pills-temas-titulos .nav-link').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('#pills-temas-titulos .nav-link, #pills-temas-titulos .btn').forEach(b => b.classList.remove('active'));
     if (btnEl) btnEl.classList.add('active');
 
     const xpTotal = Number(alunoGlobalMercado?.xp || 0);

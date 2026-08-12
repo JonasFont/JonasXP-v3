@@ -59,12 +59,32 @@ function calcularAuraFarmAtual(xpTotal) {
 
 function inicializarMercado(aluno) {
     alunoGlobalMercado = aluno;
-    const btn = document.getElementById('btnAbrirMercado');
+
+    // 1. Procura o botão no HTML
+    let btn = document.getElementById('btnAbrirMercado');
+
+    // 2. Se o botão NÃO existir na tela, nós injetamos ele automaticamente no topo!
+    if (!btn) {
+        const containerTopo = document.getElementById('alunoTitulo')?.parentElement || 
+                              document.querySelector('.text-end') || 
+                              document.querySelector('header') ||
+                              document.body;
+
+        const novoBtn = document.createElement('button');
+        novoBtn.id = 'btnAbrirMercado';
+        novoBtn.className = 'btn btn-sm btn-warning fw-bold my-2 shadow-sm d-inline-flex align-items-center gap-2';
+        novoBtn.innerHTML = `<i class="fa-solid fa-store"></i> Mercado & Auras`;
+        
+        // Insere o botão logo acima do título/nível
+        containerTopo.insertBefore(novoBtn, containerTopo.firstChild);
+        btn = novoBtn;
+    }
+
+    // 3. Associa o evento de clique para abrir o Mercado
     if (btn) {
         btn.onclick = () => abrirModalMercado();
     }
 }
-
 function abrirModalMercado() {
     if (!alunoGlobalMercado) return;
 

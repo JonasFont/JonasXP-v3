@@ -19,17 +19,69 @@ const CATALOGO_GAMIFICADO = [
     { id: "c6", tipo: "Conquista", nome: "Aura Divina - Kage", xpNecessario: 2000, icone: "🌌", descricao: "Lorde Otaku Lendário no topo da guilda!" }
 ];
 
+// js/aluno.js
 document.addEventListener('DOMContentLoaded', async () => {
+    // 1. Captura o ID da URL de forma limpa
     const urlParams = new URLSearchParams(window.location.search);
-    const alunoId = urlParams.get('id');
+    const alunoId = urlParams.get('id')?.trim();
+
+    const loadingEl = document.getElementById('loading'); // ou o container do spinner
+    const painelEl = document.getElementById('painelAluno'); // container principal
 
     if (!alunoId) {
-        console.warn("ID do aluno não informado na URL.");
+        exibirErro("ID do aluno não informado na URL.");
         return;
     }
 
-    await carregarPainelAluno(alunoId);
+    try {
+        // 2. Aguarda a API estar pronta
+        if (!window.API) {
+            throw new Error("Módulo API não carregado.");
+        }
+
+        // 3. Busca o aluno na API
+        let aluno = null;
+        if (typeof window.API.getAlunoPorId === 'function') {
+            aluno = await window.API.getAlunoPorId(alunoId);
+        } else {
+            // Fallback: busca na lista geral de alunos se a função individual não existir
+            const todosAlunos = await window.API.getAlunos();
+            aluno = todosAlunos.find(a => 
+                String(a.id || a.ID || '').trim() === alunoId ||
+                String(a.id || a.ID || '').trim().toLowerCase() === alunoId.toLowerCase()
+            );
+        }
+
+        if (!aluno) {
+            exibirErro(`Aluno não encontrado para o ID: ${alunoId}`);
+            return;
+        }
+
+        // 4. Busca o histórico de pontuações
+        const historico = await window.API.getLancamentosPorAluno(alunoId);
+
+        // 5. Renderiza as informações na tela
+        renderizarPainelAluno(aluno, historico);
+
+    } catch (error) {
+        console.error("Erro ao carregar dados do aluno:", error);
+        exibirErro("Erro ao carregar os dados. Verifique a conexão.");
+    }
 });
+
+function exibirErro(mensagem) {
+    const container = document.body;
+    container.innerHTML = `
+        <div class="container text-center py-5">
+            <div class="alert alert-danger d-inline-block">
+                <i class="fa-solid fa-triangle-exclamation me-2"></i>${mensagem}
+            </div>
+            <div class="mt-3">
+                <a href="index.html" class="btn btn-outline-light">Voltar ao Início</a>
+            </div>
+        </div>
+    `;
+}
 
 async function carregarPainelAluno(id) {
     try {

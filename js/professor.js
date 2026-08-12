@@ -363,6 +363,9 @@ function gerarLinksWhatsAppTurma() {
 // ============================================================================
 // 7. HISTÓRICO INDIVIDUAL (MODAL)
 // ============================================================================
+// ============================================================================
+// 7. HISTÓRICO INDIVIDUAL (MODAL) - OTIMIZADO PARA VELOCIDADE
+// ============================================================================
 async function verHistoricoAluno(id, nome, totalXP) {
     const modalNome = document.getElementById('modalDetalhesNome');
     const detalheNivel = document.getElementById('detalheNivel');
@@ -372,43 +375,60 @@ async function verHistoricoAluno(id, nome, totalXP) {
 
     const infoNivel = window.API.calcularNivel(totalXP);
 
+    // 1. Atualiza as informações estáticas na tela imediatamente
     if (modalNome) modalNome.innerText = `Histórico de: ${nome}`;
     if (detalheNivel) detalheNivel.innerText = infoNivel.nivel;
     if (detalheTitulo) detalheTitulo.innerText = infoNivel.titulo;
     if (detalheXP) detalheXP.innerText = totalXP;
 
-    if (tbody) tbody.innerHTML = `<tr><td colspan="7" class="text-center py-3"><i class="fa-solid fa-spinner fa-spin"></i> Buscando histórico...</td></tr>`;
+    // 2. Coloca um feedback de carregamento instantâneo
+    if (tbody) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" class="text-center py-4">
+                    <div class="spinner-border spinner-border-sm text-info me-2" role="status"></div>
+                    <span class="text-muted">Buscando dados no Firebase...</span>
+                </td>
+            </tr>`;
+    }
 
+    // 3. Abre o modal NA HORA para o usuário sentir resposta imediata
     const modalEl = document.getElementById('modalDetalhesAluno');
     if (modalEl) bootstrap.Modal.getOrCreateInstance(modalEl).show();
 
-    const historico = await window.API.getLancamentosPorAluno(id);
+    // 4. Faz a busca assíncrona da API em segundo plano
+    try {
+        const historico = await window.API.getLancamentosPorAluno(id);
 
-    if (!historico || historico.length === 0) {
-        if (tbody) tbody.innerHTML = `<tr><td colspan="7" class="text-center py-3 text-muted">Nenhum lançamento registrado.</td></tr>`;
-        return;
-    }
+        if (!historico || historico.length === 0) {
+            if (tbody) tbody.innerHTML = `<tr><td colspan="7" class="text-center py-3 text-muted">Nenhum lançamento registrado.</td></tr>`;
+            return;
+        }
 
-    if (tbody) {
-        tbody.innerHTML = historico.map(h => {
-            const atv = Number(h.atividade || h.Atividade) || 0;
-            const eqp = Number(h.equipe || h.Equipe) || 0;
-            const comp = Number(h.comportamento || h.Comportamento) || 0;
-            const part = Number(h.participacao || h.Participacao) || 0;
-            const total = (atv + eqp + comp + part) || Number(h.total || h.Total || h.xp || h.XP) || 0;
+        if (tbody) {
+            tbody.innerHTML = historico.map(h => {
+                const atv = Number(h.atividade || h.Atividade) || 0;
+                const eqp = Number(h.equipe || h.Equipe) || 0;
+                const comp = Number(h.comportamento || h.Comportamento) || 0;
+                const part = Number(h.participacao || h.Participacao) || 0;
+                const total = (atv + eqp + comp + part) || Number(h.total || h.Total || h.xp || h.XP) || 0;
 
-            return `
-                <tr>
-                    <td>${h.data || h.Data || '-'}</td>
-                    <td class="text-success">+${atv}</td>
-                    <td class="text-success">+${eqp}</td>
-                    <td class="text-success">+${comp}</td>
-                    <td class="text-success">+${part}</td>
-                    <td class="fw-bold text-warning">+${total} XP</td>
-                    <td class="small">${h.observacao || h.Observacao || '-'}</td>
-                </tr>
-            `;
-        }).join('');
+                return `
+                    <tr>
+                        <td>${h.data || h.Data || '-'}</td>
+                        <td class="text-success">+${atv}</td>
+                        <td class="text-success">+${eqp}</td>
+                        <td class="text-success">+${comp}</td>
+                        <td class="text-success">+${part}</td>
+                        <td class="fw-bold text-warning">+${total} XP</td>
+                        <td class="small">${h.observacao || h.Observacao || '-'}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+    } catch (err) {
+        console.error("Erro ao buscar histórico:", err);
+        if (tbody) tbody.innerHTML = `<tr><td colspan="7" class="text-center py-3 text-danger">Erro ao carregar o histórico.</td></tr>`;
     }
 }
 window.verHistoricoAluno = verHistoricoAluno;

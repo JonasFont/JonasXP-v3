@@ -256,7 +256,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         exibirErro("Erro ao carregar dados do aluno. Verifique a conexão.");
     }
 });
-
 async function carregarPainelAluno(id) {
     const loadingEl = document.getElementById('loading') || document.getElementById('spinnerLoading');
     const painelEl = document.getElementById('painelAluno') || document.getElementById('conteudoAluno');
@@ -288,7 +287,7 @@ async function carregarPainelAluno(id) {
         }
 
         // =========================================================================
-        // ⚡ AQUI: Inicializar o Mercado ANTES das renderizações de tela do aluno!
+        // ⚡ Inicializa o Mercado antes das renderizações
         // =========================================================================
         if (typeof inicializarMercado === 'function') {
             inicializarMercado(aluno);
@@ -301,12 +300,18 @@ async function carregarPainelAluno(id) {
         renderizarPerfilCompleto(aluno, id, xpTotal, infoNivel);
         aplicarAuraDeFundo(infoNivel);
 
-        // 2. Renderiza Poderes e Conquistas Gamificadas
-        const listaFinal = (conquistasAPI && conquistasAPI.length > 0) ? conquistasAPI : CATALOGO_GAMIFICADO;
-        renderizarConquistasGamificadas(listaFinal, xpTotal);
+        // 2. Renderiza Poderes e Conquistas Gamificadas (Proteção contra ReferenceError)
+        const fallbackConquistas = typeof CATALOGO_GAMIFICADO !== 'undefined' ? CATALOGO_GAMIFICADO : [];
+        const listaFinal = (Array.isArray(conquistasAPI) && conquistasAPI.length > 0) ? conquistasAPI : fallbackConquistas;
+        
+        if (typeof renderizarConquistasGamificadas === 'function') {
+            renderizarConquistasGamificadas(listaFinal, xpTotal);
+        }
 
         // 3. Renderiza Histórico de Atividades e Observações
-        renderizarHistorico(historico);
+        if (typeof renderizarHistorico === 'function') {
+            renderizarHistorico(historico);
+        }
 
         // 4. Oculta o Spinner e Exibe o Painel
         if (loadingEl) loadingEl.style.display = 'none';

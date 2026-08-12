@@ -1,127 +1,204 @@
-// js/api.js - Módulo de Comunicação com Google Apps Script
+// js/api.js - Módulo de Conexão Firebase Firestore
 
-const API_CONFIG = {
-    // Apenas UMA url válida aqui:
-    URL: "https://script.google.com/macros/s/AKfycbxQRPMgyh5MgfpucbkbaOZBZjx9QxWCFxjx6kWwDftcdRnDQh5wM2qjp_ORUaUGLBQM/exec",
-    TIMEOUT: 15000,
-    DEBUG: true
+// 1. IMPORTAR SDKs DO FIREBASE
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { 
+    getFirestore, 
+    collection, 
+    getDocs, 
+    doc, 
+    getDoc, 
+    addDoc, 
+    setDoc, 
+    query, 
+    where 
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+// 2. SUAS CREDENCIAIS DO FIREBASE JÁ CONFIGURADAS
+const firebaseConfig = {
+    apiKey: "AIzaSyDNfajgndGJ5KJgM2-uN26dNQ6U0EAP1Pk",
+    authDomain: "jonasxp-eb80e.firebaseapp.com",
+    projectId: "jonasxp-eb80e",
+    storageBucket: "jonasxp-eb80e.firebasestorage.app",
+    messagingSenderId: "648665033902",
+    appId: "1:648665033902:web:abc1d5806fa7c6ffafd13f"
 };
-async function fetchComTimeout(resource, options = {}) {
-    const { timeout = API_CONFIG.TIMEOUT } = options;
-    const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), timeout);
 
-    try {
-        const response = await fetch(resource, { ...options, signal: controller.signal });
-        clearTimeout(id);
-        return response;
-    } catch (error) {
-        clearTimeout(id);
-        throw error;
-    }
-}
+// Inicializar Firebase e Firestore
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
+// 3. OBJETO DA API JONASXP
 const API = {
+    // --- BUSCAR ALUNOS ---
     async getAlunos() {
         try {
-            const res = await fetchComTimeout(`${API_CONFIG.URL}?acao=getAlunos`);
-            return await res.json();
+            const querySnapshot = await getDocs(collection(db, "alunos"));
+            const alunos = [];
+            querySnapshot.forEach((doc) => {
+                alunos.push({ id: doc.id, ...doc.data() });
+            });
+            return alunos;
         } catch (e) {
-            console.error("Erro ao carregar alunos:", e);
+            console.error("Erro ao buscar alunos:", e);
             return [];
         }
     },
 
+    // --- BUSCAR TURMAS ---
     async getTurmas() {
         try {
-            const res = await fetchComTimeout(`${API_CONFIG.URL}?acao=getTurmas`);
-            return await res.json();
+            const querySnapshot = await getDocs(collection(db, "turmas"));
+            const turmas = [];
+            querySnapshot.forEach((doc) => {
+                turmas.push({ id: doc.id, ...doc.data() });
+            });
+            return turmas;
         } catch (e) {
-            console.error("Erro ao carregar turmas:", e);
+            console.error("Erro ao buscar turmas:", e);
             return [];
         }
     },
 
+    // --- BUSCAR UM ALUNO POR ID ---
     async getAlunoPorId(idAluno) {
-        const url = `${API_CONFIG.URL}?acao=getAluno&id=${encodeURIComponent(idAluno)}`;
-        const res = await fetchComTimeout(url);
-        return await res.json();
+        try {
+            const docRef = doc(db, "alunos", idAluno);
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                return { id: docSnap.id, ...docSnap.data() };
+            }
+            return { erro: "Não localizado" };
+        } catch (e) {
+            console.error("Erro ao buscar aluno:", e);
+            return { erro: e.message };
+        }
     },
 
+    // --- BUSCAR HISTÓRICO DE LANÇAMENTOS DO ALUNO ---
     async getLancamentosPorAluno(idAluno) {
         try {
-            const url = `${API_CONFIG.URL}?acao=getHistorico&id=${encodeURIComponent(idAluno)}`;
-            const res = await fetchComTimeout(url);
-            const dados = await res.json();
-            return Array.isArray(dados) ? dados : [];
+            const q = query(
+                collection(db, "avaliacoes"), 
+                where("alunoId", "==", idAluno)
+            );
+            const querySnapshot = await getDocs(q);
+            const historico = [];
+            querySnapshot.forEach((doc) => {
+                historico.push({ id: doc.id, ...doc.data() });
+            });
+            return historico;
         } catch (e) {
             console.error("Erro ao buscar histórico:", e);
             return [];
         }
     },
 
-    async salvarLancamento(payload) {
-        const params = new URLSearchParams();
-        params.append('acao', 'salvarLancamento');
-        params.append('dados', JSON.stringify(payload));
-
-        const res = await fetchComTimeout(API_CONFIG.URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: params
-        });
-        return await res.json();
-    },
-
-    // Dentro do objeto API em js/api.js:
-    calcularNivel: function(xp) {
-        const pontos = Number(xp) || 0;
-
-        // Sistema de Níveis & Auras estilo Anime (Ajuste os valores de XP se preferir)
-        if (pontos >= 2000) {
-            return { nivel: 6, titulo: "Kage / Aura Divina SSJ", cor: "#ff0055", icone: "🌌", porcentagem: 100 };
-        }
-        if (pontos >= 1200) {
-            return { nivel: 5, titulo: "Proton / Aura Dourada", cor: "#ffaa00", icone: "🔥", porcentagem: Math.min(100, ((pontos - 1200) / 800) * 100) };
-        }
-        if (pontos >= 700) {
-            return { nivel: 4, titulo: "Caçador / Aura Roxa", cor: "#9d00ff", icone: "⚡", porcentagem: Math.min(100, ((pontos - 700) / 500) * 100) };
-        }
-        if (pontos >= 350) {
-            return { nivel: 3, titulo: "Chunin / Aura Azul", cor: "#00d4ff", icone: "🌊", porcentagem: Math.min(100, ((pontos - 350) / 350) * 100) };
-        }
-        if (pontos >= 150) {
-            return { nivel: 2, titulo: "Recruta / Aura Verde", cor: "#00ff66", icone: "🍃", porcentagem: Math.min(100, ((pontos - 150) / 200) * 100) };
-        }
-
-        // Nível 1 - Inicial
-        return { nivel: 1, titulo: "NPC Sem Aura", cor: "#888888", icone: "👤", porcentagem: Math.min(100, (pontos / 150) * 100) };
-    },
+    // --- CADASTRAR TURMA ---
     async cadastrarTurma(nomeTurma) {
         try {
-            const res = await fetchComTimeout(API_CONFIG.URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify({ acao: 'cadastrarTurma', nomeTurma })
+            const docRef = await addDoc(collection(db, "turmas"), {
+                nome: nomeTurma.trim()
             });
-            return await res.json();
+            return { sucesso: true, id: docRef.id, mensagem: "Turma cadastrada com sucesso!" };
         } catch (e) {
             console.error("Erro ao cadastrar turma:", e);
-            return { sucesso: false, mensagem: "Erro na conexão." };
+            return { sucesso: false, mensagem: e.message };
         }
     },
 
+    // --- CADASTRAR ALUNO ---
     async salvarAluno(alunoData) {
         try {
-            const res = await fetchComTimeout(API_CONFIG.URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify({ acao: 'salvarAluno', ...alunoData })
+            const docRef = await addDoc(collection(db, "alunos"), {
+                nome: alunoData.nome.trim(),
+                turma: alunoData.turma.trim(),
+                xp: 0
             });
-            return await res.json();
+            return { sucesso: true, id: docRef.id, mensagem: "Aluno cadastrado com sucesso!" };
         } catch (e) {
             console.error("Erro ao salvar aluno:", e);
-            return { sucesso: false, mensagem: "Erro na conexão." };
+            return { sucesso: false, mensagem: e.message };
         }
     },
+
+    // --- LANÇAR XP/PONTOS ---
+    async salvarLancamento(payload) {
+        try {
+            await addDoc(collection(db, "avaliacoes"), {
+                alunoId: payload.alunoId,
+                atividade: Number(payload.atividade) || 0,
+                equipe: Number(payload.equipe) || 0,
+                comportamento: Number(payload.comportamento) || 0,
+                participacao: Number(payload.participacao) || 0,
+                observacao: payload.observacao || "",
+                data: payload.data || new Date().toLocaleDateString('pt-BR')
+            });
+
+            const somaXP = (Number(payload.atividade) || 0) + 
+                           (Number(payload.equipe) || 0) + 
+                           (Number(payload.comportamento) || 0) + 
+                           (Number(payload.participacao) || 0);
+
+            const alunoRef = doc(db, "alunos", payload.alunoId);
+            const alunoSnap = await getDoc(alunoRef);
+
+            if (alunoSnap.exists()) {
+                const xpAtual = Number(alunoSnap.data().xp) || 0;
+                await setDoc(alunoRef, { xp: xpAtual + somaXP }, { merge: true });
+            }
+
+            return { sucesso: true, mensagem: "Lançamento salvo!" };
+        } catch (e) {
+            console.error("Erro ao salvar lançamento:", e);
+            return { sucesso: false, mensagem: e.message };
+        }
+    },
+
+    // --- CÁLCULO DE NÍVEL ---
+    calcularNivel: function(xp) {
+        const pontos = Number(xp) || 0;
+        if (pontos >= 2000) return { nivel: 6, titulo: "Kage / SSJ", cor: "#ff0055", icone: "🌌", porcentagem: 100 };
+        if (pontos >= 1200) return { nivel: 5, titulo: "Proton", cor: "#ffaa00", icone: "🔥", porcentagem: Math.min(100, ((pontos - 1200) / 800) * 100) };
+        if (pontos >= 700) return { nivel: 4, titulo: "Caçador", cor: "#9d00ff", icone: "⚡", porcentagem: Math.min(100, ((pontos - 700) / 500) * 100) };
+        if (pontos >= 350) return { nivel: 3, titulo: "Chunin", cor: "#00d4ff", icone: "🌊", porcentagem: Math.min(100, ((pontos - 350) / 350) * 100) };
+        if (pontos >= 150) return { nivel: 2, titulo: "Recruta", cor: "#00ff66", icone: "🍃", porcentagem: Math.min(100, ((pontos - 150) / 200) * 100) };
+        return { nivel: 1, titulo: "Iniciante", cor: "#888888", icone: "👤", porcentagem: Math.min(100, (pontos / 150) * 100) };
+    }
 };
+
+// --- SCRIPT DE MIGRAÇÃO ÚNICA (Planilha -> Firebase) ---
+async function migrarDadosPlanilhaParaFirebase(urlAppsScriptAntiga) {
+    console.log("🚀 Iniciando migração da planilha para o Firebase...");
+    try {
+        const resTurmas = await fetch(`${urlAppsScriptAntiga}?acao=getTurmas`);
+        const turmasPlanilha = await resTurmas.json();
+
+        for (const turma of turmasPlanilha) {
+            await addDoc(collection(db, "turmas"), {
+                nome: String(turma.nome || turma.id).trim()
+            });
+            console.log(`✅ Turma migrada: ${turma.nome}`);
+        }
+
+        const resAlunos = await fetch(`${urlAppsScriptAntiga}?acao=getAlunos`);
+        const alunosPlanilha = await resAlunos.json();
+
+        for (const aluno of alunosPlanilha) {
+            await addDoc(collection(db, "alunos"), {
+                nome: String(aluno.nome).trim(),
+                turma: String(aluno.turma).trim(),
+                xp: Number(aluno.xp) || 0
+            });
+            console.log(`✅ Aluno migrado: ${aluno.nome}`);
+        }
+
+        console.log("🎉 MIGRAÇÃO CONCLUÍDA COM SUCESSO!");
+        alert("Todos os dados da planilha foram copiados para o Firebase!");
+    } catch (e) {
+        console.error("Erro na migração:", e);
+    }
+}
+
+window.migrarDadosPlanilhaParaFirebase = migrarDadosPlanilhaParaFirebase;
+window.API = API;

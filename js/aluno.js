@@ -88,6 +88,82 @@ function inicializarMercado(aluno) {
 function abrirModalMercado() {
     if (!alunoGlobalMercado) return;
 
+    // 1. Verifica se o HTML da modal já existe na página; se não existir, cria sozinho!
+    if (!document.getElementById('modalMercado')) {
+        const modalDiv = document.createElement('div');
+        modalDiv.className = 'modal fade';
+        modalDiv.id = 'modalMercado';
+        modalDiv.setAttribute('tabindex', '-1');
+        modalDiv.innerHTML = `
+          <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content bg-dark text-white border-warning shadow-lg">
+              <div class="modal-header border-secondary">
+                <h5 class="modal-title fw-bold text-warning">
+                  <i class="fa-solid fa-store me-2"></i>Mercado de Títulos & Auras
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body">
+                <div class="row g-2 mb-3 text-center">
+                    <div class="col-4">
+                        <div class="p-2 bg-black bg-opacity-50 border border-secondary rounded">
+                            <small class="text-muted d-block" style="font-size:0.7rem;">Sua Aura Atual</small>
+                            <span id="statusAuraNome" class="fw-bold text-info" style="font-size:0.85rem;">-</span>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="p-2 bg-black bg-opacity-50 border border-secondary rounded">
+                            <small class="text-muted d-block" style="font-size:0.7rem;">XP Total Acumulado</small>
+                            <span id="statusXpTotal" class="fw-bold text-light" style="font-size:0.85rem;">0 XP</span>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="p-2 bg-black bg-opacity-50 border border-warning rounded">
+                            <small class="text-muted d-block" style="font-size:0.7rem;">Saldo para Compras</small>
+                            <span id="statusSaldoXP" class="fw-bold text-warning" style="font-size:0.85rem;">0 XP</span>
+                        </div>
+                    </div>
+                </div>
+
+                <ul class="nav nav-pills nav-fill mb-3" id="pills-tab" role="tablist">
+                  <li class="nav-item">
+                    <button class="nav-link active btn-sm" id="tab-auras" data-bs-toggle="pill" data-bs-target="#content-auras">✨ Auras de Nível</button>
+                  </li>
+                  <li class="nav-item">
+                    <button class="nav-link btn-sm" id="tab-titulos" data-bs-toggle="pill" data-bs-target="#content-titulos">🏷️ Títulos Temáticos</button>
+                  </li>
+                  <li class="nav-item">
+                    <button class="nav-link btn-sm" id="tab-poderes" data-bs-toggle="pill" data-bs-target="#content-poderes">⚡ Poderes da Sala</button>
+                  </li>
+                </ul>
+
+                <div class="tab-content" id="pills-tabContent">
+                  <div class="tab-pane fade show active" id="content-auras">
+                     <div class="row g-2" id="containerAurasBase"></div>
+                  </div>
+                  <div class="tab-pane fade" id="content-titulos">
+                     <div class="d-flex gap-1 overflow-auto mb-3" id="pills-temas-titulos">
+                        <button class="btn btn-sm btn-outline-warning active" onclick="filtrarTitulos('Todos', this)">Todos</button>
+                        <button class="btn btn-sm btn-outline-warning" onclick="filtrarTitulos('Anime', this)">⛩️ Anime</button>
+                        <button class="btn btn-sm btn-outline-warning" onclick="filtrarTitulos('RPG', this)">⚔️ RPG</button>
+                        <button class="btn btn-sm btn-outline-warning" onclick="filtrarTitulos('Filmes', this)">🎬 Filmes</button>
+                        <button class="btn btn-sm btn-outline-warning" onclick="filtrarTitulos('Gamer', this)">🎮 Gamer</button>
+                     </div>
+                     <div class="row g-2" id="containerMercadoTitulos"></div>
+                  </div>
+                  <div class="tab-pane fade" id="content-poderes">
+                     <div class="row g-2" id="containerMercadoPoderes"></div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(modalDiv);
+    }
+
+    // 2. Atualiza os dados de status do aluno
     const xpTotal = Number(alunoGlobalMercado.xp || alunoGlobalMercado.XP || 0);
     const saldo = Number(alunoGlobalMercado.saldoXP !== undefined ? alunoGlobalMercado.saldoXP : xpTotal);
     const auraAtual = calcularAuraFarmAtual(xpTotal);
@@ -102,45 +178,26 @@ function abrirModalMercado() {
     renderizarTitulosMercado(saldo);
     renderizarPoderesMercado(saldo);
 
+    // 3. Tenta abrir via Bootstrap ou Força Exibição via JS Nativo se o Bootstrap falhar
     const modalEl = document.getElementById('modalMercado');
-    if (modalEl && window.bootstrap) {
+    if (window.bootstrap && window.bootstrap.Modal) {
         window.bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    } else {
+        // Fallback caso a biblioteca do Bootstrap JS não esteja presente no HTML
+        modalEl.classList.add('show');
+        modalEl.style.display = 'block';
+        modalEl.removeAttribute('aria-hidden');
+        
+        // Garante que o botão de fechar (X) funcione no fallback
+        const btnClose = modalEl.querySelector('.btn-close');
+        if (btnClose) {
+            btnClose.onclick = () => {
+                modalEl.classList.remove('show');
+                modalEl.style.display = 'none';
+            };
+        }
     }
 }
-
-function renderizarAurasFarm(xpTotal) {
-    const container = document.getElementById('containerAurasBase');
-    if (!container) return;
-
-    const tituloEquipado = alunoGlobalMercado?.tituloEscolhido || "";
-
-    container.innerHTML = NIVEIS_AURA_BASE.map(item => {
-        const desbloqueado = xpTotal >= item.xpReq;
-        const estaEquipado = (tituloEquipado === item.nomeAura);
-
-        let btn = estaEquipado
-            ? `<button class="btn btn-sm btn-success w-100 fw-bold" disabled>EQUIPADO</button>`
-            : desbloqueado
-                ? `<button class="btn btn-sm btn-outline-info w-100 fw-bold" onclick="acaoEquiparAuraBase('${item.nomeAura}', '${item.icone}')">EQUIPAR</button>`
-                : `<button class="btn btn-sm btn-secondary w-100 disabled" style="opacity: 0.5;"><i class="fa-solid fa-lock me-1"></i>Lvl ${item.lvl} (${item.xpReq} XP)</button>`;
-
-        return `
-            <div class="col-md-6 col-12">
-                <div class="p-2 bg-black bg-opacity-50 border ${estaEquipado ? 'border-info' : 'border-secondary'} rounded-3 d-flex align-items-center justify-content-between gap-2">
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="fs-3">${item.icone}</span>
-                        <div>
-                            <h6 class="mb-0 fw-bold" style="color: ${item.cor};">${item.nomeAura}</h6>
-                            <small class="text-muted" style="font-size: 0.72rem;">${item.xpReq} XP acumulados</small>
-                        </div>
-                    </div>
-                    <div style="min-width: 105px;">${btn}</div>
-                </div>
-            </div>
-        `;
-    }).join('');
-}
-
 function renderizarTitulosMercado(saldo) {
     const container = document.getElementById('containerMercadoTitulos');
     if (!container) return;

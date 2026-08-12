@@ -19,103 +19,82 @@ const CATALOGO_GAMIFICADO = [
     { id: "c6", tipo: "Conquista", nome: "Aura Divina - Kage", xpNecessario: 2000, icone: "🌌", descricao: "Lorde Otaku Lendário no topo da guilda!" }
 ];
 
-// js/aluno.js
 document.addEventListener('DOMContentLoaded', async () => {
-    // 1. Captura o ID da URL de forma limpa
+    // 1. Captura o ID da URL
     const urlParams = new URLSearchParams(window.location.search);
     const alunoId = urlParams.get('id')?.trim();
 
-    const loadingEl = document.getElementById('loading'); // ou o container do spinner
-    const painelEl = document.getElementById('painelAluno'); // container principal
-
     if (!alunoId) {
-        exibirErro("ID do aluno não informado na URL.");
+        exibirErro("ID do aluno não foi informado na URL.");
         return;
     }
 
     try {
         // 2. Aguarda a API estar pronta
         if (!window.API) {
-            throw new Error("Módulo API não carregado.");
+            throw new Error("Módulo API não carregado. Verifique se api.js está antes de aluno.js.");
         }
 
-        // 3. Busca o aluno na API
+        // 3. Executa a carga completa e renderização
+        await carregarPainelAluno(alunoId);
+
+    } catch (error) {
+        console.error("Erro crítico ao carregar dados do aluno:", error);
+        exibirErro("Erro ao carregar dados do aluno. Verifique a conexão.");
+    }
+});
+
+async function carregarPainelAluno(id) {
+    const loadingEl = document.getElementById('loading') || document.getElementById('spinnerLoading');
+    const painelEl = document.getElementById('painelAluno') || document.getElementById('conteudoAluno');
+
+    try {
+        // Busca paralela otimizada na API
+        const [alunos, conquistasAPI, historico] = await Promise.all([
+            window.API.getAlunos ? window.API.getAlunos() : [],
+            window.API.getConquistas ? window.API.getConquistas() : [],
+            window.API.getLancamentosPorAluno ? window.API.getLancamentosPorAluno(id) : []
+        ]);
+
+        // Procura o aluno pelo ID de forma flexível e segura
         let aluno = null;
         if (typeof window.API.getAlunoPorId === 'function') {
-            aluno = await window.API.getAlunoPorId(alunoId);
-        } else {
-            // Fallback: busca na lista geral de alunos se a função individual não existir
-            const todosAlunos = await window.API.getAlunos();
-            aluno = todosAlunos.find(a => 
-                String(a.id || a.ID || '').trim() === alunoId ||
-                String(a.id || a.ID || '').trim().toLowerCase() === alunoId.toLowerCase()
+            aluno = await window.API.getAlunoPorId(id);
+        }
+
+        if (!aluno && Array.isArray(alunos)) {
+            aluno = alunos.find(a => 
+                String(a.id || a.ID || '').trim() === String(id).trim() ||
+                String(a.id || a.ID || '').trim().toLowerCase() === String(id).trim().toLowerCase()
             );
         }
 
         if (!aluno) {
-            exibirErro(`Aluno não encontrado para o ID: ${alunoId}`);
-            return;
-        }
-
-        // 4. Busca o histórico de pontuações
-        const historico = await window.API.getLancamentosPorAluno(alunoId);
-
-        // 5. Renderiza as informações na tela
-        renderizarPainelAluno(aluno, historico);
-
-    } catch (error) {
-        console.error("Erro ao carregar dados do aluno:", error);
-        exibirErro("Erro ao carregar os dados. Verifique a conexão.");
-    }
-});
-
-function exibirErro(mensagem) {
-    const container = document.body;
-    container.innerHTML = `
-        <div class="container text-center py-5">
-            <div class="alert alert-danger d-inline-block">
-                <i class="fa-solid fa-triangle-exclamation me-2"></i>${mensagem}
-            </div>
-            <div class="mt-3">
-                <a href="index.html" class="btn btn-outline-light">Voltar ao Início</a>
-            </div>
-        </div>
-    `;
-}
-
-async function carregarPainelAluno(id) {
-    try {
-        // Busca paralela otimizada na API
-        const [alunos, conquistasAPI, historico] = await Promise.all([
-            API.getAlunos(),
-            API.getConquistas ? API.getConquistas() : [],
-            API.getLancamentosPorAluno(id)
-        ]);
-
-        // Procura o aluno pelo ID de forma segura
-        const aluno = alunos.find(a => String(a.id || a.ID).trim() === String(id).trim());
-
-        if (!aluno) {
-            alert("Aluno não encontrado!");
+            exibirErro(`Aluno não encontrado para o ID: ${id}`);
             return;
         }
 
         const xpTotal = Number(aluno.xp || aluno.XP) || 0;
-        const infoNivel = API.calcularNivel(xpTotal);
+        const infoNivel = window.API.calcularNivel ? window.API.calcularNivel(xpTotal) : { nivel: 1, titulo: "Iniciante", cor: "#00d2ff", icone: "🌱", porcentagem: 0 };
 
-        // 1. Renderiza Perfil usando os IDs sincronizados do aluno.html
+        // 1. Renderiza Perfil e Auras de Fundo
         renderizarPerfilCompleto(aluno, id, xpTotal, infoNivel);
         aplicarAuraDeFundo(infoNivel);
 
-        // 2. Renderiza Poderes e Conquistas
+        // 2. Renderiza Poderes e Conquistas Gamificadas
         const listaFinal = (conquistasAPI && conquistasAPI.length > 0) ? conquistasAPI : CATALOGO_GAMIFICADO;
         renderizarConquistasGamificadas(listaFinal, xpTotal);
 
-        // 3. Renderiza Histórico de Atividades e Comentários do Professor
+        // 3. Renderiza Histórico de Atividades e Observações
         renderizarHistorico(historico);
 
+        // 4. Oculta o Spinner e Exibe o Painel
+        if (loadingEl) loadingEl.style.display = 'none';
+        if (painelEl) painelEl.style.display = 'block';
+
     } catch (error) {
-        console.error("Erro ao carregar o painel do aluno:", error);
+        console.error("Erro ao processar dados do aluno:", error);
+        exibirErro("Falha ao montar o painel do aluno.");
     }
 }
 
@@ -151,18 +130,20 @@ function renderizarPerfilCompleto(aluno, id, xpTotal, infoNivel) {
     }
 
     // Nível, Título e Estilização de Aura
-    const elNivelBadge = document.getElementById('alunoNivelBadge');
+    const elNivelBadge = document.getElementById('alunoNivelBadge') || document.getElementById('alunoNivel');
     const elTitulo = document.getElementById('alunoTitulo');
 
     if (elNivelBadge) {
         elNivelBadge.innerText = `Nível ${infoNivel.nivel}`;
-        elNivelBadge.style.background = infoNivel.cor;
+        if (infoNivel.cor) elNivelBadge.style.background = infoNivel.cor;
     }
     
     if (elTitulo) {
-        elTitulo.innerHTML = `<span style="font-size: 1.2em;">${infoNivel.icone}</span> ${infoNivel.titulo}`;
-        elTitulo.style.color = infoNivel.cor;
-        elTitulo.style.textShadow = `0 0 12px ${infoNivel.cor}`;
+        elTitulo.innerHTML = `<span style="font-size: 1.2em;">${infoNivel.icone || '⚡'}</span> ${infoNivel.titulo || 'Guerreiro'}`;
+        if (infoNivel.cor) {
+            elTitulo.style.color = infoNivel.cor;
+            elTitulo.style.textShadow = `0 0 12px ${infoNivel.cor}`;
+        }
     }
 
     // Progresso e Porcentagem
@@ -176,11 +157,13 @@ function renderizarPerfilCompleto(aluno, id, xpTotal, infoNivel) {
         document.getElementById('txtProgressoXP').innerText = `${seguroXP.toLocaleString()} XP`;
     }
 
-    const progressBar = document.getElementById('alunoProgresso');
+    const progressBar = document.getElementById('alunoProgresso') || document.getElementById('alunoProgressBar');
     if (progressBar) {
         progressBar.style.width = `${pct}%`;
-        progressBar.style.backgroundColor = infoNivel.cor;
-        progressBar.style.boxShadow = `0 0 12px ${infoNivel.cor}`;
+        if (infoNivel.cor) {
+            progressBar.style.backgroundColor = infoNivel.cor;
+            progressBar.style.boxShadow = `0 0 12px ${infoNivel.cor}`;
+        }
     }
 }
 
@@ -261,7 +244,6 @@ function renderizarHistorico(historico) {
         const part = Number(h.participacao || h.Participacao) || 0;
         const total = (atv + eqp + comp + part) || Number(h.total || h.Total || h.xp || h.XP) || 0;
         
-        // Puxa as observações do professor
         const obs = h.observacao || h.Observacao || h.obs || h.Obs || '-';
 
         return `
@@ -276,4 +258,21 @@ function renderizarHistorico(historico) {
             </tr>
         `;
     }).join('');
+}
+
+function exibirErro(mensagem) {
+    const loadingEl = document.getElementById('loading') || document.getElementById('spinnerLoading');
+    if (loadingEl) loadingEl.style.display = 'none';
+
+    const container = document.body;
+    container.innerHTML = `
+        <div class="container text-center py-5">
+            <div class="alert alert-danger d-inline-block shadow-lg">
+                <i class="fa-solid fa-triangle-exclamation me-2"></i>${mensagem}
+            </div>
+            <div class="mt-3">
+                <a href="index.html" class="btn btn-outline-light">Voltar ao Início</a>
+            </div>
+        </div>
+    `;
 }

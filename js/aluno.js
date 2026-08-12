@@ -99,6 +99,7 @@ async function carregarPainelAluno(id) {
 }
 
 // Altera o brilho do fundo da página com a cor da Aura do nível
+// Altera o brilho do fundo e solta partículas com base na Aura do Nível
 function aplicarAuraDeFundo(infoNivel) {
     const corAura = infoNivel.cor || "#ff0055";
     
@@ -110,6 +111,31 @@ function aplicarAuraDeFundo(infoNivel) {
     if (container) {
         container.style.transition = "filter 0.5s ease";
         container.style.filter = `drop-shadow(0 0 15px ${corAura}22)`;
+    }
+
+    // 🍃⚡🔥 Cria as partículas caindo no fundo com base no ícone do nível
+    criarParticulasDeFundo(infoNivel.icone || '🍃', 18);
+}
+
+// Função responsável por gerar o efeito de partículas levinhas
+function criarParticulasDeFundo(iconeParticula = '🍃', quantidade = 18) {
+    const container = document.getElementById('leafContainer');
+    if (!container) return;
+    
+    container.innerHTML = ''; // Limpa partículas do nível anterior
+
+    for (let i = 0; i < quantidade; i++) {
+        const leaf = document.createElement('div');
+        leaf.classList.add('leaf');
+        leaf.innerText = iconeParticula;
+
+        // Distribuição e tempos aleatórios para parecer natural
+        leaf.style.left = Math.random() * 100 + 'vw';
+        leaf.style.animationDuration = (Math.random() * 5 + 6) + 's'; // Duração entre 6s e 11s
+        leaf.style.animationDelay = (Math.random() * 5) + 's';
+        leaf.style.fontSize = (Math.random() * 8 + 14) + 'px'; // Tamanho entre 14px e 22px
+
+        container.appendChild(leaf);
     }
 }
 

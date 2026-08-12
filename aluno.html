@@ -133,11 +133,50 @@
             border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 12px;
         }
+        /* Container de Partículas Fixo no Fundo */
+.leaf-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none; /* Permite clicar normalmente nos elementos abaixo */
+    z-index: 0;
+    overflow: hidden;
+}
+
+/* Partícula Caindo / Flutuando */
+.leaf {
+    position: absolute;
+    top: -10%;
+    user-select: none;
+    animation: fall linear infinite;
+    opacity: 0.7;
+    filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.3));
+}
+
+/* Animação suave de queda com leve balanço horizontal */
+@keyframes fall {
+    0% {
+        transform: translateY(0) rotate(0deg) translateX(0);
+        opacity: 0;
+    }
+    15% {
+        opacity: 0.75;
+    }
+    85% {
+        opacity: 0.75;
+    }
+    100% {
+        transform: translateY(105vh) rotate(360deg) translateX(40px);
+        opacity: 0;
+    }
+}
     </style>
 </head>
 <body class="pb-5">
-
-    <!-- TOPBAR / NAV -->
+    <!-- Container para folhas/fagulhas caindo no fundo -->
+    <div class="leaf-container" id="leafContainer"></div>
     <nav class="navbar border-bottom border-secondary border-opacity-25 mb-4 bg-black bg-opacity-60 px-4 backdrop-blur">
         <div class="container-fluid max-width-container" style="max-width: 950px;">
             <span class="navbar-brand fw-bold fs-4 grad-text">

@@ -222,23 +222,24 @@ function abrirModalMercado() {
                     </div>
                 </div>
 
-                <ul class="nav nav-pills nav-fill mb-3" id="pills-tab" role="tablist">
+                <!-- ABAS COM EVENTO DE TROCA DIRETA NO CLIQUE -->
+                <ul class="nav nav-pills nav-fill mb-3" id="pills-tab-mercado" role="tablist">
                   <li class="nav-item">
-                    <button class="nav-link active btn-sm" id="tab-auras" data-bs-toggle="pill" data-bs-target="#content-auras">✨ Auras de Nível</button>
+                    <button class="nav-link active btn-sm" onclick="mudarAbaMercado('content-auras', this)">✨ Auras de Nível</button>
                   </li>
                   <li class="nav-item">
-                    <button class="nav-link btn-sm" id="tab-titulos" data-bs-toggle="pill" data-bs-target="#content-titulos">🏷️ Títulos Temáticos</button>
+                    <button class="nav-link btn-sm" onclick="mudarAbaMercado('content-titulos', this)">🏷️ Títulos Temáticos</button>
                   </li>
                   <li class="nav-item">
-                    <button class="nav-link btn-sm" id="tab-poderes" data-bs-toggle="pill" data-bs-target="#content-poderes">⚡ Poderes da Sala</button>
+                    <button class="nav-link btn-sm" onclick="mudarAbaMercado('content-poderes', this)">⚡ Poderes da Sala</button>
                   </li>
                 </ul>
 
-                <div class="tab-content" id="pills-tabContent">
+                <div class="tab-content" id="pills-tabContentMercado">
                   <div class="tab-pane fade show active" id="content-auras">
                      <div class="row g-2" id="containerAurasBase"></div>
                   </div>
-                  <div class="tab-pane fade" id="content-titulos">
+                  <div class="tab-pane fade" id="content-titulos" style="display: none;">
                      <div class="d-flex gap-1 overflow-auto mb-3" id="pills-temas-titulos">
                         <button class="btn btn-sm btn-outline-warning active" onclick="filtrarTitulos('Todos', this)">Todos</button>
                         <button class="btn btn-sm btn-outline-warning" onclick="filtrarTitulos('Anime', this)">⛩️ Anime</button>
@@ -248,7 +249,7 @@ function abrirModalMercado() {
                      </div>
                      <div class="row g-2" id="containerMercadoTitulos"></div>
                   </div>
-                  <div class="tab-pane fade" id="content-poderes">
+                  <div class="tab-pane fade" id="content-poderes" style="display: none;">
                      <div class="row g-2" id="containerMercadoPoderes"></div>
                   </div>
                 </div>
@@ -291,6 +292,33 @@ function abrirModalMercado() {
         }
     }
 }
+
+// ⚡ FUNÇÃO DE TROCA MANUAL DE ABAS (Adicione logo abaixo de abrirModalMercado)
+window.mudarAbaMercado = function(idConteudo, btnClicado) {
+    // 1. Desativa todos os botões de abas
+    document.querySelectorAll('#pills-tab-mercado .nav-link').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    // 2. Ativa o botão clicado
+    if (btnClicado) btnClicado.classList.add('active');
+
+    // 3. Oculta todos os painéis
+    const abas = ['content-auras', 'content-titulos', 'content-poderes'];
+    abas.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.classList.remove('show', 'active');
+            el.style.display = 'none';
+        }
+    });
+
+    // 4. Exibe o painel selecionado
+    const painelAtivo = document.getElementById(idConteudo);
+    if (painelAtivo) {
+        painelAtivo.style.display = 'block';
+        setTimeout(() => painelAtivo.classList.add('show', 'active'), 10);
+    }
+};
 
 // 4. AÇÕES DE COMPRA E EQUIPAR EXPOSTAS GLOBALMENTE
 window.filtrarTitulos = function(tema, btnEl) {

@@ -184,15 +184,22 @@ function renderizarTabelaAlunos(listaAlunos) {
                     <small class="text-success fw-bold mt-1 d-block">+${xp.toLocaleString()} XP</small>
                 </td>
                 <td class="text-end">
-                    <button class="btn btn-sm btn-outline-info" onclick="verHistoricoAluno('${id}', '${nome}', ${xp})">
-                        <i class="fa-solid fa-clock-rotate-left me-1"></i>Histórico
+                    <button class="btn btn-sm btn-outline-info me-1" onclick="verHistoricoAluno('${id}', '${nome}', ${xp})">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                    </button>
+                    <!-- Botão Editar -->
+                    <button class="btn btn-sm btn-outline-warning me-1" onclick="abrirModalEdicaoAluno('${id}', '${nome}', '${turmaRaw}')">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+                    <!-- Botão Excluir -->
+                    <button class="btn btn-sm btn-outline-danger" onclick="excluirAluno('${id}', '${nome}')">
+                        <i class="fa-solid fa-trash"></i>
                     </button>
                 </td>
             </tr>
         `;
     }).join('');
 }
-
 function renderizarTabelaTurmas() {
     const tbody = document.getElementById('tabelaTurmas');
     if (!tbody) return;
@@ -205,11 +212,15 @@ function renderizarTabelaTurmas() {
     tbody.innerHTML = CACHE_TURMAS.map(t => `
         <tr>
             <td class="fw-bold text-white"><i class="fa-solid fa-users me-2 text-info"></i>${t.nome}</td>
-            <td><code class="text-warning">${t.id}</code></td>
+            <td class="d-flex justify-content-between align-items-center">
+                <code class="text-warning">${t.id}</code>
+                <button class="btn btn-sm btn-outline-danger" onclick="excluirTurma('${t.id}', '${t.nome}')">
+                    <i class="fa-solid fa-trash me-1"></i>Excluir
+                </button>
+            </td>
         </tr>
     `).join('');
 }
-
 function filtrarAlunos() {
     const termo = (document.getElementById('buscaAluno')?.value || '').toLowerCase().trim();
     const selectFiltro = document.getElementById('filtroTurmaAluno') || document.getElementById('filtroTurma');
@@ -507,3 +518,65 @@ function configurarEventos() {
         }
     });
 }
+// ============================================================================
+// 9. AÇÕES DE EDIÇÃO E EXCLUSÃO (ALUNO E TURMA)
+// ============================================================================
+
+// Abrir Modal e Preencher dados
+window.abrirModalEdicaoAluno = function(id, nome, turma) {
+    document.getElementById('editAlunoId').value = id;
+    document.getElementById('editAlunoNome').value = nome;
+    
+    const selectTurma = document.getElementById('editAlunoTurma');
+    selectTurma.innerHTML = '';
+    
+    CACHE_TURMAS.forEach(t => {
+        const selected = t.nome.toLowerCase() === turma.toLowerCase() || t.id === turma ? 'selected' : '';
+        selectTurma.innerHTML += `<option value="${t.nome}" ${selected}>${t.nome}</option>`;
+    });
+
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('modalEditarAluno')).show();
+};
+
+// Confirmar e Salvar Edição
+document.getElementById('formEditarAluno')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('editAlunoId').value;
+    const nome = document.getElementById('editAlunoNome').value.trim();
+    const turma = document.getElementById('editAlunoTurma').value;
+
+    const res = await window.API.atualizarAluno(id, { nome, turma });
+    if (res && res.sucesso) {
+        alert("Aluno atualizado com sucesso!");
+        bootstrap.Modal.getInstance(document.getElementById('modalEditarAluno')).hide();
+        await carregarDadosIniciais();
+    } else {
+        alert("Erro ao atualizar aluno: " + res.mensagem);
+    }
+});
+
+// Excluir Aluno
+window.excluirAluno = async function(id, nome) {
+    if (confirm(`Tem certeza que deseja excluir o aluno "${nome}"? Esta ação não pode ser desfeita.`)) {
+        const res = await window.API.deletarAluno(id);
+        if (res && res.sucesso) {
+            alert("Aluno removido com sucesso!");
+            await carregarDadosIniciais();
+        } else {
+            alert("Erro ao remover aluno: " + res.mensagem);
+        }
+    }
+};
+
+// Excluir Turma
+window.excluirTurma = async function(id, nome) {
+    if (confirm(`Tem certeza que deseja excluir a turma "${nome}"?`)) {
+        const res = await window.API.deletarTurma(id);
+        if (res && res.sucesso) {
+            alert("Turma removida com sucesso!");
+            await carregarDadosIniciais();
+        } else {
+            alert("Erro ao remover turma: " + res.mensagem);
+        }
+    }
+};

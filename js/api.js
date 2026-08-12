@@ -10,6 +10,7 @@ import {
     getDoc, 
     addDoc, 
     setDoc, 
+    deleteDoc, // <-- Adicione o deleteDoc aqui!
     query, 
     where 
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -31,6 +32,38 @@ const db = getFirestore(app);
 // 3. OBJETO DA API JONASXP
 const API = {
     // --- BUSCAR ALUNOS ---
+    async atualizarAluno(idAluno, dados) {
+        try {
+            const alunoRef = doc(db, "alunos", idAluno);
+            await setDoc(alunoRef, dados, { merge: true });
+            return { sucesso: true, mensagem: "Aluno atualizado com sucesso!" };
+        } catch (e) {
+            console.error("Erro ao atualizar aluno:", e);
+            return { sucesso: false, mensagem: e.message };
+        }
+    },
+
+    // --- EXCLUIR ALUNO ---
+    async deletarAluno(idAluno) {
+        try {
+            await deleteDoc(doc(db, "alunos", idAluno));
+            return { sucesso: true, mensagem: "Aluno removido com sucesso!" };
+        } catch (e) {
+            console.error("Erro ao deletar aluno:", e);
+            return { sucesso: false, mensagem: e.message };
+        }
+    },
+
+    // --- EXCLUIR TURMA ---
+    async deletarTurma(idTurma) {
+        try {
+            await deleteDoc(doc(db, "turmas", idTurma));
+            return { sucesso: true, mensagem: "Turma removida com sucesso!" };
+        } catch (e) {
+            console.error("Erro ao deletar turma:", e);
+            return { sucesso: false, mensagem: e.message };
+        }
+    },
     async getAlunos() {
         try {
             const querySnapshot = await getDocs(collection(db, "alunos"));

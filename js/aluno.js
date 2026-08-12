@@ -190,6 +190,17 @@ function renderizarConquistasGamificadas(listaCompleta, xpAluno) {
         </div>
         ${gerarCardsHTML(conquistas, seguroXP)}
     `;
+
+    // ⚡ Ativa o efeito 3D (Vanilla-Tilt) nos novos cards recém-criados
+    if (window.VanillaTilt) {
+        const cards = container.querySelectorAll('.card-conquista');
+        VanillaTilt.init(cards, {
+            max: 15,
+            speed: 400,
+            glare: true,
+            "max-glare": 0.3
+        });
+    }
 }
 
 function gerarCardsHTML(itens, seguroXP) {
@@ -202,7 +213,7 @@ function gerarCardsHTML(itens, seguroXP) {
         const desbloqueada = seguroXP >= xpReq;
 
         const estiloCard = desbloqueada 
-            ? `border: 2px solid #ffcc00; background: rgba(31, 41, 55, 0.9); box-shadow: 0 0 12px rgba(255, 204, 0, 0.3); transform: scale(1.02);` 
+            ? `border: 2px solid #ffcc00; background: rgba(31, 41, 55, 0.9); box-shadow: 0 0 12px rgba(255, 204, 0, 0.3);` 
             : `border: 1px solid #374151; background: rgba(17, 24, 39, 0.5); opacity: 0.45; filter: grayscale(1);`;
 
         const statusBadge = desbloqueada 
@@ -211,8 +222,8 @@ function gerarCardsHTML(itens, seguroXP) {
 
         return `
             <div class="col-md-4 col-sm-6 mb-3">
-                <div class="card card-conquista h-100 p-3 text-white rounded-3" style="${estiloCard} transition: all 0.3s ease;">
-                    <div class="d-flex align-items-center gap-3">
+                <div class="card card-conquista h-100 p-3 text-white rounded-3" style="${estiloCard}">
+                    <div class="d-flex align-items-center gap-3 card-conquista-conteudo">
                         <div class="icon-box" style="font-size: 2.2rem; filter: ${desbloqueada ? 'drop-shadow(0 0 8px #ffcc00)' : 'none'};">
                             ${c.icone || '⚡'}
                         </div>

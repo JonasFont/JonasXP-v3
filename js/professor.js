@@ -98,6 +98,9 @@ function atualizarMetricas() {
 // ============================================================================
 // 3. SELECTS E FILTROS DE TURMA
 // ============================================================================
+// ============================================================================
+// 3. SELECTS E FILTROS DE TURMA (CORRIGIDO)
+// ============================================================================
 function preencherTodosSelectsTurmas() {
     const idsSelects = [
         'filtroTurmaAluno',
@@ -113,7 +116,10 @@ function preencherTodosSelectsTurmas() {
         if (!select) return;
 
         const valorAnterior = select.value;
-        const textoPadrao = select.options[0] ? select.options[0].text : 'Todas as Turmas';
+        
+        // CORREÇÃO AQUI: Verifica com segurança se existe opções antes de acessar [0]
+        const temOpcoes = select.options && select.options.length > 0;
+        const textoPadrao = temOpcoes ? select.options[0].text : 'Todas as Turmas';
 
         let html = `<option value="">${textoPadrao}</option>`;
 
@@ -126,7 +132,6 @@ function preencherTodosSelectsTurmas() {
         select.value = valorAnterior;
     });
 }
-
 function turmaBateComSelecao(aluno, turmaSelecionada) {
     if (!turmaSelecionada) return true;
 

@@ -492,29 +492,115 @@ function configurarEventos() {
         }
     });
 
-    // --- FORMULÁRIO: CADASTRAR ALUNO ---
+    // --- FORMULÁRIO: CADASTRAR ALUNO (ÚNICO E LOTE) ---
     document.getElementById('formAluno')?.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const nome = document.getElementById('alunoNome').value.trim();
-        let turmaVal = document.getElementById('alunoTurma').value;
+        
+        let turmaVal = document.getElementById('alunoTurma')?.value || '';
 
+        // Trata o padrão de valor com '|||' que você utiliza
         if (turmaVal.includes('|||')) {
             turmaVal = turmaVal.split('|||')[1];
         }
 
-        if (!nome || !turmaVal) {
-            alert("Preencha todos os campos!");
+        if (!turmaVal) {
+            alert("Por favor, selecione uma turma!");
             return;
         }
 
-        const res = await window.API.salvarAluno({ nome: nome, turma: turmaVal });
-        if (res && res.sucesso) {
-            alert("Aluno cadastrado com sucesso!");
-            bootstrap.Modal.getInstance(document.getElementById('modalAluno')).hide();
+        // Verifica qual aba está ativa (Único ou Lote)
+        const tabLote = document.getElementById('tab-lote');
+        const abaLoteAtiva = tabLote && tabLote.classList.contains('active');
+
+        const btnSalvar = document.getElementById('btnSalvarAluno') || e.submitter;
+        const textoOriginalBtn = btnSalvar ? btnSalvar.innerHTML : 'Salvar';
+
+        try {
+            if (btnSalvar) {
+                btnSalvar.disabled = true;
+                btnSalvar.innerHTML = `<i class="fa-solid fa-spinner fa-spin me-1"></i> Salvando...`;
+            }
+
+            if (abaLoteAtiva) {
+                // ==========================================
+                // MODO 1: CADASTRO EM LOTE (VÁRIOS ALUNOS)
+                // ==========================================
+                const campoTexto = document.getElementById('listaNomesLote');
+                const textoNomes = campoTexto ? campoTexto.value : '';
+
+                // Separa por quebra de linha, limpa vírgulas e remove linhas em branco
+                const nomes = textoNomes
+                    .split('\n')
+                    .map(nome => nome.replace(/,/g, '').trim())
+                    .filter(nome => nome.length > 0);
+
+                if (nomes.length === 0) {
+                    alert("Por favor, cole ou digite ao menos um nome na lista!");
+                    return;
+                }
+
+                let salvosComSucesso = 0;
+                let erros = 0;
+
+                // Salva aluno por aluno na API
+                for (const nome of nomes) {
+                    const res = await window.API.salvarAluno({ nome: nome, turma: turmaVal });
+                    if (res && res.sucesso) {
+                        salvosComSucesso++;
+                    } else {
+                        erros++;
+                    }
+                }
+
+                if (erros === 0) {
+                    alert(`🔥 Sucesso! Todos os ${salvosComSucesso} alunos foram cadastrados!`);
+                } else {
+                    alert(`⚠️ ${salvosComSucesso} alunos cadastrados, mas ${erros} falharam.`);
+                }
+
+            } else {
+                // ==========================================
+                // MODO 2: CADASTRO ÚNICO (UM ALUNO)
+                // ==========================================
+                const nome = document.getElementById('alunoNome')?.value.trim();
+
+                if (!nome) {
+                    alert("Preencha o nome do aluno!");
+                    return;
+                }
+
+                const res = await window.API.salvarAluno({ nome: nome, turma: turmaVal });
+                if (res && res.sucesso) {
+                    alert("Aluno cadastrado com sucesso!");
+                } else {
+                    alert(res.mensagem || "Erro ao salvar aluno.");
+                    return; // Interrompe para não fechar a modal nem resetar
+                }
+            }
+
+            // --- FINALIZAÇÃO IGUAL PARA AMBOS OS MODOS ---
+            const modalInstance = bootstrap.Modal.getInstance(document.getElementById('modalAluno'));
+            if (modalInstance) modalInstance.hide();
+
             document.getElementById('formAluno').reset();
+
+            // Reseta a aba para a primeira (Único Aluno) para o próximo uso
+            const primeiraba = document.getElementById('tab-unico');
+            if (primeiraba && typeof bootstrap.Tab !== 'undefined') {
+                const tab = new bootstrap.Tab(primeiraba);
+                tab.show();
+            }
+
             await carregarDadosIniciais();
-        } else {
-            alert(res.mensagem || "Erro ao salvar aluno.");
+
+        } catch (error) {
+            console.error("Erro ao processar cadastro de aluno(s):", error);
+            alert("Ocorreu um erro ao salvar os dados. Tente novamente.");
+        } finally {
+            if (btnSalvar) {
+                btnSalvar.disabled = false;
+                btnSalvar.innerHTML = textoOriginalBtn;
+            }
         }
     });
 }

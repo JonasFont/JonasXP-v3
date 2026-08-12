@@ -1,24 +1,237 @@
 // js/aluno.js - Painel Ultra Gamificado (Poderes + Conquistas + Auras)
 
-// CATÁLOGO COMPLETO DE PODERES E CONQUISTAS DE ANIME
-const CATALOGO_GAMIFICADO = [
-    // --- PODERES DE SALA DE AULA (Vantagens Reais) ---
-    { id: "p1", tipo: "Poder", nome: "Oráculo do Treino", xpNecessario: 150, icone: "🔮", descricao: "Pode pedir 1 dica extra ao professor durante uma atividade." },
-    { id: "p2", tipo: "Poder", nome: "Aura do Silêncio", xpNecessario: 300, icone: "🎧", descricao: "Permissão para ouvir música com fone durante treino individual." },
-    { id: "p3", tipo: "Poder", nome: "Troca de Trono", xpNecessario: 500, icone: "👑", descricao: "Direito de escolher onde vai sentar na sala por 1 semana." },
-    { id: "p4", tipo: "Poder", nome: "Escudo do Atraso", xpNecessario: 800, icone: "🛡️", descricao: "Anula 1 atraso ou ganha 1 dia de tolerância em uma entrega." },
-    { id: "p5", tipo: "Poder", nome: "Invocação de Aliado", xpNecessario: 1200, icone: "⚡", descricao: "Pode escolher seu parceiro(a) de trabalho em grupo sem sorteio." },
-    { id: "p6", tipo: "Poder", nome: "Domínio do Mestre", xpNecessario: 2000, icone: "🔥", descricao: "Elimina a questão de menor pontuação em uma avaliação." },
-
-    // --- CONQUISTAS & AURA (Evolução de Status Anime) ---
-    { id: "c1", tipo: "Conquista", nome: "Despertar do Ki", xpNecessario: 50, icone: "✨", descricao: "Iniciou a jornada e liberou os primeiros pontos de XP." },
-    { id: "c2", tipo: "Conquista", nome: "Aura Verde - Recruta", xpNecessario: 150, icone: "🍃", descricao: "Primeira transformação de aura alcançada com sucesso." },
-    { id: "c3", tipo: "Conquista", nome: "Aura Azul - Chunin", xpNecessario: 350, icone: "🌊", descricao: "Evolução do controle de energia em sala de aula." },
-    { id: "c4", tipo: "Conquista", nome: "Aura Roxa - Caçador", xpNecessario: 700, icone: "⚡", descricao: "Status de elite no ranking da turma." },
-    { id: "c5", tipo: "Conquista", nome: "Aura Dourada - SSJ", xpNecessario: 1200, icone: "🔥", descricao: "Ultrapassou os limites comuns de pontuação!" },
-    { id: "c6", tipo: "Conquista", nome: "Aura Divina - Kage", xpNecessario: 2000, icone: "🌌", descricao: "Lorde Otaku Lendário no topo da guilda!" }
+// ==========================================
+// 1. CATÁLOGO DE TÍTULOS (PERMANENTES / COSMÉTICOS)
+// ==========================================
+const NIVEIS_AURA_BASE = [
+    { lvl: 1, xpReq: 0,    nomeAura: "Aura Nebulosa",    icone: "⚪", cor: "#adb5bd" },
+    { lvl: 2, xpReq: 150,  nomeAura: "Aura Cintilante",  icone: "🟢", cor: "#198754" },
+    { lvl: 3, xpReq: 350,  nomeAura: "Aura Flamejante",  icone: "🔥", cor: "#fd7e14" },
+    { lvl: 4, xpReq: 650,  nomeAura: "Aura Raiante",     icone: "⚡", cor: "#ffc107" },
+    { lvl: 5, xpReq: 1000, nomeAura: "Aura Celestial",   icone: "🌌", cor: "#0dcaf0" },
+    { lvl: 6, xpReq: 1500, nomeAura: "Aura Divina",      icone: "🔮", cor: "#6f42c1" },
+    { lvl: 7, xpReq: 2200, nomeAura: "Aura Prismática",  icone: "💎", cor: "#e83e8c" },
+    { lvl: 8, xpReq: 3000, nomeAura: "Aura do Absoluto", icone: "👑", cor: "#d63384" }
 ];
 
+const CATALOGO_TITULOS = [
+    // ⛩️ ANIME
+    { id: "ani_1", nome: "Recruta Ninja", icone: "🍃", preco: 100, tema: "Anime", desc: "Iniciou o treinamento no dojo." },
+    { id: "ani_2", nome: "Gennin Promissor", icone: "📜", preco: 250, tema: "Anime", desc: "Já domina os jutsus básicos da sala." },
+    { id: "ani_3", nome: "Caçador de Onis", icone: "⚔️", preco: 500, tema: "Anime", desc: "Membro da corporação contra a preguiça." },
+    { id: "ani_4", nome: "Hashira das Tarefas", icone: "⚡", preco: 1200, tema: "Anime", desc: "Mestre Supremo da respiração da dedicação." },
+    { id: "ani_5", nome: "Lorde Super Saiyajin", icone: "🔥", preco: 2500, tema: "Anime", desc: "Ultrapassou todos os limites conhecidos!" },
+
+    // ⚔️ RPG
+    { id: "rpg_1", nome: "Novato da Guilda", icone: "🛡️", preco: 100, tema: "RPG", desc: "Pegou sua primeira missão no quadro." },
+    { id: "rpg_2", nome: "Bardo das Ideias", icone: "🪕", preco: 250, tema: "RPG", desc: "Criatividade e participação ativa em grupo." },
+    { id: "rpg_3", nome: "Mestre Arcano", icone: "✨", preco: 500, tema: "RPG", desc: "Conhecimento avançado em fórmulas e teoria." },
+    { id: "rpg_4", nome: "Paladino Dourado", icone: "👑", preco: 1200, tema: "RPG", desc: "Honra, foco e excelência nas entregas." },
+
+    // 🎬 FILMES
+    { id: "cin_1", nome: "Jovem Padawan", icone: "🌌", preco: 100, tema: "Filmes", desc: "Primeiros passos no domínio da Força." },
+    { id: "cin_2", nome: "Cavaleiro Jedi", icone: "🗡️", preco: 500, tema: "Filmes", desc: "Equilíbrio, mente serena e foco nos estudos." },
+
+    // 🎮 GAMER
+    { id: "gmr_1", nome: "Player 1", icone: "🎮", preco: 100, tema: "Gamer", desc: "Apertou Start para iniciar a jornada." },
+    { id: "gmr_2", nome: "Cyber Samurai", icone: "🦾", preco: 250, tema: "Gamer", desc: "Tecnologia e estratégia em harmonia." }
+];
+
+const CATALOGO_PODERES = [
+    { id: "p1", nome: "Oráculo do Treino", icone: "🔮", preco: 150, desc: "Pode pedir 1 dica extra ao professor durante uma atividade." },
+    { id: "p2", nome: "Aura do Silêncio", icone: "🎧", preco: 300, desc: "Permissão para ouvir música com fone durante treino individual." },
+    { id: "p3", nome: "Troca de Trono", icone: "👑", preco: 500, desc: "Direito de escolher onde vai sentar na sala por 1 semana." },
+    { id: "p4", nome: "Escudo do Atraso", icone: "🛡️", preco: 800, desc: "Anula 1 atraso ou ganha 1 dia de tolerância em uma entrega." },
+    { id: "p5", nome: "Invocação de Aliado", icone: "⚡", preco: 1200, desc: "Pode escolher seu parceiro(a) de trabalho em grupo sem sorteio." }
+];
+
+let alunoGlobalMercado = null;
+let temaFiltroAtual = "Todos";
+
+function calcularAuraFarmAtual(xpTotal) {
+    let auraAtual = NIVEIS_AURA_BASE[0];
+    for (const aura of NIVEIS_AURA_BASE) {
+        if (xpTotal >= aura.xpReq) auraAtual = aura;
+        else break;
+    }
+    return auraAtual;
+}
+
+function inicializarMercado(aluno) {
+    alunoGlobalMercado = aluno;
+    const btn = document.getElementById('btnAbrirMercado');
+    if (btn) {
+        btn.onclick = () => abrirModalMercado();
+    }
+}
+
+function abrirModalMercado() {
+    if (!alunoGlobalMercado) return;
+
+    const xpTotal = Number(alunoGlobalMercado.xp || alunoGlobalMercado.XP || 0);
+    const saldo = Number(alunoGlobalMercado.saldoXP !== undefined ? alunoGlobalMercado.saldoXP : xpTotal);
+    const auraAtual = calcularAuraFarmAtual(xpTotal);
+
+    if (document.getElementById('statusAuraNome')) {
+        document.getElementById('statusAuraNome').innerText = `${auraAtual.icone} ${auraAtual.nomeAura}`;
+        document.getElementById('statusXpTotal').innerText = `${xpTotal.toLocaleString()} XP`;
+        document.getElementById('statusSaldoXP').innerText = `${saldo.toLocaleString()} XP`;
+    }
+
+    renderizarAurasFarm(xpTotal);
+    renderizarTitulosMercado(saldo);
+    renderizarPoderesMercado(saldo);
+
+    const modalEl = document.getElementById('modalMercado');
+    if (modalEl && window.bootstrap) {
+        window.bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    }
+}
+
+function renderizarAurasFarm(xpTotal) {
+    const container = document.getElementById('containerAurasBase');
+    if (!container) return;
+
+    const tituloEquipado = alunoGlobalMercado?.tituloEscolhido || "";
+
+    container.innerHTML = NIVEIS_AURA_BASE.map(item => {
+        const desbloqueado = xpTotal >= item.xpReq;
+        const estaEquipado = (tituloEquipado === item.nomeAura);
+
+        let btn = estaEquipado
+            ? `<button class="btn btn-sm btn-success w-100 fw-bold" disabled>EQUIPADO</button>`
+            : desbloqueado
+                ? `<button class="btn btn-sm btn-outline-info w-100 fw-bold" onclick="acaoEquiparAuraBase('${item.nomeAura}', '${item.icone}')">EQUIPAR</button>`
+                : `<button class="btn btn-sm btn-secondary w-100 disabled" style="opacity: 0.5;"><i class="fa-solid fa-lock me-1"></i>Lvl ${item.lvl} (${item.xpReq} XP)</button>`;
+
+        return `
+            <div class="col-md-6 col-12">
+                <div class="p-2 bg-black bg-opacity-50 border ${estaEquipado ? 'border-info' : 'border-secondary'} rounded-3 d-flex align-items-center justify-content-between gap-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="fs-3">${item.icone}</span>
+                        <div>
+                            <h6 class="mb-0 fw-bold" style="color: ${item.cor};">${item.nomeAura}</h6>
+                            <small class="text-muted" style="font-size: 0.72rem;">${item.xpReq} XP acumulados</small>
+                        </div>
+                    </div>
+                    <div style="min-width: 105px;">${btn}</div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function renderizarTitulosMercado(saldo) {
+    const container = document.getElementById('containerMercadoTitulos');
+    if (!container) return;
+
+    const comprados = alunoGlobalMercado?.titulosComprados || [];
+    const equipadoId = alunoGlobalMercado?.tituloEscolhidoId || "";
+    const filtrados = CATALOGO_TITULOS.filter(t => temaFiltroAtual === "Todos" || t.tema === temaFiltroAtual);
+
+    container.innerHTML = filtrados.map(item => {
+        const possui = comprados.includes(item.id);
+        const equipado = (equipadoId === item.id);
+        const podeComprar = saldo >= item.preco;
+
+        let btn = equipado
+            ? `<button class="btn btn-sm btn-success w-100 fw-bold" disabled>EQUIPADO</button>`
+            : possui
+                ? `<button class="btn btn-sm btn-outline-warning w-100 fw-bold" onclick="acaoEquiparTituloComprado('${item.id}')">EQUIPAR</button>`
+                : podeComprar
+                    ? `<button class="btn btn-sm btn-warning w-100 fw-bold" onclick="acaoComprarTituloLoja('${item.id}', ${item.preco})">${item.preco} XP</button>`
+                    : `<button class="btn btn-sm btn-secondary w-100 disabled" style="opacity:0.6;"><i class="fa-solid fa-lock me-1"></i>${item.preco} XP</button>`;
+
+        return `
+            <div class="col-md-6 col-12">
+                <div class="p-2 bg-black bg-opacity-50 border ${equipado ? 'border-warning' : 'border-secondary'} rounded-3 d-flex align-items-center justify-content-between gap-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="fs-2">${item.icone}</span>
+                        <div>
+                            <h6 class="mb-0 fw-bold text-white">${item.nome}</h6>
+                            <small class="text-muted d-block" style="font-size: 0.7rem;">${item.desc}</small>
+                        </div>
+                    </div>
+                    <div style="min-width: 100px;">${btn}</div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function renderizarPoderesMercado(saldo) {
+    const container = document.getElementById('containerMercadoPoderes');
+    if (!container) return;
+
+    const inventario = alunoGlobalMercado?.poderesInventario || {};
+
+    container.innerHTML = CATALOGO_PODERES.map(item => {
+        const qtd = inventario[item.id] || 0;
+        const podeComprar = saldo >= item.preco;
+
+        let btn = podeComprar
+            ? `<button class="btn btn-sm btn-warning w-100 fw-bold" onclick="acaoComprarPoderLoja('${item.id}', ${item.preco})">Comprar (${item.preco} XP)</button>`
+            : `<button class="btn btn-sm btn-secondary w-100 disabled" style="opacity:0.6;"><i class="fa-solid fa-lock me-1"></i>${item.preco} XP</button>`;
+
+        return `
+            <div class="col-md-6 col-12">
+                <div class="p-3 bg-black bg-opacity-50 border border-secondary rounded-3 d-flex flex-column justify-content-between h-100">
+                    <div>
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <span class="fs-3">${item.icone}</span>
+                            <span class="badge bg-primary">Possui: ${qtd}</span>
+                        </div>
+                        <h6 class="fw-bold text-white mb-1">${item.nome}</h6>
+                        <small class="text-muted d-block mb-2" style="font-size: 0.75rem;">${item.desc}</small>
+                    </div>
+                    <div>${btn}</div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Funções Expostas Globalmente no Window para os eventos `onclick` dos botões
+window.filtrarTitulos = function(tema, btnEl) {
+    temaFiltroAtual = tema;
+    document.querySelectorAll('#pills-temas-titulos .nav-link').forEach(b => b.classList.remove('active'));
+    if (btnEl) btnEl.classList.add('active');
+
+    const xpTotal = Number(alunoGlobalMercado?.xp || 0);
+    const saldo = Number(alunoGlobalMercado?.saldoXP !== undefined ? alunoGlobalMercado.saldoXP : xpTotal);
+    renderizarTitulosMercado(saldo);
+};
+
+window.acaoEquiparAuraBase = async function(nomeAura, icone) {
+    if (!alunoGlobalMercado) return;
+    const res = await window.API.equiparTituloAluno(alunoGlobalMercado.id, { nome: nomeAura, icone: icone, id: "aura_farm" });
+    if (res && res.sucesso) { alert(`✨ Aura "${nomeAura}" equipada com sucesso!`); location.reload(); }
+};
+
+window.acaoComprarTituloLoja = async function(id, preco) {
+    const item = CATALOGO_TITULOS.find(t => t.id === id);
+    if (!item || !alunoGlobalMercado) return;
+    if (!confirm(`Deseja comprar o título "${item.nome}" por ${preco} XP?`)) return;
+
+    const res = await window.API.comprarTituloAluno(alunoGlobalMercado.id, item, preco);
+    if (res && res.sucesso) { alert(`🎉 Título "${item.nome}" adquirido com sucesso!`); location.reload(); }
+};
+
+window.acaoEquiparTituloComprado = async function(id) {
+    const item = CATALOGO_TITULOS.find(t => t.id === id);
+    if (!item || !alunoGlobalMercado) return;
+    const res = await window.API.equiparTituloAluno(alunoGlobalMercado.id, item);
+    if (res && res.sucesso) { alert(`✨ Título "${item.nome}" equipado!`); location.reload(); }
+};
+
+window.acaoComprarPoderLoja = async function(id, preco) {
+    const item = CATALOGO_PODERES.find(p => p.id === id);
+    if (!item || !alunoGlobalMercado) return;
+    if (!confirm(`Deseja adquirir o poder "${item.nome}" por ${preco} XP?`)) return;
+
+    const res = await window.API.comprarPoderAluno(alunoGlobalMercado.id, item, preco);
+    if (res && res.sucesso) { alert(`⚡ Poder "${item.nome}" adicionado ao inventário!`); location.reload(); }
+};
 document.addEventListener('DOMContentLoaded', async () => {
     // 1. Captura o ID da URL
     const urlParams = new URLSearchParams(window.location.search);
@@ -72,6 +285,13 @@ async function carregarPainelAluno(id) {
         if (!aluno) {
             exibirErro(`Aluno não encontrado para o ID: ${id}`);
             return;
+        }
+
+        // =========================================================================
+        // ⚡ AQUI: Inicializar o Mercado ANTES das renderizações de tela do aluno!
+        // =========================================================================
+        if (typeof inicializarMercado === 'function') {
+            inicializarMercado(aluno);
         }
 
         const xpTotal = Number(aluno.xp || aluno.XP) || 0;

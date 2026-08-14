@@ -694,9 +694,12 @@ async function carregarPainelAluno(id) {
 function renderizarLinksUteis() {
     if (!alunoGlobalMercado) return;
 
-    // Pega o link individual do Drive do aluno
-    const linkDrive = alunoGlobalMercado.linkDrive || "#";
-    const temDrive = linkDrive !== "#";
+    // Recupera os links individuais
+    const linkPortal = (alunoGlobalMercado.linkPortal || "").trim();
+    const linkDrive = (alunoGlobalMercado.linkDrive || "").trim();
+
+    // Se o aluno não tiver NENHUM dos dois links, não renderiza o bloco
+    if (!linkPortal && !linkDrive) return;
 
     let container = document.getElementById('containerLinksUteis');
 
@@ -710,25 +713,43 @@ function renderizarLinksUteis() {
         perfilContainer.insertBefore(container, perfilContainer.children[1] || perfilContainer.firstChild);
     }
 
+    // Define a largura da coluna dependendo se o aluno tem 1 ou 2 links cadastrados
+    const temAmbos = linkPortal && linkDrive;
+    const colClass = temAmbos ? 'col-12 col-md-6' : 'col-12';
+
     container.innerHTML = `
         <div class="card bg-black bg-opacity-40 border-secondary p-3 shadow-lg rounded-3">
             <div class="d-flex align-items-center justify-content-between mb-2">
                 <h6 class="text-warning fw-bold mb-0">
-                    <i class="fa-solid fa-folder-open me-2"></i>Repositório de Projetos
+                    <i class="fa-solid fa-compass me-2"></i>Acessos Rápidos & Recursos
                 </h6>
-                <span class="badge bg-dark border border-secondary text-muted small">Atalho Rápido</span>
+                <span class="badge bg-dark border border-secondary text-muted small">Atalhos</span>
             </div>
             
-            <div class="row">
-                <!-- BOTÃO ÚNICO: DRIVE DE PROJETOS -->
-                <div class="col-12">
-                    <a href="${linkDrive}" ${temDrive ? 'target="_blank" rel="noopener noreferrer"' : 'onclick="alert(\'Link do Drive não cadastrado para este aluno.\'); return false;"'} 
-                       class="btn ${temDrive ? 'btn-outline-success' : 'btn-outline-secondary opacity-50'} w-100 py-2 d-flex align-items-center justify-content-center gap-2 text-decoration-none fw-bold shadow-sm rounded-3 hover-scale">
-                        <i class="fa-brands fa-google-drive fs-5"></i>
-                        <span>Acessar Meu Drive de Projetos</span>
+            <div class="row g-2">
+                ${linkPortal ? `
+                <!-- BOTÃO PORTAL DO ALUNO -->
+                <div class="${colClass}">
+                    <a href="${linkPortal}" target="_blank" rel="noopener noreferrer" 
+                       class="btn btn-outline-info w-100 py-2 d-flex align-items-center justify-content-center gap-2 text-decoration-none fw-bold shadow-sm rounded-3 hover-scale">
+                        <i class="fa-solid fa-graduation-cap fs-5"></i>
+                        <span>Portal do Aluno</span>
                         <i class="fa-solid fa-arrow-up-right-from-square small ms-auto opacity-75"></i>
                     </a>
                 </div>
+                ` : ''}
+
+                ${linkDrive ? `
+                <!-- BOTÃO DRIVE DE PROJETOS -->
+                <div class="${colClass}">
+                    <a href="${linkDrive}" target="_blank" rel="noopener noreferrer" 
+                       class="btn btn-outline-success w-100 py-2 d-flex align-items-center justify-content-center gap-2 text-decoration-none fw-bold shadow-sm rounded-3 hover-scale">
+                        <i class="fa-brands fa-google-drive fs-5"></i>
+                        <span>Drive de Projetos</span>
+                        <i class="fa-solid fa-arrow-up-right-from-square small ms-auto opacity-75"></i>
+                    </a>
+                </div>
+                ` : ''}
             </div>
         </div>
     `;

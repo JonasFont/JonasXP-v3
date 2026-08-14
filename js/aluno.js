@@ -1,4 +1,4 @@
-// js/aluno.js - Painel Ultra Gamificado (Poderes + Conquistas + Auras + Mercado)
+// js/aluno.js - Painel Gamificado (Poderes + Conquistas + Auras + Mercado com Firestore)
 
 // =================================================================
 // 1. CONSTANTES E CATÁLOGOS EXPANDIDOS
@@ -57,7 +57,7 @@ let alunoGlobalMercado = null;
 let categoriaFiltroAtual = 'Todos';
 
 // =================================================================
-// 2. FUNÇÃO GLOBAL PARA FECHAR MODAIS (SISTEMA SEGURO)
+// 2. FECHAR MODAIS SEGURAMENTE
 // =================================================================
 
 window.fecharModal = function(modalElement) {
@@ -74,7 +74,6 @@ window.fecharModal = function(modalElement) {
         modalElement.style.display = 'none';
     }
 
-    // Remove overlays escuros residuais para evitar travamentos
     setTimeout(() => {
         const modaisAbertos = document.querySelectorAll('.modal.show');
         if (modaisAbertos.length === 0) {
@@ -238,7 +237,7 @@ function renderizarPoderesMercado(saldo) {
 }
 
 // =================================================================
-// 4. MODAL DE CONFIRMAÇÃO SEGURO
+// 4. MODAL DE CONFIRMAÇÃO DE COMPRA
 // =================================================================
 
 function confirmarCompraModal({ titulo, icone, preco, descricao }, onConfirmar) {
@@ -291,7 +290,7 @@ function confirmarCompraModal({ titulo, icone, preco, descricao }, onConfirmar) 
         try {
             await onConfirmar();
         } catch (e) {
-            console.error("Erro na confirmação:", e);
+            console.error("Erro na confirmação de compra:", e);
         }
         
         novoBtn.disabled = false;
@@ -308,7 +307,7 @@ function confirmarCompraModal({ titulo, icone, preco, descricao }, onConfirmar) 
 }
 
 // =================================================================
-// 5. INICIALIZAÇÃO E CONTROLE DA MODAL DO MERCADO
+// 5. INICIALIZAÇÃO DA MODAL DO MERCADO
 // =================================================================
 
 function inicializarMercado(aluno) {
@@ -376,7 +375,7 @@ function abrirModalMercado() {
                     </div>
                 </div>
 
-                <!-- ABAS COM TROCA DIRETA -->
+                <!-- ABAS DE NAVEGAÇÃO -->
                 <ul class="nav nav-pills nav-fill mb-3" id="pills-tab-mercado">
                   <li class="nav-item">
                     <button class="nav-link active btn-sm fw-bold" onclick="mudarAbaMercado('content-auras', this)">✨ Auras de Nível</button>
@@ -478,23 +477,38 @@ function atualizarInterfaceMercado() {
 }
 
 // =================================================================
-// 6. AÇÕES DO MERCADO
+// 6. AÇÕES DO MERCADO (PERSISTÊNCIA NO FIREBASE)
 // =================================================================
+
+async function salvarAlunoNoFirebase() {
+    if (!alunoGlobalMercado || !alunoGlobalMercado.id) return;
+
+    try {
+        const dadosParaAtualizar = {
+            saldoXP: Number(alunoGlobalMercado.saldoXP),
+            tituloEscolhido: alunoGlobalMercado.tituloEscolhido || "",
+            tituloIcone: alunoGlobalMercado.tituloIcone || "",
+            tituloEscolhidoId: alunoGlobalMercado.tituloEscolhidoId || "",
+            titulosComprados: alunoGlobalMercado.titulosComprados || [],
+            poderesInventario: alunoGlobalMercado.poderesInventario || {}
+        };
+
+        if (window.API && typeof window.API.atualizarAluno === 'function') {
+            await window.API.atualizarAluno(alunoGlobalMercado.id, dadosParaAtualizar);
+        }
+    } catch (err) {
+        console.error("Erro ao salvar no Firebase:", err);
+    }
+}
 
 window.acaoEquiparAuraBase = async function(nomeAura, icone) {
     if (!alunoGlobalMercado) return;
-    
-    try {
-        if (window.API && typeof window.API.equiparTituloAluno === 'function') {
-            await window.API.equiparTituloAluno(alunoGlobalMercado.id, { nome: nomeAura, icone: icone, id: "aura_farm" });
-        }
-    } catch (e) {
-        console.warn("API ausente ou falhou ao equipar aura, aplicando localmente:", e);
-    }
-    
+
     alunoGlobalMercado.tituloEscolhido = nomeAura;
     alunoGlobalMercado.tituloIcone = icone;
     alunoGlobalMercado.tituloEscolhidoId = "aura_farm";
+
+    await salvarAlunoNoFirebase();
     atualizarInterfaceMercado();
 };
 
@@ -508,26 +522,30 @@ window.acaoComprarTituloLoja = function(id, preco) {
         preco: preco,
         descricao: `Deseja desbloquear o título "${item.nome}"?`
     }, async () => {
-        try {
-            if (window.API && typeof window.API.comprarTituloAluno === 'function') {
-                await window.API.comprarTituloAluno(alunoGlobalMercado.id, item, preco);
-            }
-        } catch (err) {
-            console.warn("API de compra indisponível. Aplicando localmente:", err);
+        const xpTotal = Number(alunoGlobalMercado.xp || 0);
+        const saldoAtual = Number(alunoGlobalMercado.saldoXP !== undefined ? alunoGlobalMercado.saldoXP : xpTotal);
+
+        if (saldoAtual < preco) {
+            alert("Saldo insuficiente de XP!");
+            return;
         }
 
-        const saldoAtual = Number(alunoGlobalMercado.saldoXP !== undefined ? alunoGlobalMercado.saldoXP : (alunoGlobalMercado.xp || 0));
-        alunoGlobalMercado.saldoXP = Math.max(0, saldoAtual - preco);
+        // 1. Desconta o saldo
+        alunoGlobalMercado.saldoXP = saldoAtual - preco;
 
+        // 2. Adiciona o título como comprado
         if (!alunoGlobalMercado.titulosComprados) alunoGlobalMercado.titulosComprados = [];
         if (!alunoGlobalMercado.titulosComprados.includes(item.id)) {
             alunoGlobalMercado.titulosComprados.push(item.id);
         }
 
+        // 3. Equipa o título
         alunoGlobalMercado.tituloEscolhido = item.nome;
         alunoGlobalMercado.tituloIcone = item.icone;
         alunoGlobalMercado.tituloEscolhidoId = item.id;
 
+        // 4. Salva no banco e atualiza a tela
+        await salvarAlunoNoFirebase();
         atualizarInterfaceMercado();
     });
 };
@@ -536,17 +554,11 @@ window.acaoEquiparTituloComprado = async function(id) {
     const item = CATALOGO_TITULOS.find(t => t.id === id);
     if (!item || !alunoGlobalMercado) return;
 
-    try {
-        if (window.API && typeof window.API.equiparTituloAluno === 'function') {
-            await window.API.equiparTituloAluno(alunoGlobalMercado.id, item);
-        }
-    } catch (e) {
-        console.warn("API ausente ao equipar título. Atualizando localmente:", e);
-    }
-
     alunoGlobalMercado.tituloEscolhido = item.nome;
     alunoGlobalMercado.tituloIcone = item.icone;
     alunoGlobalMercado.tituloEscolhidoId = item.id;
+
+    await salvarAlunoNoFirebase();
     atualizarInterfaceMercado();
 };
 
@@ -560,26 +572,29 @@ window.acaoComprarPoderLoja = function(id, preco) {
         preco: preco,
         descricao: item.descricao
     }, async () => {
-        try {
-            if (window.API && typeof window.API.comprarPoderAluno === 'function') {
-                await window.API.comprarPoderAluno(alunoGlobalMercado.id, item, preco);
-            }
-        } catch (err) {
-            console.warn("API de compra de poder indisponível. Aplicando localmente:", err);
+        const xpTotal = Number(alunoGlobalMercado.xp || 0);
+        const saldoAtual = Number(alunoGlobalMercado.saldoXP !== undefined ? alunoGlobalMercado.saldoXP : xpTotal);
+
+        if (saldoAtual < preco) {
+            alert("Saldo insuficiente de XP!");
+            return;
         }
 
-        const saldoAtual = Number(alunoGlobalMercado.saldoXP !== undefined ? alunoGlobalMercado.saldoXP : (alunoGlobalMercado.xp || 0));
-        alunoGlobalMercado.saldoXP = Math.max(0, saldoAtual - preco);
+        // 1. Desconta o saldo
+        alunoGlobalMercado.saldoXP = saldoAtual - preco;
 
+        // 2. Incrementa o item no inventário
         if (!alunoGlobalMercado.poderesInventario) alunoGlobalMercado.poderesInventario = {};
         alunoGlobalMercado.poderesInventario[item.id] = (alunoGlobalMercado.poderesInventario[item.id] || 0) + 1;
 
+        // 3. Salva no banco e atualiza a tela
+        await salvarAlunoNoFirebase();
         atualizarInterfaceMercado();
     });
 };
 
 // =================================================================
-// 7. INICIALIZAÇÃO DA PÁGINA DO ALUNO
+// 7. CARREGAMENTO E INICIALIZAÇÃO DA PÁGINA DO ALUNO
 // =================================================================
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -593,7 +608,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     try {
         if (!window.API) {
-            throw new Error("Módulo API não carregado. Verifique se api.js está antes de aluno.js.");
+            throw new Error("Módulo API não carregado. Certifique-se de que script type='module' api.js é executado primeiro.");
         }
 
         await carregarPainelAluno(alunoId);
@@ -620,23 +635,30 @@ async function carregarPainelAluno(id) {
             aluno = await window.API.getAlunoPorId(id);
         }
 
-        if (!aluno && Array.isArray(alunos)) {
+        if ((!aluno || aluno.erro) && Array.isArray(alunos)) {
             aluno = alunos.find(a => 
                 String(a.id || a.ID || '').trim() === String(id).trim() ||
                 String(a.id || a.ID || '').trim().toLowerCase() === String(id).trim().toLowerCase()
             );
         }
 
-        if (!aluno) {
+        if (!aluno || aluno.erro) {
             exibirErro(`Aluno não encontrado para o ID: ${id}`);
             return;
         }
+
+        // --- INICIALIZAÇÃO E MANUTENÇÃO DO SALDO DE XP ---
+        const xpTotal = Number(aluno.xp || aluno.XP) || 0;
+        if (aluno.saldoXP === undefined) {
+            aluno.saldoXP = xpTotal;
+        }
+
+        alunoGlobalMercado = aluno;
 
         if (typeof inicializarMercado === 'function') {
             inicializarMercado(aluno);
         }
 
-        const xpTotal = Number(aluno.xp || aluno.XP) || 0;
         const infoNivel = window.API.calcularNivel ? window.API.calcularNivel(xpTotal) : { nivel: 1, titulo: "Iniciante", cor: "#00d2ff", icone: "🌱", porcentagem: 0 };
 
         renderizarPerfilCompleto(aluno, id, xpTotal, infoNivel);
@@ -663,7 +685,7 @@ async function carregarPainelAluno(id) {
 }
 
 // =================================================================
-// 8. EFEITOS DE FUNDO & COMPONENTES
+// 8. EFEITOS DE FUNDO & COMPONENTES VISUAIS
 // =================================================================
 
 function aplicarAuraDeFundo(infoNivel) {

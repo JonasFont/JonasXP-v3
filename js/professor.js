@@ -1,16 +1,25 @@
-// js/professor.js - Painel JonasXP
-let CACHE_ALUNOS = [];
-let CACHE_TURMAS = []; // Estrutura: [{ id: "...", nome: "..." }]
-let MAPA_TURMAS = {};  // Mapeamento rápido: ID/Nome -> Nome Exibição
+// ============================================================================
+// PAINEL JONASXP - SCRIPT DO PROFESSOR (js/professor.js)
+// ============================================================================
 
+// --- MEMÓRIA TEMPORÁRIA (CACHE) ---
+let CACHE_ALUNOS = []; // Armazena a lista atual de alunos
+let CACHE_TURMAS = []; // Armazena as turmas no formato: [{ id: "...", nome: "..." }]
+let MAPA_TURMAS = {};  // Dicionário rápido de busca: ID/Nome -> Nome de Exibição
+
+// Inicializa os dados assim que o DOM estiver completamente carregado
 document.addEventListener('DOMContentLoaded', async () => {
     await carregarDadosIniciais();
     configurarEventos();
 });
 
 // ============================================================================
-// 1. CARREGAMENTO INICIAL DE DADOS
+// 1. CARREGAMENTO E NORMALIZAÇÃO DE DADOS
 // ============================================================================
+
+/**
+ * Busca dados no Firebase/API, atualiza o cache local e renderiza a interface.
+ */
 async function carregarDadosIniciais() {
     try {
         if (!window.API) {
@@ -18,6 +27,7 @@ async function carregarDadosIniciais() {
             return;
         }
 
+        // Executa as duas requisições de forma paralela para otimizar o tempo de resposta
         const [turmas, alunos] = await Promise.all([
             window.API.getTurmas(),
             window.API.getAlunos()
@@ -26,13 +36,14 @@ async function carregarDadosIniciais() {
         CACHE_ALUNOS = Array.isArray(alunos) ? alunos : [];
         CACHE_TURMAS = normalizarTurmas(turmas, CACHE_ALUNOS);
         
-        // Constrói mapa para tradução rápida de IDs em Nomes
+        // Constrói mapa para tradução rápida de IDs em Nomes (em minúsculas para ignorar case)
         MAPA_TURMAS = {};
         CACHE_TURMAS.forEach(t => {
             MAPA_TURMAS[String(t.id).toLowerCase()] = t.nome;
             MAPA_TURMAS[String(t.nome).toLowerCase()] = t.nome;
         });
 
+        // Atualiza a interface
         atualizarMetricas();
         preencherTodosSelectsTurmas();
         renderizarTabelaAlunos(CACHE_ALUNOS);
@@ -43,6 +54,9 @@ async function carregarDadosIniciais() {
     }
 }
 
+/**
+ * Padroniza a estrutura de turmas vinda da API e extrai turmas legadas dos alunos se necessário.
+ */
 function normalizarTurmas(turmasAPI, alunos) {
     const lista = [];
     const idsVistos = new Set();
@@ -66,7 +80,7 @@ function normalizarTurmas(turmasAPI, alunos) {
         });
     }
 
-    // Se a aba Turmas estiver vazia, tenta extrair dos Alunos
+    // Se a aba Turmas estiver vazia, extrai os nomes únicos salvos nos cadastros de alunos
     if (lista.length === 0 && alunos.length > 0) {
         alunos.forEach(a => {
             const tVal = String(a.turma || a.Turma || '').trim();
@@ -81,13 +95,20 @@ function normalizarTurmas(turmasAPI, alunos) {
 }
 
 // ============================================================================
-// 2. MÉTRICAS DO PAINEL
+// 2. MÉTRICAS E CARDS SUPERIORES
 // ============================================================================
+
+/**
+ * Recalcula e exibe na tela os totais de alunos, turmas, soma de XP e média geral de nível.
+ */
 function atualizarMetricas() {
     const totalAlunos = CACHE_ALUNOS.length;
     const totalTurmas = CACHE_TURMAS.length;
     const totalXP = CACHE_ALUNOS.reduce((acc, a) => acc + (Number(a.xp || a.XP) || 0), 0);
-    const mediaNivel = totalAlunos > 0 ? (CACHE_ALUNOS.reduce((acc, a) => acc + window.API.calcularNivel(a.xp || a.XP).nivel, 0) / totalAlunos).toFixed(1) : 0;
+    
+    const mediaNivel = totalAlunos > 0 
+        ? (CACHE_ALUNOS.reduce((acc, a) => acc + window.API.calcularNivel(a.xp || a.XP).nivel, 0) / totalAlunos).toFixed(1) 
+        : 0;
 
     if (document.getElementById('metricTotalAlunos')) document.getElementById('metricTotalAlunos').innerText = totalAlunos;
     if (document.getElementById('metricTotalTurmas')) document.getElementById('metricTotalTurmas').innerText = totalTurmas;
@@ -96,8 +117,12 @@ function atualizarMetricas() {
 }
 
 // ============================================================================
-// 3. SELECTS E FILTROS DE TURMA
+// 3. DROPDOWNS (SELECTS) E FILTROS DE TURMA
 // ============================================================================
+
+/**
+ * Preenche dinamicamente todos os menus suspensos de seleção de turma.
+ */
 function preencherTodosSelectsTurmas() {
     const idsSelects = [
         'filtroTurmaAluno',
@@ -113,7 +138,6 @@ function preencherTodosSelectsTurmas() {
         if (!select) return;
 
         const valorAnterior = select.value;
-        
         const temOpcoes = select.options && select.options.length > 0;
         const textoPadrao = temOpcoes ? select.options[0].text : 'Todas as Turmas';
 
@@ -129,6 +153,9 @@ function preencherTodosSelectsTurmas() {
     });
 }
 
+/**
+ * Verifica se um aluno pertence à turma selecionada em um filtro/dropdown.
+ */
 function turmaBateComSelecao(aluno, turmaSelecionada) {
     if (!turmaSelecionada) return true;
 
@@ -145,8 +172,12 @@ function turmaBateComSelecao(aluno, turmaSelecionada) {
 }
 
 // ============================================================================
-// 4. TABELAS (ALUNOS E TURMAS)
+// 4. RENDERIZAÇÃO DE TABELAS E FILTRAGEM
 // ============================================================================
+
+/**
+ * Constrói as linhas do HTML para a tabela principal de alunos.
+ */
 function renderizarTabelaAlunos(listaAlunos) {
     const tbody = document.getElementById('tabelaAlunos');
     if (!tbody) return;
@@ -166,7 +197,7 @@ function renderizarTabelaAlunos(listaAlunos) {
         const xp = Number(aluno.xp || aluno.XP) || 0;
         const infoNivel = window.API.calcularNivel(xp);
 
-        // Trata apóstrofos no link para evitar quebra do atributo HTML
+        // Trata aspas simples para evitar quebra na passagem de parâmetros via HTML onclick
         const linkDriveEscapado = String(aluno.linkDrive || '').replace(/'/g, "\\'");
 
         return `
@@ -187,11 +218,9 @@ function renderizarTabelaAlunos(listaAlunos) {
                     <button class="btn btn-sm btn-outline-info me-1" title="Ver Histórico" onclick="verHistoricoAluno('${id}', '${nome}', ${xp})">
                         <i class="fa-solid fa-clock-rotate-left"></i>
                     </button>
-                    <!-- Botão Editar Passe Link do Drive -->
                     <button class="btn btn-sm btn-outline-warning me-1" title="Editar Aluno" onclick="abrirModalEdicaoAluno('${id}', '${nome}', '${turmaRaw}', '${linkDriveEscapado}')">
                         <i class="fa-solid fa-pen"></i>
                     </button>
-                    <!-- Botão Excluir -->
                     <button class="btn btn-sm btn-outline-danger" title="Excluir Aluno" onclick="excluirAluno('${id}', '${nome}')">
                         <i class="fa-solid fa-trash"></i>
                     </button>
@@ -201,6 +230,9 @@ function renderizarTabelaAlunos(listaAlunos) {
     }).join('');
 }
 
+/**
+ * Renderiza a tabela de gerenciamento de turmas.
+ */
 function renderizarTabelaTurmas() {
     const tbody = document.getElementById('tabelaTurmas');
     if (!tbody) return;
@@ -223,6 +255,9 @@ function renderizarTabelaTurmas() {
     `).join('');
 }
 
+/**
+ * Filtra os alunos por busca de texto (Nome ou ID) e seleção de Turma.
+ */
 function filtrarAlunos() {
     const termo = (document.getElementById('buscaAluno')?.value || '').toLowerCase().trim();
     const selectFiltro = document.getElementById('filtroTurmaAluno') || document.getElementById('filtroTurma');
@@ -242,8 +277,12 @@ function filtrarAlunos() {
 }
 
 // ============================================================================
-// 5. LANÇAMENTO EM LOTE
+// 5. LANÇAMENTO DE PONTUAÇÕES EM LOTE
 // ============================================================================
+
+/**
+ * Gera os campos editáveis de pontuação para todos os alunos da turma selecionada.
+ */
 function carregarTabelaLote() {
     const turmaSel = document.getElementById('selectTurmaLote')?.value;
     const tbody = document.getElementById('tabelaLote');
@@ -287,6 +326,9 @@ function carregarTabelaLote() {
     if (btnSalvar) btnSalvar.disabled = false;
 }
 
+/**
+ * Lê a tabela de lote e envia os lançamentos individuais de cada aluno para a API.
+ */
 async function salvarPontuacoesLote(e) {
     e.preventDefault();
     const turmaSel = document.getElementById('selectTurmaLote')?.value;
@@ -299,6 +341,8 @@ async function salvarPontuacoesLote(e) {
     }
 
     try {
+        const dataFormatada = new Date().toLocaleDateString('pt-BR') + ' ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
         for (let i = 0; i < alunosTurma.length; i++) {
             const id = document.querySelector(`input[name="alunoId_${i}"]`)?.value;
             const atv = Number(document.querySelector(`input[name="atv_${i}"]`)?.value) || 0;
@@ -314,7 +358,7 @@ async function salvarPontuacoesLote(e) {
                 comportamento: cmp,
                 participacao: prt,
                 observacao: obs,
-                data: new Date().toLocaleDateString('pt-BR') + ' ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+                data: dataFormatada
             };
 
             await window.API.salvarLancamento(payload);
@@ -337,12 +381,19 @@ async function salvarPontuacoesLote(e) {
 // ============================================================================
 // 6. GERADOR DE LINKS WHATSAPP
 // ============================================================================
+
+/**
+ * Gera links diretos do painel do aluno configurados para envio via WhatsApp.
+ */
 function gerarLinksWhatsAppTurma() {
     const turmaSel = document.getElementById('selectTurmaWp')?.value;
     const container = document.getElementById('containerLinksWp');
 
     if (!container) return;
-    if (!turmaSel) { container.innerHTML = '<div class="text-center text-muted py-4">Selecione uma turma acima.</div>'; return; }
+    if (!turmaSel) { 
+        container.innerHTML = '<div class="text-center text-muted py-4">Selecione uma turma acima.</div>'; 
+        return; 
+    }
 
     const alunosTurma = CACHE_ALUNOS.filter(a => turmaBateComSelecao(a, turmaSel));
 
@@ -379,8 +430,12 @@ function gerarLinksWhatsAppTurma() {
 }
 
 // ============================================================================
-// 7. HISTÓRICO INDIVIDUAL (MODAL)
+// 7. EXIBIÇÃO DE HISTÓRICO INDIVIDUAL (MODAL)
 // ============================================================================
+
+/**
+ * Abre o modal de histórico e carrega do banco de dados todos os lançamentos do aluno.
+ */
 async function verHistoricoAluno(id, nome, totalXP) {
     const modalNome = document.getElementById('modalDetalhesNome');
     const detalheNivel = document.getElementById('detalheNivel');
@@ -447,7 +502,12 @@ window.verHistoricoAluno = verHistoricoAluno;
 // ============================================================================
 // 8. CONFIGURAÇÃO DE EVENTOS E MODAIS
 // ============================================================================
+
+/**
+ * Mapeia todos os formulários e inputs para seus respectivos comportamentos.
+ */
 function configurarEventos() {
+    // Inputs e Filtros
     const busca = document.getElementById('buscaAluno');
     const filtro = document.getElementById('filtroTurmaAluno') || document.getElementById('filtroTurma');
     const selectLote = document.getElementById('selectTurmaLote');
@@ -458,10 +518,11 @@ function configurarEventos() {
     if (selectLote) selectLote.addEventListener('change', carregarTabelaLote);
     if (selectWp) selectWp.addEventListener('change', gerarLinksWhatsAppTurma);
 
+    // Formulário de Lote
     const formLote = document.getElementById('formLote');
     if (formLote) formLote.addEventListener('submit', salvarPontuacoesLote);
 
-    // --- ABRIR MODAIS ---
+    // Botões de Abertura de Modais
     document.getElementById('btnAbrirModalTurma')?.addEventListener('click', () => {
         bootstrap.Modal.getOrCreateInstance(document.getElementById('modalTurma')).show();
     });
@@ -493,6 +554,7 @@ function configurarEventos() {
         
         let turmaVal = document.getElementById('alunoTurma')?.value || '';
 
+        // Trata valor composto vindo da option ("id|||nome")
         if (turmaVal.includes('|||')) {
             turmaVal = turmaVal.split('|||')[1];
         }
@@ -502,25 +564,7 @@ function configurarEventos() {
             return;
         }
 
-        const tabLote = document.getElementById('tab-lote');
-        const abaLoteAtiva = tabLote && tabLote.classList.contains('active');
-
-        // --- FORMULÁRIO: CADASTRAR ALUNO (ÚNICO E LOTE) ---
-    document.getElementById('formAluno')?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        let turmaVal = document.getElementById('alunoTurma')?.value || '';
-
-        if (turmaVal.includes('|||')) {
-            turmaVal = turmaVal.split('|||')[1];
-        }
-
-        if (!turmaVal) {
-            alert("Por favor, selecione uma turma!");
-            return;
-        }
-
-        // 🟢 Identifica corretamente se a aba LOTE está aberta
+        // Identifica se o usuário está salvando via Modo em Lote ou Único
         const abaLoteAtiva = document.getElementById('modoLote')?.classList.contains('active');
 
         const btnSalvar = document.getElementById('btnSalvarAluno') || e.submitter;
@@ -583,6 +627,7 @@ function configurarEventos() {
                 }
             }
 
+            // Esconde o modal e restaura as abas originais
             const modalInstance = bootstrap.Modal.getInstance(document.getElementById('modalAluno'));
             if (modalInstance) modalInstance.hide();
 
@@ -612,12 +657,13 @@ function configurarEventos() {
 // 9. AÇÕES DE EDIÇÃO E EXCLUSÃO (ALUNO E TURMA)
 // ============================================================================
 
-// Abrir Modal e Preencher dados (Incluindo Link do Drive)
+/**
+ * Preenche o modal de edição de aluno com seus dados atuais.
+ */
 window.abrirModalEdicaoAluno = function(id, nome, turma, linkDrive = '') {
     document.getElementById('editAlunoId').value = id;
     document.getElementById('editAlunoNome').value = nome;
     
-    // Preenche o input do Drive no modal de edição, se existir no seu HTML
     const inputDrive = document.getElementById('editAlunoLinkDrive');
     if (inputDrive) inputDrive.value = linkDrive;
     
@@ -633,7 +679,9 @@ window.abrirModalEdicaoAluno = function(id, nome, turma, linkDrive = '') {
     bootstrap.Modal.getOrCreateInstance(document.getElementById('modalEditarAluno')).show();
 };
 
-// Confirmar e Salvar Edição
+/**
+ * Confirma as alterações do modal de edição e atualiza no Firebase via API.
+ */
 document.getElementById('formEditarAluno')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const id = document.getElementById('editAlunoId').value;
@@ -651,7 +699,9 @@ document.getElementById('formEditarAluno')?.addEventListener('submit', async (e)
     }
 });
 
-// Excluir Aluno
+/**
+ * Exclui permanentemente um aluno.
+ */
 window.excluirAluno = async function(id, nome) {
     if (confirm(`Tem certeza que deseja excluir o aluno "${nome}"? Esta ação não pode ser desfeita.`)) {
         const res = await window.API.deletarAluno(id);
@@ -664,7 +714,9 @@ window.excluirAluno = async function(id, nome) {
     }
 };
 
-// Excluir Turma
+/**
+ * Exclui permanentemente uma turma.
+ */
 window.excluirTurma = async function(id, nome) {
     if (confirm(`Tem certeza que deseja excluir a turma "${nome}"?`)) {
         const res = await window.API.deletarTurma(id);

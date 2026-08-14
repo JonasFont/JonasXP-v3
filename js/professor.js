@@ -505,6 +505,24 @@ function configurarEventos() {
         const tabLote = document.getElementById('tab-lote');
         const abaLoteAtiva = tabLote && tabLote.classList.contains('active');
 
+        // --- FORMULÁRIO: CADASTRAR ALUNO (ÚNICO E LOTE) ---
+    document.getElementById('formAluno')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        let turmaVal = document.getElementById('alunoTurma')?.value || '';
+
+        if (turmaVal.includes('|||')) {
+            turmaVal = turmaVal.split('|||')[1];
+        }
+
+        if (!turmaVal) {
+            alert("Por favor, selecione uma turma!");
+            return;
+        }
+
+        // 🟢 Identifica corretamente se a aba LOTE está aberta
+        const abaLoteAtiva = document.getElementById('modoLote')?.classList.contains('active');
+
         const btnSalvar = document.getElementById('btnSalvarAluno') || e.submitter;
         const textoOriginalBtn = btnSalvar ? btnSalvar.innerHTML : 'Salvar';
 
@@ -515,9 +533,7 @@ function configurarEventos() {
             }
 
             if (abaLoteAtiva) {
-                // ==========================================
-                // MODO 1: CADASTRO EM LOTE (VÁRIOS ALUNOS)
-                // ==========================================
+                // MODO 1: CADASTRO EM LOTE
                 const campoTexto = document.getElementById('listaNomesLote');
                 const textoNomes = campoTexto ? campoTexto.value : '';
 
@@ -536,23 +552,15 @@ function configurarEventos() {
 
                 for (const nome of nomes) {
                     const res = await window.API.salvarAluno({ nome: nome, turma: turmaVal, linkDrive: "" });
-                    if (res && res.sucesso) {
-                        salvosComSucesso++;
-                    } else {
-                        erros++;
-                    }
+                    if (res && res.sucesso) salvosComSucesso++;
+                    else erros++;
                 }
 
-                if (erros === 0) {
-                    alert(`🔥 Sucesso! Todos os ${salvosComSucesso} alunos foram cadastrados!`);
-                } else {
-                    alert(`⚠️ ${salvosComSucesso} alunos cadastrados, mas ${erros} falharam.`);
-                }
+                if (erros === 0) alert(`🔥 Sucesso! Todos os ${salvosComSucesso} alunos foram cadastrados!`);
+                else alert(`⚠️ ${salvosComSucesso} alunos cadastrados, mas ${erros} falharam.`);
 
             } else {
-                // ==========================================
-                // MODO 2: CADASTRO ÚNICO (UM ALUNO + LINK DRIVE)
-                // ==========================================
+                // MODO 2: CADASTRO ÚNICO (LÊ O INPUT "alunoLinkDrive")
                 const nome = document.getElementById('alunoNome')?.value.trim();
                 const linkDrive = document.getElementById('alunoLinkDrive')?.value.trim() || "";
 

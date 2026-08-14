@@ -225,10 +225,6 @@
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <div class="mb-3">
-                <label for="cadLinkDrive" class="form-label text-white">Link da Pasta no Google Drive</label>
-                <input type="url" class="form-control bg-dark text-white border-secondary" id="cadLinkDrive" placeholder="https://drive.google.com/drive/folders/...">
-            </div>
 
             <!-- Navegação por Abas (Modo Individual / Modo em Lote) -->
             <div class="px-3 pt-3 bg-black bg-opacity-20 border-bottom border-secondary">
@@ -264,6 +260,10 @@
                             <label class="form-label">Nome Completo</label>
                             <input type="text" id="alunoNome" class="form-control bg-black text-white border-secondary" placeholder="Nome do estudante">
                         </div>
+                        <div class="mb-3">
+                            <label class="form-label text-white"><i class="fa-brands fa-google-drive me-1 text-success"></i>Link do Google Drive (Opcional)</label>
+                            <input type="url" id="alunoLinkDrive" class="form-control bg-black text-white border-secondary" placeholder="https://drive.google.com/drive/folders/...">
+                        </div>
                     </div>
 
                     <!-- ABA 2: VÁRIOS ALUNOS EM LOTE -->
@@ -272,7 +272,7 @@
                             <label class="form-label text-warning fw-bold">Lista de Nomes (Cole aqui, um por linha)</label>
                             <textarea id="listaNomesLote" class="form-control bg-black text-white border-secondary" rows="6" placeholder="Jonas Juan&#10;Camila Mendes&#10;Lucas Andrade&#10;Beatriz Lima"></textarea>
                             <small class="text-muted d-block mt-1" style="font-size: 0.78rem;">
-                                <i class="fa-solid fa-lightbulb me-1 text-warning"></i> Dica: Você pode copiar uma coluna do Excel/Sheets e colar direto aqui. Vírgulas no final serão removidas automaticamente.
+                                <i class="fa-solid fa-lightbulb me-1 text-warning"></i> Dica: Você pode copiar uma coluna do Excel/Sheets e colar direto aqui.
                             </small>
                         </div>
                     </div>
@@ -320,7 +320,7 @@
         </div>
     </div>
     <div class="modal fade" id="modalEditarAluno" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    s<div class="modal-dialog modal-dialog-centered">
         <form id="formEditarAluno" class="modal-content bg-dark text-white border-secondary">
             <div class="modal-header border-secondary">
                 <h5 class="modal-title fw-bold"><i class="fa-solid fa-user-pen me-2 text-warning"></i>Editar Aluno</h5>
@@ -336,14 +336,18 @@
                     <label class="form-label">Turma</label>
                     <select id="editAlunoTurma" class="form-select bg-black text-white border-secondary" required></select>
                 </div>
+                <div class="mb-3">
+                    <label class="form-label"><i class="fa-brands fa-google-drive me-1 text-success"></i>Link do Google Drive</label>
+                    <input type="url" id="editAlunoLinkDrive" class="form-control bg-black text-white border-secondary" placeholder="https://drive.google.com/drive/folders/...">
+                </div>
             </div>
             <div class="modal-footer border-secondary">
                 <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancelar</button>
                 <button type="submit" class="btn btn-warning fw-bold text-dark">Salvar Alterações</button>
             </div>
-        </form>
+            </form>
+        </div>
     </div>
-</div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script type="module" src="js/api.js"></script>
 <script src="js/professor.js"></script>

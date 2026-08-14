@@ -694,12 +694,11 @@ async function carregarPainelAluno(id) {
 function renderizarLinksUteis() {
     if (!alunoGlobalMercado) return;
 
-    // Recupera os links individuais
-    const linkPortal = (alunoGlobalMercado.linkPortal || "").trim();
-    const linkDrive = (alunoGlobalMercado.linkDrive || "").trim();
+    // 🟢 COLOQUE SEU LINK DO PORTAL AQUI ENTRE AS ASPAS:
+    const LINK_PORTAL_GERAL = "www.portal.ctrlplay.com.br"; 
 
-    // Se o aluno não tiver NENHUM dos dois links, não renderiza o bloco
-    if (!linkPortal && !linkDrive) return;
+    // Recupera o link do Drive que vem do cadastro individual do aluno
+    const linkDrive = (alunoGlobalMercado.linkDrive || "").trim();
 
     let container = document.getElementById('containerLinksUteis');
 
@@ -713,9 +712,7 @@ function renderizarLinksUteis() {
         perfilContainer.insertBefore(container, perfilContainer.children[1] || perfilContainer.firstChild);
     }
 
-    // Define a largura da coluna dependendo se o aluno tem 1 ou 2 links cadastrados
-    const temAmbos = linkPortal && linkDrive;
-    const colClass = temAmbos ? 'col-12 col-md-6' : 'col-12';
+    const colClass = linkDrive ? 'col-12 col-md-6' : 'col-12';
 
     container.innerHTML = `
         <div class="card bg-black bg-opacity-40 border-secondary p-3 shadow-lg rounded-3">
@@ -727,20 +724,18 @@ function renderizarLinksUteis() {
             </div>
             
             <div class="row g-2">
-                ${linkPortal ? `
-                <!-- BOTÃO PORTAL DO ALUNO -->
+                <!-- BOTÃO PORTAL DO ALUNO (Link Fixo) -->
                 <div class="${colClass}">
-                    <a href="${linkPortal}" target="_blank" rel="noopener noreferrer" 
+                    <a href="${LINK_PORTAL_GERAL}" target="_blank" rel="noopener noreferrer" 
                        class="btn btn-outline-info w-100 py-2 d-flex align-items-center justify-content-center gap-2 text-decoration-none fw-bold shadow-sm rounded-3 hover-scale">
                         <i class="fa-solid fa-graduation-cap fs-5"></i>
                         <span>Portal do Aluno</span>
                         <i class="fa-solid fa-arrow-up-right-from-square small ms-auto opacity-75"></i>
                     </a>
                 </div>
-                ` : ''}
 
                 ${linkDrive ? `
-                <!-- BOTÃO DRIVE DE PROJETOS -->
+                <!-- BOTÃO DRIVE DE PROJETOS (Link Dinâmico) -->
                 <div class="${colClass}">
                     <a href="${linkDrive}" target="_blank" rel="noopener noreferrer" 
                        class="btn btn-outline-success w-100 py-2 d-flex align-items-center justify-content-center gap-2 text-decoration-none fw-bold shadow-sm rounded-3 hover-scale">

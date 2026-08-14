@@ -619,14 +619,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
+// =================================================================
+// 7. CARREGAMENTO E INICIALIZAÇÃO DA PÁGINA DO ALUNO
+// =================================================================
+
 async function carregarPainelAluno(id) {
     const loadingEl = document.getElementById('loading') || document.getElementById('spinnerLoading');
     const painelEl = document.getElementById('painelAluno') || document.getElementById('conteudoAluno');
 
     try {
-        const [alunos, conquistasAPI, historico] = await Promise.all([
+        const [alunos, historico] = await Promise.all([
             window.API.getAlunos ? window.API.getAlunos() : [],
-            window.API.getConquistas ? window.API.getConquistas() : [],
             window.API.getLancamentosPorAluno ? window.API.getLancamentosPorAluno(id) : []
         ]);
 
@@ -668,12 +671,8 @@ async function carregarPainelAluno(id) {
         // --- CHAMADA DOS LINKS ÚTEIS DO ALUNO ---
         renderizarLinksUteis();
 
-        const fallbackConquistas = typeof CATALOGO_GAMIFICADO !== 'undefined' ? CATALOGO_GAMIFICADO : [];
-        const listaFinal = (Array.isArray(conquistasAPI) && conquistasAPI.length > 0) ? conquistasAPI : fallbackConquistas;
-        
-        if (typeof renderizarConquistasGamificadas === 'function') {
-            renderizarConquistasGamificadas(listaFinal, xpTotal);
-        }
+        // --- RENDERIZAÇÃO DOS PODERES E CONQUISTAS (CARDS 3D) ---
+        renderizarConquistasGamificadas(xpTotal);
 
         if (typeof renderizarHistorico === 'function') {
             renderizarHistorico(historico);
@@ -686,6 +685,130 @@ async function carregarPainelAluno(id) {
         console.error("Erro ao processar dados do aluno:", error);
         exibirErro("Falha ao montar o painel do aluno.");
     }
+}
+
+// RENDERIZADOR DE PODERES & TITULOS EM CARDS 3D COM AURA KI
+function renderizarConquistasGamificadas(xpTotal) {
+    const container = document.getElementById('containerConquistas');
+    if (!container) return;
+
+    const saldo = Number(alunoGlobalMercado?.saldoXP !== undefined ? alunoGlobalMercado.saldoXP : xpTotal);
+
+    container.innerHTML = `
+        <div class="col-12 mb-2">
+            <h6 class="text-warning fw-bold"><i class="fa-solid fa-wand-magic-sparkles me-2"></i>PODERES DE SALA DE AULA (VANTAGENS REAIS)</h6>
+        </div>
+        ${gerarCardsPoderes3D(CATALOGO_PODERES, saldo)}
+
+        <div class="col-12 mt-4 mb-2">
+            <h6 class="text-info fw-bold"><i class="fa-solid fa-trophy me-2"></i>TÍTULOS & CONQUISTAS DA ARENA</h6>
+        </div>
+        ${gerarCardsTitulos3D(CATALOGO_TITULOS, saldo)}
+    `;
+
+    // Inicialização do Efeito 3D (VanillaTilt)
+    if (window.VanillaTilt) {
+        const cards = container.querySelectorAll('.card-conquista');
+        VanillaTilt.init(cards, {
+            max: 15,
+            speed: 400,
+            glare: true,
+            "max-glare": 0.3
+        });
+    }
+}
+
+// GERADOR DE CARDS 3D PARA PODERES DA SALA
+function gerarCardsPoderes3D(poderes, saldo) {
+    if (!poderes || poderes.length === 0) return `<div class="col-12 text-muted small py-2">Nenhum poder disponível.</div>`;
+
+    const inventario = alunoGlobalMercado?.poderesInventario || {};
+
+    return poderes.map(p => {
+        const qtdPossuida = inventario[p.id] || 0;
+        const podeComprar = saldo >= p.preco;
+
+        let acaoHTML = '';
+        if (qtdPossuida > 0) {
+            acaoHTML = `
+                <div class="d-flex align-items-center justify-content-between mt-2">
+                    <span class="badge bg-success text-dark fw-bold"><i class="fa-solid fa-box-open me-1"></i>Possui: ${qtdPossuida}</span>
+                    <button class="btn btn-sm btn-outline-warning text-white py-0 px-2 fw-bold" style="font-size:0.75rem;" onclick="acaoComprarPoderLoja('${p.id}', ${p.preco})">
+                        +1 (${p.preco} XP)
+                    </button>
+                </div>`;
+        } else if (podeComprar) {
+            acaoHTML = `
+                <button class="btn btn-sm btn-warning w-100 fw-bold mt-2" onclick="acaoComprarPoderLoja('${p.id}', ${p.preco})">
+                    <i class="fa-solid fa-cart-shopping me-1"></i> Resgatar (${p.preco} XP)
+                </button>`;
+        } else {
+            acaoHTML = `
+                <button class="btn btn-sm btn-outline-secondary w-100 fw-bold mt-2 disabled" disabled style="opacity: 0.6;">
+                    <i class="fa-solid fa-lock me-1"></i> Requer ${p.preco} XP
+                </button>`;
+        }
+
+        return `
+            <div class="col-md-4 col-sm-6 mb-3">
+                <div class="card card-conquista h-100 p-3 text-white rounded-3">
+                    <div class="card-conquista-conteudo">
+                        <div class="d-flex align-items-center gap-3 mb-2">
+                            <div class="icon-box text-warning">
+                                ${p.icone || '⚡'}
+                            </div>
+                            <div style="min-width: 0;">
+                                <h6 class="mb-0 fw-bold text-warning text-truncate" style="font-size: 0.95rem;">${p.nome}</h6>
+                                <small class="text-info" style="font-size: 0.75rem;">${p.preco} XP</small>
+                            </div>
+                        </div>
+                        <p class="small text-muted mb-2" style="font-size: 0.8rem; line-height: 1.3;">${p.descricao}</p>
+                        ${acaoHTML}
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// GERADOR DE CARDS 3D PARA TÍTULOS E CONQUISTAS
+function gerarCardsTitulos3D(titulos, saldo) {
+    if (!titulos || titulos.length === 0) return `<div class="col-12 text-muted small py-2">Nenhum título disponível.</div>`;
+
+    const comprados = alunoGlobalMercado?.titulosComprados || [];
+    const equipadoId = alunoGlobalMercado?.tituloEscolhidoId || '';
+
+    return titulos.map(t => {
+        const jaPossui = comprados.includes(t.id);
+        const estaEquipado = equipadoId === t.id;
+        const podeComprar = saldo >= t.preco;
+
+        let btnAcao = '';
+        if (estaEquipado) {
+            btnAcao = `<button class="btn btn-sm btn-success w-100 fw-bold mt-2" disabled><i class="fa-solid fa-circle-check me-1"></i> Equipado</button>`;
+        } else if (jaPossui) {
+            btnAcao = `<button class="btn btn-sm btn-outline-info w-100 fw-bold mt-2 text-white" onclick="acaoEquiparTituloComprado('${t.id}')">Equipar</button>`;
+        } else if (podeComprar) {
+            btnAcao = `<button class="btn btn-sm btn-warning w-100 fw-bold mt-2" onclick="acaoComprarTituloLoja('${t.id}', ${t.preco})">Desbloquear (${t.preco} XP)</button>`;
+        } else {
+            btnAcao = `<button class="btn btn-sm btn-outline-secondary w-100 fw-bold mt-2 disabled" disabled style="opacity:0.6;"><i class="fa-solid fa-lock me-1"></i> Requer ${t.preco} XP</button>`;
+        }
+
+        return `
+            <div class="col-md-3 col-sm-6 col-6 mb-3">
+                <div class="card card-conquista h-100 p-3 text-white text-center rounded-3">
+                    <div class="card-conquista-conteudo">
+                        <div class="icon-box mx-auto mb-2 text-warning" style="font-size: 2rem;">
+                            ${t.icone}
+                        </div>
+                        <h6 class="fw-bold mb-1 text-truncate" style="font-size: 0.88rem;">${t.nome}</h6>
+                        <span class="badge bg-dark border border-secondary text-muted mb-2" style="font-size:0.65rem;">${t.categoria}</span>
+                        ${btnAcao}
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
 }
 
 // =================================================================

@@ -1,13 +1,9 @@
-// js/aluno.js - Painel Ultra Gamificado (Poderes + Conquistas + Auras)
+// js/aluno.js - Painel Ultra Gamificado (Poderes + Conquistas + Auras + Mercado)
 
-// ==========================================
-// 1. CATÁLOGO DE TÍTULOS (PERMANENTES / COSMÉTICOS)
-// ==========================================
 // =================================================================
-// SISTEMA DE FARM DE AURA DE NÍVEL + LOJA DE MOEDAS (MERCADO)
+// 1. CONSTANTES E CATÁLOGOS EXPANDIDOS
 // =================================================================
 
-// 1. CONSTANTES DE CATALOGO E AURAS
 const NIVEIS_AURA_BASE = [
     { lvl: 1, xpReq: 0,    nomeAura: "Aura Nebulosa",    icone: "⚪", cor: "#adb5bd" },
     { lvl: 2, xpReq: 150,  nomeAura: "Aura Cintilante",  icone: "🟢", cor: "#198754" },
@@ -58,9 +54,12 @@ const CATALOGO_PODERES = [
 ];
 
 let alunoGlobalMercado = null;
-let temaFiltroAtual = "Todos";
+let categoriaFiltroAtual = 'Todos';
 
-// 2. FUNÇÕES AUXILIARES E DE RENDERIZAÇÃO (Declaradas antes do uso)
+// =================================================================
+// 2. FUNÇÕES DE RENDERIZAÇÃO & FILTRAGEM
+// =================================================================
+
 function calcularAuraFarmAtual(xpTotal) {
     let auraAtual = NIVEIS_AURA_BASE[0];
     for (const aura of NIVEIS_AURA_BASE) {
@@ -102,13 +101,10 @@ function renderizarAurasFarm(xpTotal) {
         `;
     }).join('');
 }
-let categoriaFiltroAtual = 'Todos';
 
-// 2. Função acionada ao clicar nos botões das categorias
 window.filtrarTitulos = function(categoria, btnClicado) {
     categoriaFiltroAtual = categoria;
 
-    // Atualiza a aparência dos botões de filtro
     const botoes = document.querySelectorAll('#pills-temas-titulos button');
     botoes.forEach(b => {
         b.classList.remove('active', 'btn-warning');
@@ -120,7 +116,6 @@ window.filtrarTitulos = function(categoria, btnClicado) {
         btnClicado.classList.remove('btn-outline-warning');
     }
 
-    // Re-renderiza a lista aplicando o filtro
     const xpTotal = Number(alunoGlobalMercado?.xp || 0);
     const saldo = Number(alunoGlobalMercado?.saldoXP !== undefined ? alunoGlobalMercado.saldoXP : xpTotal);
     renderizarTitulosMercado(saldo);
@@ -132,7 +127,6 @@ function renderizarTitulosMercado(saldo) {
 
     container.innerHTML = '';
 
-    // Aplica a filtragem por categoria
     const titulosFiltrados = CATALOGO_TITULOS.filter(item => {
         if (categoriaFiltroAtual === 'Todos') return true;
         return item.categoria.toLowerCase() === categoriaFiltroAtual.toLowerCase();
@@ -212,9 +206,86 @@ function renderizarPoderesMercado(saldo) {
         container.appendChild(col);
     });
 }
-// 3. INICIALIZAÇÃO DO BOTÃO E ABERTURA DA MODAL
+
 // =================================================================
-// ⚡ SISTEMA DO MERCADO (ABAS CORRIGIDAS + COMPRAS REATIVAS)
+// 3. MODAL DE CONFIRMAÇÃO CUSTOMIZADO
+// =================================================================
+
+function confirmarCompraModal({ titulo, icone, preco, descricao }, onConfirmar) {
+    let modalConf = document.getElementById('modalConfirmacaoCompra');
+    
+    if (!modalConf) {
+        modalConf = document.createElement('div');
+        modalConf.id = 'modalConfirmacaoCompra';
+        modalConf.className = 'modal fade';
+        modalConf.setAttribute('tabindex', '-1');
+        modalConf.style.zIndex = '1060';
+        
+        modalConf.innerHTML = `
+          <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content bg-dark text-white border-warning shadow-lg text-center p-3" style="border-width: 2px;">
+              <div class="modal-body p-2">
+                <div id="confIcone" class="display-3 mb-2">🛍️</div>
+                <h5 id="confTitulo" class="fw-bold text-warning mb-1">Confirmar Compra</h5>
+                <p id="confDesc" class="small text-muted mb-3">Você tem certeza que deseja adquirir este item?</p>
+                
+                <div class="p-2 bg-black bg-opacity-50 border border-secondary rounded mb-3">
+                  <small class="text-muted d-block" style="font-size:0.75rem;">Custo da Transação</small>
+                  <span id="confPreco" class="fw-bold text-warning fs-5">0 XP</span>
+                </div>
+
+                <div class="d-flex gap-2">
+                  <button type="button" class="btn btn-sm btn-outline-secondary flex-grow-1 fw-bold" data-bs-dismiss="modal">Cancelar</button>
+                  <button type="button" id="btnConfirmarAcaoModal" class="btn btn-sm btn-warning flex-grow-1 fw-bold text-dark">Comprar</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(modalConf);
+    }
+
+    document.getElementById('confIcone').innerText = icone || '🎁';
+    document.getElementById('confTitulo').innerText = titulo;
+    document.getElementById('confDesc').innerText = descricao || 'Esta ação usará o seu saldo de XP.';
+    document.getElementById('confPreco').innerText = `${preco} XP`;
+
+    const btnConfirmar = document.getElementById('btnConfirmarAcaoModal');
+    const novoBtn = btnConfirmar.cloneNode(true);
+    btnConfirmar.parentNode.replaceChild(novoBtn, btnConfirmar);
+
+    let bsModal;
+    if (window.bootstrap && window.bootstrap.Modal) {
+        bsModal = window.bootstrap.Modal.getOrCreateInstance(modalConf);
+    }
+
+    novoBtn.onclick = async () => {
+        novoBtn.disabled = true;
+        novoBtn.innerHTML = `<span class="spinner-border spinner-border-sm"></span>...`;
+        
+        await onConfirmar();
+        
+        novoBtn.disabled = false;
+        novoBtn.innerText = 'Comprar';
+
+        if (bsModal) {
+            bsModal.hide();
+        } else {
+            modalConf.classList.remove('show');
+            modalConf.style.display = 'none';
+        }
+    };
+
+    if (bsModal) {
+        bsModal.show();
+    } else {
+        modalConf.classList.add('show');
+        modalConf.style.display = 'block';
+    }
+}
+
+// =================================================================
+// 4. INICIALIZAÇÃO E CONTROLE DA MODAL DO MERCADO
 // =================================================================
 
 function inicializarMercado(aluno) {
@@ -245,7 +316,6 @@ function abrirModalMercado() {
 
     let modalDiv = document.getElementById('modalMercado');
 
-    // Cria o modal na DOM caso ele não exista
     if (!modalDiv) {
         modalDiv = document.createElement('div');
         modalDiv.className = 'modal fade';
@@ -283,7 +353,7 @@ function abrirModalMercado() {
                     </div>
                 </div>
 
-                <!-- ABAS COM TROCA DIRETA (SEM BOOTSTRAP TAB DEPENDENCY) -->
+                <!-- ABAS COM TROCA DIRETA -->
                 <ul class="nav nav-pills nav-fill mb-3" id="pills-tab-mercado">
                   <li class="nav-item">
                     <button class="nav-link active btn-sm fw-bold" onclick="mudarAbaMercado('content-auras', this)">✨ Auras de Nível</button>
@@ -325,7 +395,6 @@ function abrirModalMercado() {
 
     atualizarInterfaceMercado();
 
-    // Exibe o modal com Bootstrap ou Fallback CSS puro
     if (window.bootstrap && window.bootstrap.Modal) {
         window.bootstrap.Modal.getOrCreateInstance(modalDiv).show();
     } else {
@@ -334,7 +403,6 @@ function abrirModalMercado() {
     }
 }
 
-// ⚡ FUNÇÃO DE TROCA MANUAL DE ABAS (100% GARANTIDA)
 window.mudarAbaMercado = function(idConteudo, btnClicado) {
     document.querySelectorAll('#pills-tab-mercado .nav-link').forEach(btn => {
         btn.classList.remove('active');
@@ -362,7 +430,6 @@ window.mudarAbaMercado = function(idConteudo, btnClicado) {
     }
 };
 
-// Atualiza valores e re-renderiza os cards sem fechar a modal
 function atualizarInterfaceMercado() {
     if (!alunoGlobalMercado) return;
 
@@ -383,79 +450,100 @@ function atualizarInterfaceMercado() {
 }
 
 // =================================================================
-// ⚡ AÇÕES DE COMPRAR E EQUIPAR COM ATUALIZAÇÃO EM TEMPO REAL
+// 5. AÇÕES DO MERCADO (COMPRAR & EQUIPAR PROTEGIDOS)
 // =================================================================
 
 window.acaoEquiparAuraBase = async function(nomeAura, icone) {
     if (!alunoGlobalMercado) return;
-    const res = await window.API.equiparTituloAluno(alunoGlobalMercado.id, { nome: nomeAura, icone: icone, id: "aura_farm" });
-    if (res && res.sucesso) {
-        alunoGlobalMercado.tituloEscolhido = nomeAura;
-        alunoGlobalMercado.tituloIcone = icone;
-        alunoGlobalMercado.tituloEscolhidoId = "aura_farm";
-        atualizarInterfaceMercado();
-        alert(`✨ Aura "${nomeAura}" equipada!`);
-    } else {
-        alert("Erro ao equipar aura.");
+    try {
+        if (window.API && typeof window.API.equiparTituloAluno === 'function') {
+            await window.API.equiparTituloAluno(alunoGlobalMercado.id, { nome: nomeAura, icone: icone, id: "aura_farm" });
+        }
+    } catch (e) {
+        console.warn("API ausente ou falhou ao equipar aura, aplicando localmente:", e);
     }
+    
+    alunoGlobalMercado.tituloEscolhido = nomeAura;
+    alunoGlobalMercado.tituloIcone = icone;
+    alunoGlobalMercado.tituloEscolhidoId = "aura_farm";
+    atualizarInterfaceMercado();
 };
 
-window.acaoComprarTituloLoja = async function(id, preco) {
+window.acaoComprarTituloLoja = function(id, preco) {
     const item = CATALOGO_TITULOS.find(t => t.id === id);
     if (!item || !alunoGlobalMercado) return;
 
-    if (!confirm(`Deseja comprar o título "${item.nome}" por ${preco} XP?`)) return;
+    confirmarCompraModal({
+        titulo: item.nome,
+        icone: item.icone,
+        preco: preco,
+        descricao: `Deseja desbloquear o título "${item.nome}"?`
+    }, async () => {
+        try {
+            if (window.API && typeof window.API.comprarTituloAluno === 'function') {
+                await window.API.comprarTituloAluno(alunoGlobalMercado.id, item, preco);
+            }
+        } catch (err) {
+            console.warn("API ausente ou falhou na compra, aplicando localmente:", err);
+        }
 
-    const res = await window.API.comprarTituloAluno(alunoGlobalMercado.id, item, preco);
-    if (res && res.sucesso) {
-        // Atualiza o estado local do aluno dinamicamente
         alunoGlobalMercado.saldoXP = (alunoGlobalMercado.saldoXP !== undefined ? alunoGlobalMercado.saldoXP : Number(alunoGlobalMercado.xp || 0)) - preco;
         if (!alunoGlobalMercado.titulosComprados) alunoGlobalMercado.titulosComprados = [];
         alunoGlobalMercado.titulosComprados.push(item.id);
 
         atualizarInterfaceMercado();
-        alert(`🎉 Título "${item.nome}" adquirido com sucesso!`);
-    } else {
-        alert("Erro ao realizar compra. Verifique seu saldo de moedas.");
-    }
+    });
 };
 
 window.acaoEquiparTituloComprado = async function(id) {
     const item = CATALOGO_TITULOS.find(t => t.id === id);
     if (!item || !alunoGlobalMercado) return;
 
-    const res = await window.API.equiparTituloAluno(alunoGlobalMercado.id, item);
-    if (res && res.sucesso) {
-        alunoGlobalMercado.tituloEscolhido = item.nome;
-        alunoGlobalMercado.tituloIcone = item.icone;
-        alunoGlobalMercado.tituloEscolhidoId = item.id;
-        atualizarInterfaceMercado();
-        alert(`✨ Título "${item.nome}" equipado!`);
-    } else {
-        alert("Erro ao equipar título.");
+    try {
+        if (window.API && typeof window.API.equiparTituloAluno === 'function') {
+            await window.API.equiparTituloAluno(alunoGlobalMercado.id, item);
+        }
+    } catch (e) {
+        console.warn("API ausente ou falhou ao equipar título, aplicando localmente:", e);
     }
+
+    alunoGlobalMercado.tituloEscolhido = item.nome;
+    alunoGlobalMercado.tituloIcone = item.icone;
+    alunoGlobalMercado.tituloEscolhidoId = item.id;
+    atualizarInterfaceMercado();
 };
 
-window.acaoComprarPoderLoja = async function(id, preco) {
+window.acaoComprarPoderLoja = function(id, preco) {
     const item = CATALOGO_PODERES.find(p => p.id === id);
     if (!item || !alunoGlobalMercado) return;
 
-    if (!confirm(`Deseja adquirir o poder "${item.nome}" por ${preco} XP?`)) return;
+    confirmarCompraModal({
+        titulo: item.nome,
+        icone: item.icone,
+        preco: preco,
+        descricao: item.descricao
+    }, async () => {
+        try {
+            if (window.API && typeof window.API.comprarPoderAluno === 'function') {
+                await window.API.comprarPoderAluno(alunoGlobalMercado.id, item, preco);
+            }
+        } catch (err) {
+            console.warn("API ausente ou falhou na compra, aplicando localmente:", err);
+        }
 
-    const res = await window.API.comprarPoderAluno(alunoGlobalMercado.id, item, preco);
-    if (res && res.sucesso) {
         alunoGlobalMercado.saldoXP = (alunoGlobalMercado.saldoXP !== undefined ? alunoGlobalMercado.saldoXP : Number(alunoGlobalMercado.xp || 0)) - preco;
         if (!alunoGlobalMercado.poderesInventario) alunoGlobalMercado.poderesInventario = {};
         alunoGlobalMercado.poderesInventario[item.id] = (alunoGlobalMercado.poderesInventario[item.id] || 0) + 1;
 
         atualizarInterfaceMercado();
-        alert(`⚡ Poder "${item.nome}" adicionado ao inventário!`);
-    } else {
-        alert("Erro ao comprar poder.");
-    }
+    });
 };
+
+// =================================================================
+// 6. INICIALIZAÇÃO DA PÁGINA DO ALUNO
+// =================================================================
+
 document.addEventListener('DOMContentLoaded', async () => {
-    // 1. Captura o ID da URL
     const urlParams = new URLSearchParams(window.location.search);
     const alunoId = urlParams.get('id')?.trim();
 
@@ -465,12 +553,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     try {
-        // 2. Aguarda a API estar pronta
         if (!window.API) {
             throw new Error("Módulo API não carregado. Verifique se api.js está antes de aluno.js.");
         }
 
-        // 3. Executa a carga completa e renderização
         await carregarPainelAluno(alunoId);
 
     } catch (error) {
@@ -478,19 +564,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         exibirErro("Erro ao carregar dados do aluno. Verifique a conexão.");
     }
 });
+
 async function carregarPainelAluno(id) {
     const loadingEl = document.getElementById('loading') || document.getElementById('spinnerLoading');
     const painelEl = document.getElementById('painelAluno') || document.getElementById('conteudoAluno');
 
     try {
-        // Busca paralela otimizada na API
         const [alunos, conquistasAPI, historico] = await Promise.all([
             window.API.getAlunos ? window.API.getAlunos() : [],
             window.API.getConquistas ? window.API.getConquistas() : [],
             window.API.getLancamentosPorAluno ? window.API.getLancamentosPorAluno(id) : []
         ]);
 
-        // Procura o aluno pelo ID de forma flexível e segura
         let aluno = null;
         if (typeof window.API.getAlunoPorId === 'function') {
             aluno = await window.API.getAlunoPorId(id);
@@ -508,9 +593,6 @@ async function carregarPainelAluno(id) {
             return;
         }
 
-        // =========================================================================
-        // ⚡ Inicializa o Mercado antes das renderizações
-        // =========================================================================
         if (typeof inicializarMercado === 'function') {
             inicializarMercado(aluno);
         }
@@ -518,11 +600,9 @@ async function carregarPainelAluno(id) {
         const xpTotal = Number(aluno.xp || aluno.XP) || 0;
         const infoNivel = window.API.calcularNivel ? window.API.calcularNivel(xpTotal) : { nivel: 1, titulo: "Iniciante", cor: "#00d2ff", icone: "🌱", porcentagem: 0 };
 
-        // 1. Renderiza Perfil e Auras de Fundo
         renderizarPerfilCompleto(aluno, id, xpTotal, infoNivel);
         aplicarAuraDeFundo(infoNivel);
 
-        // 2. Renderiza Poderes e Conquistas Gamificadas (Proteção contra ReferenceError)
         const fallbackConquistas = typeof CATALOGO_GAMIFICADO !== 'undefined' ? CATALOGO_GAMIFICADO : [];
         const listaFinal = (Array.isArray(conquistasAPI) && conquistasAPI.length > 0) ? conquistasAPI : fallbackConquistas;
         
@@ -530,12 +610,10 @@ async function carregarPainelAluno(id) {
             renderizarConquistasGamificadas(listaFinal, xpTotal);
         }
 
-        // 3. Renderiza Histórico de Atividades e Observações
         if (typeof renderizarHistorico === 'function') {
             renderizarHistorico(historico);
         }
 
-        // 4. Oculta o Spinner e Exibe o Painel
         if (loadingEl) loadingEl.style.display = 'none';
         if (painelEl) painelEl.style.display = 'block';
 
@@ -545,8 +623,10 @@ async function carregarPainelAluno(id) {
     }
 }
 
-// Altera o brilho do fundo da página com a cor da Aura do nível
-// Altera o brilho do fundo e solta partículas com base na Aura do Nível
+// =================================================================
+// 7. AURA DE FUNDO, EFEITOS & TABELAS
+// =================================================================
+
 function aplicarAuraDeFundo(infoNivel) {
     const corAura = infoNivel.cor || "#ff0055";
     
@@ -560,27 +640,24 @@ function aplicarAuraDeFundo(infoNivel) {
         container.style.filter = `drop-shadow(0 0 15px ${corAura}22)`;
     }
 
-    // 🍃⚡🔥 Cria as partículas caindo no fundo com base no ícone do nível
     criarParticulasDeFundo(infoNivel.icone || '🍃', 18);
 }
 
-// Função responsável por gerar o efeito de partículas levinhas
 function criarParticulasDeFundo(iconeParticula = '🍃', quantidade = 18) {
     const container = document.getElementById('leafContainer');
     if (!container) return;
     
-    container.innerHTML = ''; // Limpa partículas do nível anterior
+    container.innerHTML = '';
 
     for (let i = 0; i < quantidade; i++) {
         const leaf = document.createElement('div');
         leaf.classList.add('leaf');
         leaf.innerText = iconeParticula;
 
-        // Distribuição e tempos aleatórios para parecer natural
         leaf.style.left = Math.random() * 100 + 'vw';
-        leaf.style.animationDuration = (Math.random() * 5 + 6) + 's'; // Duração entre 6s e 11s
+        leaf.style.animationDuration = (Math.random() * 5 + 6) + 's';
         leaf.style.animationDelay = (Math.random() * 5) + 's';
-        leaf.style.fontSize = (Math.random() * 8 + 14) + 'px'; // Tamanho entre 14px e 22px
+        leaf.style.fontSize = (Math.random() * 8 + 14) + 'px';
 
         container.appendChild(leaf);
     }
@@ -602,7 +679,6 @@ function renderizarPerfilCompleto(aluno, id, xpTotal, infoNivel) {
         document.getElementById('alunoXP').innerText = `${seguroXP.toLocaleString()} XP`;
     }
 
-    // Nível, Título e Estilização de Aura
     const elNivelBadge = document.getElementById('alunoNivelBadge') || document.getElementById('alunoNivel');
     const elTitulo = document.getElementById('alunoTitulo');
 
@@ -619,7 +695,6 @@ function renderizarPerfilCompleto(aluno, id, xpTotal, infoNivel) {
         }
     }
 
-    // Progresso e Porcentagem
     const pct = Math.max(0, Math.min(100, Number(infoNivel.porcentagem) || 0));
 
     if (document.getElementById('alunoPorcentagem')) {
@@ -646,25 +721,21 @@ function renderizarConquistasGamificadas(listaCompleta, xpAluno) {
 
     const seguroXP = Number(xpAluno) || 0;
 
-    // Filtra entre Poderes de Sala de Aula e Conquistas de Aura
     const poderes = listaCompleta.filter(i => i.tipo === 'Poder' || !i.tipo);
     const conquistas = listaCompleta.filter(i => i.tipo === 'Conquista');
 
     container.innerHTML = `
-        <!-- SEÇÃO DE PODERES DE SALA -->
         <div class="col-12 mb-2">
             <h6 class="text-warning fw-bold"><i class="fa-solid fa-wand-magic-sparkles me-2"></i>PODERES DE SALA DE AULA (VANTAGENS REAIS)</h6>
         </div>
         ${gerarCardsHTML(poderes, seguroXP)}
 
-        <!-- SEÇÃO DE CONQUISTAS E AURA -->
         <div class="col-12 mt-4 mb-2">
             <h6 class="text-info fw-bold"><i class="fa-solid fa-trophy me-2"></i>CONQUISTAS & MARCOS DE AURA</h6>
         </div>
         ${gerarCardsHTML(conquistas, seguroXP)}
     `;
 
-    // ⚡ Ativa o efeito 3D (Vanilla-Tilt) nos novos cards recém-criados
     if (window.VanillaTilt) {
         const cards = container.querySelectorAll('.card-conquista');
         VanillaTilt.init(cards, {

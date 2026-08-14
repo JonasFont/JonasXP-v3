@@ -964,38 +964,6 @@ function renderizarPerfilCompleto(aluno, id, xpTotal, infoNivel) {
     }
 }
 
-function renderizarConquistasGamificadas(listaCompleta, xpAluno) {
-    const container = document.getElementById('containerConquistas');
-    if (!container) return;
-
-    const seguroXP = Number(xpAluno) || 0;
-
-    const poderes = listaCompleta.filter(i => i.tipo === 'Poder' || !i.tipo);
-    const conquistas = listaCompleta.filter(i => i.tipo === 'Conquista');
-
-    container.innerHTML = `
-        <div class="col-12 mb-2">
-            <h6 class="text-warning fw-bold"><i class="fa-solid fa-wand-magic-sparkles me-2"></i>PODERES DE SALA DE AULA (VANTAGENS REAIS)</h6>
-        </div>
-        ${gerarCardsHTML(poderes, seguroXP)}
-
-        <div class="col-12 mt-4 mb-2">
-            <h6 class="text-info fw-bold"><i class="fa-solid fa-trophy me-2"></i>CONQUISTAS & MARCOS DE AURA</h6>
-        </div>
-        ${gerarCardsHTML(conquistas, seguroXP)}
-    `;
-
-    if (window.VanillaTilt) {
-        const cards = container.querySelectorAll('.card-conquista');
-        VanillaTilt.init(cards, {
-            max: 15,
-            speed: 400,
-            glare: true,
-            "max-glare": 0.3
-        });
-    }
-}
-
 function gerarCardsHTML(itens, seguroXP) {
     if (!itens || itens.length === 0) {
         return `<div class="col-12 text-muted small py-2">Nenhum item liberado nesta categoria.</div>`;

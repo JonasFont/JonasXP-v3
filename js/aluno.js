@@ -57,7 +57,37 @@ let alunoGlobalMercado = null;
 let categoriaFiltroAtual = 'Todos';
 
 // =================================================================
-// 2. FUNÇÕES DE RENDERIZAÇÃO & FILTRAGEM
+// 2. FUNÇÃO GLOBAL PARA FECHAR MODAIS (SISTEMA SEGURO)
+// =================================================================
+
+window.fecharModal = function(modalElement) {
+    if (typeof modalElement === 'string') {
+        modalElement = document.getElementById(modalElement);
+    }
+    if (!modalElement) return;
+
+    if (window.bootstrap && window.bootstrap.Modal) {
+        const inst = window.bootstrap.Modal.getInstance(modalElement) || window.bootstrap.Modal.getOrCreateInstance(modalElement);
+        inst.hide();
+    } else {
+        modalElement.classList.remove('show');
+        modalElement.style.display = 'none';
+    }
+
+    // Remove overlays escuros residuais para evitar travamentos
+    setTimeout(() => {
+        const modaisAbertos = document.querySelectorAll('.modal.show');
+        if (modaisAbertos.length === 0) {
+            document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
+            document.body.classList.remove('modal-open');
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
+        }
+    }, 150);
+};
+
+// =================================================================
+// 3. RENDERIZAÇÃO & FILTRAGEM
 // =================================================================
 
 function calcularAuraFarmAtual(xpTotal) {
@@ -208,25 +238,8 @@ function renderizarPoderesMercado(saldo) {
 }
 
 // =================================================================
-// 3. MODAL DE CONFIRMAÇÃO CUSTOMIZADO
+// 4. MODAL DE CONFIRMAÇÃO SEGURO
 // =================================================================
-
-function fecharModal(modalElement) {
-    if (!modalElement) return;
-    if (window.bootstrap && window.bootstrap.Modal) {
-        const inst = window.bootstrap.Modal.getInstance(modalElement) || window.bootstrap.Modal.getOrCreateInstance(modalElement);
-        inst.hide();
-    } else {
-        modalElement.classList.remove('show');
-        modalElement.style.display = 'none';
-    }
-
-    // Remove backdrop residual caso fique preso na tela
-    document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
-    document.body.classList.remove('modal-open');
-    document.body.style.overflow = '';
-    document.body.style.paddingRight = '';
-}
 
 function confirmarCompraModal({ titulo, icone, preco, descricao }, onConfirmar) {
     let modalConf = document.getElementById('modalConfirmacaoCompra');
@@ -252,7 +265,7 @@ function confirmarCompraModal({ titulo, icone, preco, descricao }, onConfirmar) 
                 </div>
 
                 <div class="d-flex gap-2">
-                  <button type="button" class="btn btn-sm btn-outline-secondary flex-grow-1 fw-bold" onclick="fecharModal(document.getElementById('modalConfirmacaoCompra'))">Cancelar</button>
+                  <button type="button" class="btn btn-sm btn-outline-secondary flex-grow-1 fw-bold" onclick="window.fecharModal('modalConfirmacaoCompra')">Cancelar</button>
                   <button type="button" id="btnConfirmarAcaoModal" class="btn btn-sm btn-warning flex-grow-1 fw-bold text-dark">Comprar</button>
                 </div>
               </div>
@@ -283,7 +296,7 @@ function confirmarCompraModal({ titulo, icone, preco, descricao }, onConfirmar) 
         
         novoBtn.disabled = false;
         novoBtn.innerText = 'Comprar';
-        fecharModal(modalConf);
+        window.fecharModal(modalConf);
     };
 
     if (window.bootstrap && window.bootstrap.Modal) {
@@ -295,7 +308,7 @@ function confirmarCompraModal({ titulo, icone, preco, descricao }, onConfirmar) 
 }
 
 // =================================================================
-// 4. INICIALIZAÇÃO E CONTROLE DA MODAL DO MERCADO
+// 5. INICIALIZAÇÃO E CONTROLE DA MODAL DO MERCADO
 // =================================================================
 
 function inicializarMercado(aluno) {
@@ -338,7 +351,7 @@ function abrirModalMercado() {
                 <h5 class="modal-title fw-bold text-warning">
                   <i class="fa-solid fa-store me-2"></i>Mercado de Títulos & Auras
                 </h5>
-                <button type="button" class="btn-close btn-close-white" onclick="fecharModal(document.getElementById('modalMercado'))" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white" onclick="window.fecharModal('modalMercado')" aria-label="Close"></button>
               </div>
               <div class="modal-body">
                 <!-- Status do Jogador -->
@@ -454,7 +467,6 @@ function atualizarInterfaceMercado() {
         document.getElementById('statusSaldoXP').innerText = `${saldo.toLocaleString()} XP`;
     }
 
-    // Atualiza título diretamente na tela principal do perfil do Aluno
     const elTituloMain = document.getElementById('alunoTitulo');
     if (elTituloMain && alunoGlobalMercado.tituloEscolhido) {
         elTituloMain.innerHTML = `<span style="font-size: 1.2em;">${alunoGlobalMercado.tituloIcone || '⚡'}</span> ${alunoGlobalMercado.tituloEscolhido}`;
@@ -466,22 +478,20 @@ function atualizarInterfaceMercado() {
 }
 
 // =================================================================
-// 5. AÇÕES DO MERCADO (BLINDADAS CONTRA ERROS DE API)
+// 6. AÇÕES DO MERCADO
 // =================================================================
 
 window.acaoEquiparAuraBase = async function(nomeAura, icone) {
     if (!alunoGlobalMercado) return;
     
-    // Tenta chamar na API caso a função exista
     try {
         if (window.API && typeof window.API.equiparTituloAluno === 'function') {
             await window.API.equiparTituloAluno(alunoGlobalMercado.id, { nome: nomeAura, icone: icone, id: "aura_farm" });
         }
     } catch (e) {
-        console.warn("API ausente ou com falha ao equipar aura, aplicando alterações no front-end:", e);
+        console.warn("API ausente ou falhou ao equipar aura, aplicando localmente:", e);
     }
     
-    // Aplicação Garantida no Front-End
     alunoGlobalMercado.tituloEscolhido = nomeAura;
     alunoGlobalMercado.tituloIcone = icone;
     alunoGlobalMercado.tituloEscolhidoId = "aura_farm";
@@ -498,19 +508,14 @@ window.acaoComprarTituloLoja = function(id, preco) {
         preco: preco,
         descricao: `Deseja desbloquear o título "${item.nome}"?`
     }, async () => {
-        // Proteção Try/Catch para não quebrar a Promise se a função não existir no api.js
         try {
             if (window.API && typeof window.API.comprarTituloAluno === 'function') {
                 await window.API.comprarTituloAluno(alunoGlobalMercado.id, item, preco);
-            } else if (window.API && typeof window.API.salvarDadosAluno === 'function') {
-                // Tenta fallback genérico de salvamento caso exista
-                await window.API.salvarDadosAluno(alunoGlobalMercado.id, { saldoXP: (alunoGlobalMercado.saldoXP || alunoGlobalMercado.xp) - preco });
             }
         } catch (err) {
-            console.warn("API de compra indisponível. Aplicando transação localmente no navegador:", err);
+            console.warn("API de compra indisponível. Aplicando localmente:", err);
         }
 
-        // Aplicação de compra no front-end em tempo real
         const saldoAtual = Number(alunoGlobalMercado.saldoXP !== undefined ? alunoGlobalMercado.saldoXP : (alunoGlobalMercado.xp || 0));
         alunoGlobalMercado.saldoXP = Math.max(0, saldoAtual - preco);
 
@@ -519,7 +524,6 @@ window.acaoComprarTituloLoja = function(id, preco) {
             alunoGlobalMercado.titulosComprados.push(item.id);
         }
 
-        // Auto-equipa o título comprado
         alunoGlobalMercado.tituloEscolhido = item.nome;
         alunoGlobalMercado.tituloIcone = item.icone;
         alunoGlobalMercado.tituloEscolhidoId = item.id;
@@ -575,7 +579,7 @@ window.acaoComprarPoderLoja = function(id, preco) {
 };
 
 // =================================================================
-// 6. INICIALIZAÇÃO DA PÁGINA DO ALUNO
+// 7. INICIALIZAÇÃO DA PÁGINA DO ALUNO
 // =================================================================
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -659,7 +663,7 @@ async function carregarPainelAluno(id) {
 }
 
 // =================================================================
-// 7. AURA DE FUNDO, EFEITOS & TABELAS
+// 8. EFEITOS DE FUNDO & COMPONENTES
 // =================================================================
 
 function aplicarAuraDeFundo(infoNivel) {

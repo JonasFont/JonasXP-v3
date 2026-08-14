@@ -692,24 +692,21 @@ async function carregarPainelAluno(id) {
 // 8. EFEITOS DE FUNDO & COMPONENTES VISUAIS
 // =================================================================
 function renderizarLinksUteis() {
-    // LINKS CONFIGURÁVEIS: Substitua as URLs abaixo pelos seus links reais
-    const LINK_PORTAL_ALUNO = "https://seu-portal-do-aluno.com.br";
-    const LINK_DRIVE_PROJETOS = "https://drive.google.com/drive/u/0/folders/seu-folder-id";
+    if (!alunoGlobalMercado) return;
 
-    // Procura por um container específico na página ou cria um dinamicamente
+    // Pega o link individual do Drive do aluno
+    const linkDrive = alunoGlobalMercado.linkDrive || "#";
+    const temDrive = linkDrive !== "#";
+
     let container = document.getElementById('containerLinksUteis');
 
     if (!container) {
-        // Se não existir o container no HTML, insere logo abaixo do perfil do aluno
         const perfilContainer = document.getElementById('painelAluno') || document.getElementById('conteudoAluno') || document.querySelector('.container');
-        
         if (!perfilContainer) return;
 
         container = document.createElement('div');
         container.id = 'containerLinksUteis';
         container.className = 'my-4';
-        
-        // Insere no início do painel/conteúdo
         perfilContainer.insertBefore(container, perfilContainer.children[1] || perfilContainer.firstChild);
     }
 
@@ -717,28 +714,18 @@ function renderizarLinksUteis() {
         <div class="card bg-black bg-opacity-40 border-secondary p-3 shadow-lg rounded-3">
             <div class="d-flex align-items-center justify-content-between mb-2">
                 <h6 class="text-warning fw-bold mb-0">
-                    <i class="fa-solid fa-compass me-2"></i>Acessos Rápido & Recursos
+                    <i class="fa-solid fa-folder-open me-2"></i>Repositório de Projetos
                 </h6>
-                <span class="badge bg-dark border border-secondary text-muted small">Atalhos</span>
+                <span class="badge bg-dark border border-secondary text-muted small">Atalho Rápido</span>
             </div>
             
-            <div class="row g-2">
-                <!-- BOTÃO 1: PORTAL DO ALUNO -->
-                <div class="col-12 col-md-6">
-                    <a href="${LINK_PORTAL_ALUNO}" target="_blank" rel="noopener noreferrer" 
-                       class="btn btn-outline-info w-100 py-2 d-flex align-items-center justify-content-center gap-2 text-decoration-none fw-bold shadow-sm rounded-3 hover-scale">
-                        <i class="fa-solid fa-graduation-cap fs-5"></i>
-                        <span>Portal do Aluno</span>
-                        <i class="fa-solid fa-arrow-up-right-from-square small ms-auto opacity-75"></i>
-                    </a>
-                </div>
-
-                <!-- BOTÃO 2: DRIVE DE PROJETOS -->
-                <div class="col-12 col-md-6">
-                    <a href="${LINK_DRIVE_PROJETOS}" target="_blank" rel="noopener noreferrer" 
-                       class="btn btn-outline-success w-100 py-2 d-flex align-items-center justify-content-center gap-2 text-decoration-none fw-bold shadow-sm rounded-3 hover-scale">
+            <div class="row">
+                <!-- BOTÃO ÚNICO: DRIVE DE PROJETOS -->
+                <div class="col-12">
+                    <a href="${linkDrive}" ${temDrive ? 'target="_blank" rel="noopener noreferrer"' : 'onclick="alert(\'Link do Drive não cadastrado para este aluno.\'); return false;"'} 
+                       class="btn ${temDrive ? 'btn-outline-success' : 'btn-outline-secondary opacity-50'} w-100 py-2 d-flex align-items-center justify-content-center gap-2 text-decoration-none fw-bold shadow-sm rounded-3 hover-scale">
                         <i class="fa-brands fa-google-drive fs-5"></i>
-                        <span>Drive de Projetos</span>
+                        <span>Acessar Meu Drive de Projetos</span>
                         <i class="fa-solid fa-arrow-up-right-from-square small ms-auto opacity-75"></i>
                     </a>
                 </div>

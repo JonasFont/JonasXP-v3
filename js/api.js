@@ -10,12 +10,12 @@ import {
     getDoc, 
     addDoc, 
     setDoc, 
-    deleteDoc, // <-- Adicione o deleteDoc aqui!
+    deleteDoc, 
     query, 
     where 
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-// 2. SUAS CREDENCIAIS DO FIREBASE JÁ CONFIGURADAS
+// 2. CONFIGURAÇÃO DO FIREBASE JONASXP
 const firebaseConfig = {
     apiKey: "AIzaSyDNfajgndGJ5KJgM2-uN26dNQ6U0EAP1Pk",
     authDomain: "jonasxp-eb80e.firebaseapp.com",
@@ -31,7 +31,7 @@ const db = getFirestore(app);
 
 // 3. OBJETO DA API JONASXP
 const API = {
-    // --- BUSCAR ALUNOS ---
+    // --- ATUALIZAR/SALVAR DADOS DO ALUNO ---
     async atualizarAluno(idAluno, dados) {
         try {
             const alunoRef = doc(db, "alunos", idAluno);
@@ -64,6 +64,8 @@ const API = {
             return { sucesso: false, mensagem: e.message };
         }
     },
+
+    // --- BUSCAR TODOS OS ALUNOS ---
     async getAlunos() {
         try {
             const querySnapshot = await getDocs(collection(db, "alunos"));
@@ -146,7 +148,11 @@ const API = {
             const docRef = await addDoc(collection(db, "alunos"), {
                 nome: alunoData.nome.trim(),
                 turma: alunoData.turma.trim(),
-                xp: 0
+                linkDrive: alunoData.linkDrive ? alunoData.linkDrive.trim() : "",
+                xp: 0,
+                saldoXP: 0,
+                titulosComprados: [],
+                poderesInventario: {}
             });
             return { sucesso: true, id: docRef.id, mensagem: "Aluno cadastrado com sucesso!" };
         } catch (e) {
@@ -177,8 +183,15 @@ const API = {
             const alunoSnap = await getDoc(alunoRef);
 
             if (alunoSnap.exists()) {
-                const xpAtual = Number(alunoSnap.data().xp) || 0;
-                await setDoc(alunoRef, { xp: xpAtual + somaXP }, { merge: true });
+                const dados = alunoSnap.data();
+                const xpAtual = Number(dados.xp) || 0;
+                const saldoAtual = Number(dados.saldoXP !== undefined ? dados.saldoXP : xpAtual);
+
+                // Incrementa tanto o XP acumulado quanto o saldo disponível para compras
+                await setDoc(alunoRef, { 
+                    xp: xpAtual + somaXP,
+                    saldoXP: saldoAtual + somaXP 
+                }, { merge: true });
             }
 
             return { sucesso: true, mensagem: "Lançamento salvo!" };
@@ -218,10 +231,14 @@ async function migrarDadosPlanilhaParaFirebase(urlAppsScriptAntiga) {
         const alunosPlanilha = await resAlunos.json();
 
         for (const aluno of alunosPlanilha) {
+            const xpNum = Number(aluno.xp) || 0;
             await addDoc(collection(db, "alunos"), {
                 nome: String(aluno.nome).trim(),
                 turma: String(aluno.turma).trim(),
-                xp: Number(aluno.xp) || 0
+                xp: xpNum,
+                saldoXP: xpNum,
+                titulosComprados: [],
+                poderesInventario: {}
             });
             console.log(`✅ Aluno migrado: ${aluno.nome}`);
         }

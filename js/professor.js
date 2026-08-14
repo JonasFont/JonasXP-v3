@@ -98,9 +98,6 @@ function atualizarMetricas() {
 // ============================================================================
 // 3. SELECTS E FILTROS DE TURMA
 // ============================================================================
-// ============================================================================
-// 3. SELECTS E FILTROS DE TURMA (CORRIGIDO)
-// ============================================================================
 function preencherTodosSelectsTurmas() {
     const idsSelects = [
         'filtroTurmaAluno',
@@ -117,7 +114,6 @@ function preencherTodosSelectsTurmas() {
 
         const valorAnterior = select.value;
         
-        // CORREÇÃO AQUI: Verifica com segurança se existe opções antes de acessar [0]
         const temOpcoes = select.options && select.options.length > 0;
         const textoPadrao = temOpcoes ? select.options[0].text : 'Todas as Turmas';
 
@@ -132,6 +128,7 @@ function preencherTodosSelectsTurmas() {
         select.value = valorAnterior;
     });
 }
+
 function turmaBateComSelecao(aluno, turmaSelecionada) {
     if (!turmaSelecionada) return true;
 
@@ -169,6 +166,9 @@ function renderizarTabelaAlunos(listaAlunos) {
         const xp = Number(aluno.xp || aluno.XP) || 0;
         const infoNivel = window.API.calcularNivel(xp);
 
+        // Trata apóstrofos no link para evitar quebra do atributo HTML
+        const linkDriveEscapado = String(aluno.linkDrive || '').replace(/'/g, "\\'");
+
         return `
             <tr>
                 <td class="fw-bold text-white">${nome} <small class="text-muted d-block">#${id}</small></td>
@@ -184,15 +184,15 @@ function renderizarTabelaAlunos(listaAlunos) {
                     <small class="text-success fw-bold mt-1 d-block">+${xp.toLocaleString()} XP</small>
                 </td>
                 <td class="text-end">
-                    <button class="btn btn-sm btn-outline-info me-1" onclick="verHistoricoAluno('${id}', '${nome}', ${xp})">
+                    <button class="btn btn-sm btn-outline-info me-1" title="Ver Histórico" onclick="verHistoricoAluno('${id}', '${nome}', ${xp})">
                         <i class="fa-solid fa-clock-rotate-left"></i>
                     </button>
-                    <!-- Botão Editar -->
-                    <button class="btn btn-sm btn-outline-warning me-1" onclick="abrirModalEdicaoAluno('${id}', '${nome}', '${turmaRaw}')">
+                    <!-- Botão Editar Passe Link do Drive -->
+                    <button class="btn btn-sm btn-outline-warning me-1" title="Editar Aluno" onclick="abrirModalEdicaoAluno('${id}', '${nome}', '${turmaRaw}', '${linkDriveEscapado}')">
                         <i class="fa-solid fa-pen"></i>
                     </button>
                     <!-- Botão Excluir -->
-                    <button class="btn btn-sm btn-outline-danger" onclick="excluirAluno('${id}', '${nome}')">
+                    <button class="btn btn-sm btn-outline-danger" title="Excluir Aluno" onclick="excluirAluno('${id}', '${nome}')">
                         <i class="fa-solid fa-trash"></i>
                     </button>
                 </td>
@@ -200,6 +200,7 @@ function renderizarTabelaAlunos(listaAlunos) {
         `;
     }).join('');
 }
+
 function renderizarTabelaTurmas() {
     const tbody = document.getElementById('tabelaTurmas');
     if (!tbody) return;
@@ -221,6 +222,7 @@ function renderizarTabelaTurmas() {
         </tr>
     `).join('');
 }
+
 function filtrarAlunos() {
     const termo = (document.getElementById('buscaAluno')?.value || '').toLowerCase().trim();
     const selectFiltro = document.getElementById('filtroTurmaAluno') || document.getElementById('filtroTurma');
@@ -379,9 +381,6 @@ function gerarLinksWhatsAppTurma() {
 // ============================================================================
 // 7. HISTÓRICO INDIVIDUAL (MODAL)
 // ============================================================================
-// ============================================================================
-// 7. HISTÓRICO INDIVIDUAL (MODAL) - OTIMIZADO PARA VELOCIDADE
-// ============================================================================
 async function verHistoricoAluno(id, nome, totalXP) {
     const modalNome = document.getElementById('modalDetalhesNome');
     const detalheNivel = document.getElementById('detalheNivel');
@@ -391,13 +390,11 @@ async function verHistoricoAluno(id, nome, totalXP) {
 
     const infoNivel = window.API.calcularNivel(totalXP);
 
-    // 1. Atualiza as informações estáticas na tela imediatamente
     if (modalNome) modalNome.innerText = `Histórico de: ${nome}`;
     if (detalheNivel) detalheNivel.innerText = infoNivel.nivel;
     if (detalheTitulo) detalheTitulo.innerText = infoNivel.titulo;
     if (detalheXP) detalheXP.innerText = totalXP;
 
-    // 2. Coloca um feedback de carregamento instantâneo
     if (tbody) {
         tbody.innerHTML = `
             <tr>
@@ -408,11 +405,9 @@ async function verHistoricoAluno(id, nome, totalXP) {
             </tr>`;
     }
 
-    // 3. Abre o modal NA HORA para o usuário sentir resposta imediata
     const modalEl = document.getElementById('modalDetalhesAluno');
     if (modalEl) bootstrap.Modal.getOrCreateInstance(modalEl).show();
 
-    // 4. Faz a busca assíncrona da API em segundo plano
     try {
         const historico = await window.API.getLancamentosPorAluno(id);
 
@@ -498,7 +493,6 @@ function configurarEventos() {
         
         let turmaVal = document.getElementById('alunoTurma')?.value || '';
 
-        // Trata o padrão de valor com '|||' que você utiliza
         if (turmaVal.includes('|||')) {
             turmaVal = turmaVal.split('|||')[1];
         }
@@ -508,7 +502,6 @@ function configurarEventos() {
             return;
         }
 
-        // Verifica qual aba está ativa (Único ou Lote)
         const tabLote = document.getElementById('tab-lote');
         const abaLoteAtiva = tabLote && tabLote.classList.contains('active');
 
@@ -528,7 +521,6 @@ function configurarEventos() {
                 const campoTexto = document.getElementById('listaNomesLote');
                 const textoNomes = campoTexto ? campoTexto.value : '';
 
-                // Separa por quebra de linha, limpa vírgulas e remove linhas em branco
                 const nomes = textoNomes
                     .split('\n')
                     .map(nome => nome.replace(/,/g, '').trim())
@@ -542,9 +534,8 @@ function configurarEventos() {
                 let salvosComSucesso = 0;
                 let erros = 0;
 
-                // Salva aluno por aluno na API
                 for (const nome of nomes) {
-                    const res = await window.API.salvarAluno({ nome: nome, turma: turmaVal });
+                    const res = await window.API.salvarAluno({ nome: nome, turma: turmaVal, linkDrive: "" });
                     if (res && res.sucesso) {
                         salvosComSucesso++;
                     } else {
@@ -560,31 +551,35 @@ function configurarEventos() {
 
             } else {
                 // ==========================================
-                // MODO 2: CADASTRO ÚNICO (UM ALUNO)
+                // MODO 2: CADASTRO ÚNICO (UM ALUNO + LINK DRIVE)
                 // ==========================================
                 const nome = document.getElementById('alunoNome')?.value.trim();
+                const linkDrive = document.getElementById('alunoLinkDrive')?.value.trim() || "";
 
                 if (!nome) {
                     alert("Preencha o nome do aluno!");
                     return;
                 }
 
-                const res = await window.API.salvarAluno({ nome: nome, turma: turmaVal });
+                const res = await window.API.salvarAluno({ 
+                    nome: nome, 
+                    turma: turmaVal, 
+                    linkDrive: linkDrive 
+                });
+
                 if (res && res.sucesso) {
                     alert("Aluno cadastrado com sucesso!");
                 } else {
                     alert(res.mensagem || "Erro ao salvar aluno.");
-                    return; // Interrompe para não fechar a modal nem resetar
+                    return;
                 }
             }
 
-            // --- FINALIZAÇÃO IGUAL PARA AMBOS OS MODOS ---
             const modalInstance = bootstrap.Modal.getInstance(document.getElementById('modalAluno'));
             if (modalInstance) modalInstance.hide();
 
             document.getElementById('formAluno').reset();
 
-            // Reseta a aba para a primeira (Único Aluno) para o próximo uso
             const primeiraba = document.getElementById('tab-unico');
             if (primeiraba && typeof bootstrap.Tab !== 'undefined') {
                 const tab = new bootstrap.Tab(primeiraba);
@@ -604,22 +599,28 @@ function configurarEventos() {
         }
     });
 }
+
 // ============================================================================
 // 9. AÇÕES DE EDIÇÃO E EXCLUSÃO (ALUNO E TURMA)
 // ============================================================================
 
-// Abrir Modal e Preencher dados
-window.abrirModalEdicaoAluno = function(id, nome, turma) {
+// Abrir Modal e Preencher dados (Incluindo Link do Drive)
+window.abrirModalEdicaoAluno = function(id, nome, turma, linkDrive = '') {
     document.getElementById('editAlunoId').value = id;
     document.getElementById('editAlunoNome').value = nome;
     
-    const selectTurma = document.getElementById('editAlunoTurma');
-    selectTurma.innerHTML = '';
+    // Preenche o input do Drive no modal de edição, se existir no seu HTML
+    const inputDrive = document.getElementById('editAlunoLinkDrive');
+    if (inputDrive) inputDrive.value = linkDrive;
     
-    CACHE_TURMAS.forEach(t => {
-        const selected = t.nome.toLowerCase() === turma.toLowerCase() || t.id === turma ? 'selected' : '';
-        selectTurma.innerHTML += `<option value="${t.nome}" ${selected}>${t.nome}</option>`;
-    });
+    const selectTurma = document.getElementById('editAlunoTurma');
+    if (selectTurma) {
+        selectTurma.innerHTML = '';
+        CACHE_TURMAS.forEach(t => {
+            const selected = t.nome.toLowerCase() === turma.toLowerCase() || t.id === turma ? 'selected' : '';
+            selectTurma.innerHTML += `<option value="${t.nome}" ${selected}>${t.nome}</option>`;
+        });
+    }
 
     bootstrap.Modal.getOrCreateInstance(document.getElementById('modalEditarAluno')).show();
 };
@@ -630,14 +631,15 @@ document.getElementById('formEditarAluno')?.addEventListener('submit', async (e)
     const id = document.getElementById('editAlunoId').value;
     const nome = document.getElementById('editAlunoNome').value.trim();
     const turma = document.getElementById('editAlunoTurma').value;
+    const linkDrive = document.getElementById('editAlunoLinkDrive')?.value.trim() || '';
 
-    const res = await window.API.atualizarAluno(id, { nome, turma });
+    const res = await window.API.atualizarAluno(id, { nome, turma, linkDrive });
     if (res && res.sucesso) {
         alert("Aluno atualizado com sucesso!");
         bootstrap.Modal.getInstance(document.getElementById('modalEditarAluno')).hide();
         await carregarDadosIniciais();
     } else {
-        alert("Erro ao atualizar aluno: " + res.mensagem);
+        alert("Erro ao atualizar aluno: " + (res.mensagem || "Falha ao salvar."));
     }
 });
 

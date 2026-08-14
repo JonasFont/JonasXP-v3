@@ -20,27 +20,41 @@ const NIVEIS_AURA_BASE = [
 ];
 
 const CATALOGO_TITULOS = [
-    { id: "ani_1", nome: "Recruta Ninja", icone: "🍃", preco: 100, tema: "Anime", desc: "Iniciou o treinamento no dojo." },
-    { id: "ani_2", nome: "Gennin Promissor", icone: "📜", preco: 250, tema: "Anime", desc: "Já domina os jutsus básicos da sala." },
-    { id: "ani_3", nome: "Caçador de Onis", icone: "⚔️", preco: 500, tema: "Anime", desc: "Membro da corporação contra a preguiça." },
-    { id: "ani_4", nome: "Hashira das Tarefas", icone: "⚡", preco: 1200, tema: "Anime", desc: "Mestre Supremo da respiração da dedicação." },
-    { id: "ani_5", nome: "Lorde Super Saiyajin", icone: "🔥", preco: 2500, tema: "Anime", desc: "Ultrapassou todos os limites conhecidos!" },
-    { id: "rpg_1", nome: "Novato da Guilda", icone: "🛡️", preco: 100, tema: "RPG", desc: "Pegou sua primeira missão no quadro." },
-    { id: "rpg_2", nome: "Bardo das Ideias", icone: "🪕", preco: 250, tema: "RPG", desc: "Criatividade e participação ativa em grupo." },
-    { id: "rpg_3", nome: "Mestre Arcano", icone: "✨", preco: 500, tema: "RPG", desc: "Conhecimento avançado em fórmulas e teoria." },
-    { id: "rpg_4", nome: "Paladino Dourado", icone: "👑", preco: 1200, tema: "RPG", desc: "Honra, foco e excelência nas entregas." },
-    { id: "cin_1", nome: "Jovem Padawan", icone: "🌌", preco: 100, tema: "Filmes", desc: "Primeiros passos no domínio da Força." },
-    { id: "cin_2", nome: "Cavaleiro Jedi", icone: "🗡️", preco: 500, tema: "Filmes", desc: "Equilíbrio, mente serena e foco nos estudos." },
-    { id: "gmr_1", nome: "Player 1", icone: "🎮", preco: 100, tema: "Gamer", desc: "Apertou Start para iniciar a jornada." },
-    { id: "gmr_2", nome: "Cyber Samurai", icone: "🦾", preco: 250, tema: "Gamer", desc: "Tecnologia e estratégia em harmonia." }
+    // ⛩️ ANIME
+    { id: "t_hokage", nome: "Hokage da Sala", icone: "🍥", categoria: "Anime", preco: 250 },
+    { id: "t_saiyajin", nome: "Super Saiyajin", icone: "💥", categoria: "Anime", preco: 300 },
+    { id: "t_hashira", nome: "Hashira das Notas", icone: "⚔️", categoria: "Anime", preco: 200 },
+    { id: "t_otaku", nome: "Rei dos Animes", icone: "🦊", categoria: "Anime", preco: 150 },
+    { id: "t_hunter", nome: "Hunter Star", icone: "⭐️", categoria: "Anime", preco: 180 },
+
+    // ⚔️ RPG / FANTASIA
+    { id: "t_mago", nome: "Mago Supremo", icone: "🧙‍♂️", categoria: "RPG", preco: 150 },
+    { id: "t_paladino", nome: "Paladino Imortal", icone: "🛡️", categoria: "RPG", preco: 180 },
+    { id: "t_ladino", nome: "Ladino Sombra", icone: "🗡️", categoria: "RPG", preco: 120 },
+    { id: "t_dragao", nome: "Caçador de Dragões", icone: "🐉", categoria: "RPG", preco: 350 },
+    { id: "t_necromante", nome: "Mestre dos Mortos", icone: "💀", categoria: "RPG", preco: 220 },
+
+    // 🎬 FILMES & SÉRIES
+    { id: "t_jedi", nome: "Mestre Jedi", icone: "🌌", categoria: "Filmes", preco: 200 },
+    { id: "t_vingador", nome: "Vingador", icone: "🦸‍♂️", categoria: "Filmes", preco: 180 },
+    { id: "t_matrix", nome: "O Escolhido", icone: "🕶️", categoria: "Filmes", preco: 280 },
+    { id: "t_bruxo", nome: "Bruxo de Hogwarts", icone: "🪄", categoria: "Filmes", preco: 160 },
+
+    // 🎮 GAMER
+    { id: "t_proplayer", nome: "Pro Player", icone: "🎯", categoria: "Gamer", preco: 150 },
+    { id: "t_radiante", nome: "Radiante", icone: "💎", categoria: "Gamer", preco: 400 },
+    { id: "t_speedrunner", nome: "Speedrunner", icone: "⚡", categoria: "Gamer", preco: 220 },
+    { id: "t_boss", nome: "Chefão Final", icone: "👑", categoria: "Gamer", preco: 500 }
 ];
 
 const CATALOGO_PODERES = [
-    { id: "p1", nome: "Oráculo do Treino", icone: "🔮", preco: 150, desc: "Pode pedir 1 dica extra ao professor durante uma atividade." },
-    { id: "p2", nome: "Aura do Silêncio", icone: "🎧", preco: 300, desc: "Permissão para ouvir música com fone durante treino individual." },
-    { id: "p3", nome: "Troca de Trono", icone: "👑", preco: 500, desc: "Direito de escolher onde vai sentar na sala por 1 semana." },
-    { id: "p4", nome: "Escudo do Atraso", icone: "🛡️", preco: 800, desc: "Anula 1 atraso ou ganha 1 dia de tolerância em uma entrega." },
-    { id: "p5", nome: "Invocação de Aliado", icone: "⚡", preco: 1200, desc: "Pode escolher seu parceiro(a) de trabalho em grupo sem sorteio." }
+    { id: "p_cafe", nome: "Café Turbinado", icone: "☕", descricao: "Garante +10% de XP extra nas tarefas de hoje.", preco: 100 },
+    { id: "p_escudo", nome: "Escudo Anti-Falta", icone: "🛡️", descricao: "Perdoa 1 atraso ou falta leve no mês.", preco: 300 },
+    { id: "p_dica", nome: "Visão de Águia", icone: "🦅", descricao: "Dica do professor em 1 questão difícil de prova.", preco: 250 },
+    { id: "p_dupla", nome: "Pacto de Dupla", icone: "🤝", descricao: "Permite fazer uma atividade individual em dupla.", preco: 400 },
+    { id: "p_prazo", nome: "Dobra do Tempo", icone: "⏳", descricao: "Ganha +24h de prazo para entregar uma tarefa atrasada.", preco: 350 },
+    { id: "p_musica", nome: "Fone Libertador", icone: "🎧", descricao: "Permite ouvir música na aula durante exercícios.", preco: 150 },
+    { id: "p_lugar", nome: "Trono Real", icone: "🪑", descricao: "Direito de escolher onde sentar na aula por 1 semana.", preco: 200 }
 ];
 
 let alunoGlobalMercado = null;
@@ -88,77 +102,116 @@ function renderizarAurasFarm(xpTotal) {
         `;
     }).join('');
 }
+let categoriaFiltroAtual = 'Todos';
+
+// 2. Função acionada ao clicar nos botões das categorias
+window.filtrarTitulos = function(categoria, btnClicado) {
+    categoriaFiltroAtual = categoria;
+
+    // Atualiza a aparência dos botões de filtro
+    const botoes = document.querySelectorAll('#pills-temas-titulos button');
+    botoes.forEach(b => {
+        b.classList.remove('active', 'btn-warning');
+        b.classList.add('btn-outline-warning');
+    });
+
+    if (btnClicado) {
+        btnClicado.classList.add('active', 'btn-warning');
+        btnClicado.classList.remove('btn-outline-warning');
+    }
+
+    // Re-renderiza a lista aplicando o filtro
+    const xpTotal = Number(alunoGlobalMercado?.xp || 0);
+    const saldo = Number(alunoGlobalMercado?.saldoXP !== undefined ? alunoGlobalMercado.saldoXP : xpTotal);
+    renderizarTitulosMercado(saldo);
+};
 
 function renderizarTitulosMercado(saldo) {
     const container = document.getElementById('containerMercadoTitulos');
     if (!container) return;
 
-    const comprados = alunoGlobalMercado?.titulosComprados || [];
-    const equipadoId = alunoGlobalMercado?.tituloEscolhidoId || "";
-    const filtrados = CATALOGO_TITULOS.filter(t => temaFiltroAtual === "Todos" || t.tema === temaFiltroAtual);
+    container.innerHTML = '';
 
-    container.innerHTML = filtrados.map(item => {
-        const possui = comprados.includes(item.id);
-        const equipado = (equipadoId === item.id);
-        const podeComprar = saldo >= item.preco;
+    // Aplica a filtragem por categoria
+    const titulosFiltrados = CATALOGO_TITULOS.filter(item => {
+        if (categoriaFiltroAtual === 'Todos') return true;
+        return item.categoria.toLowerCase() === categoriaFiltroAtual.toLowerCase();
+    });
 
-        let btn = equipado
-            ? `<button class="btn btn-sm btn-success w-100 fw-bold" disabled>EQUIPADO</button>`
-            : possui
-                ? `<button class="btn btn-sm btn-outline-warning w-100 fw-bold" onclick="acaoEquiparTituloComprado('${item.id}')">EQUIPAR</button>`
-                : podeComprar
-                    ? `<button class="btn btn-sm btn-warning w-100 fw-bold" onclick="acaoComprarTituloLoja('${item.id}', ${item.preco})">${item.preco} XP</button>`
-                    : `<button class="btn btn-sm btn-secondary w-100 disabled" style="opacity:0.6;"><i class="fa-solid fa-lock me-1"></i>${item.preco} XP</button>`;
+    if (titulosFiltrados.length === 0) {
+        container.innerHTML = `<div class="col-12 text-center text-muted py-3">Nenhum título encontrado nesta categoria.</div>`;
+        return;
+    }
 
-        return `
-            <div class="col-md-6 col-12">
-                <div class="p-2 bg-black bg-opacity-50 border ${equipado ? 'border-warning' : 'border-secondary'} rounded-3 d-flex align-items-center justify-content-between gap-2">
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="fs-2">${item.icone}</span>
-                        <div>
-                            <h6 class="mb-0 fw-bold text-white">${item.nome}</h6>
-                            <small class="text-muted d-block" style="font-size: 0.7rem;">${item.desc}</small>
-                        </div>
-                    </div>
-                    <div style="min-width: 100px;">${btn}</div>
-                </div>
+    const comprados = alunoGlobalMercado.titulosComprados || [];
+    const equipadoId = alunoGlobalMercado.tituloEscolhidoId || '';
+
+    titulosFiltrados.forEach(item => {
+        const jaPossui = comprados.includes(item.id);
+        const estaEquipado = equipadoId === item.id;
+
+        let btnAcao = '';
+        if (estaEquipado) {
+            btnAcao = `<button class="btn btn-sm btn-success w-100 fw-bold" disabled>Equipado</button>`;
+        } else if (jaPossui) {
+            btnAcao = `<button class="btn btn-sm btn-outline-info w-100 fw-bold" onclick="acaoEquiparTituloComprado('${item.id}')">Equipar</button>`;
+        } else {
+            const podeComprar = saldo >= item.preco;
+            btnAcao = `<button class="btn btn-sm ${podeComprar ? 'btn-warning' : 'btn-secondary'} w-100 fw-bold" 
+                        ${podeComprar ? '' : 'disabled'} 
+                        onclick="acaoComprarTituloLoja('${item.id}', ${item.preco})">
+                        Comprar (${item.preco} XP)
+                       </button>`;
+        }
+
+        const col = document.createElement('div');
+        col.className = 'col-6 col-md-4';
+        col.innerHTML = `
+            <div class="card bg-black bg-opacity-40 border-secondary text-white h-100 shadow-sm p-2 text-center">
+                <div class="fs-2 mb-1">${item.icone}</div>
+                <h6 class="fw-bold mb-1 text-truncate" style="font-size: 0.9rem;">${item.nome}</h6>
+                <span class="badge bg-dark border border-secondary mb-2 text-muted" style="font-size:0.65rem;">${item.categoria}</span>
+                <div class="mt-auto">${btnAcao}</div>
             </div>
         `;
-    }).join('');
+        container.appendChild(col);
+    });
 }
 
 function renderizarPoderesMercado(saldo) {
     const container = document.getElementById('containerMercadoPoderes');
     if (!container) return;
 
-    const inventario = alunoGlobalMercado?.poderesInventario || {};
+    container.innerHTML = '';
 
-    container.innerHTML = CATALOGO_PODERES.map(item => {
-        const qtd = inventario[item.id] || 0;
+    const inventario = alunoGlobalMercado.poderesInventario || {};
+
+    CATALOGO_PODERES.forEach(item => {
+        const qtdPossuida = inventario[item.id] || 0;
         const podeComprar = saldo >= item.preco;
 
-        let btn = podeComprar
-            ? `<button class="btn btn-sm btn-warning w-100 fw-bold" onclick="acaoComprarPoderLoja('${item.id}', ${item.preco})">Comprar (${item.preco} XP)</button>`
-            : `<button class="btn btn-sm btn-secondary w-100 disabled" style="opacity:0.6;"><i class="fa-solid fa-lock me-1"></i>${item.preco} XP</button>`;
-
-        return `
-            <div class="col-md-6 col-12">
-                <div class="p-3 bg-black bg-opacity-50 border border-secondary rounded-3 d-flex flex-column justify-content-between h-100">
-                    <div>
-                        <div class="d-flex align-items-center justify-content-between mb-1">
-                            <span class="fs-3">${item.icone}</span>
-                            <span class="badge bg-primary">Possui: ${qtd}</span>
-                        </div>
-                        <h6 class="fw-bold text-white mb-1">${item.nome}</h6>
-                        <small class="text-muted d-block mb-2" style="font-size: 0.75rem;">${item.desc}</small>
+        const col = document.createElement('div');
+        col.className = 'col-12 col-md-6';
+        col.innerHTML = `
+            <div class="card bg-black bg-opacity-40 border-secondary text-white h-100 p-2 shadow-sm d-flex flex-row align-items-center gap-2">
+                <div class="fs-1 px-2">${item.icone}</div>
+                <div class="flex-grow-1" style="min-width: 0;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="fw-bold mb-0 text-truncate" style="font-size:0.9rem;">${item.nome}</h6>
+                        <span class="badge bg-info text-dark" style="font-size:0.65rem;">Qtd: ${qtdPossuida}</span>
                     </div>
-                    <div>${btn}</div>
+                    <small class="text-muted d-block lh-sm mb-2" style="font-size:0.75rem;">${item.descricao}</small>
+                    <button class="btn btn-sm ${podeComprar ? 'btn-warning' : 'btn-secondary'} w-100 fw-bold" 
+                            ${podeComprar ? '' : 'disabled'} 
+                            onclick="acaoComprarPoderLoja('${item.id}', ${item.preco})">
+                        Comprar (${item.preco} XP)
+                    </button>
                 </div>
             </div>
         `;
-    }).join('');
+        container.appendChild(col);
+    });
 }
-
 // 3. INICIALIZAÇÃO DO BOTÃO E ABERTURA DA MODAL
 // =================================================================
 // ⚡ SISTEMA DO MERCADO (ABAS CORRIGIDAS + COMPRAS REATIVAS)

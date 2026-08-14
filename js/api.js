@@ -144,18 +144,19 @@ const API = {
 
     // --- CADASTRAR ALUNO ---
     async salvarAluno(alunoData) {
-        try {
-            const docRef = await addDoc(collection(db, "alunos"), {
-                nome: alunoData.nome.trim(),
-                turma: alunoData.turma.trim(),
-                linkDrive: alunoData.linkDrive ? alunoData.linkDrive.trim() : "",
-                xp: 0,
-                saldoXP: 0,
-                titulosComprados: [],
-                poderesInventario: {}
-            });
-            return { sucesso: true, id: docRef.id, mensagem: "Aluno cadastrado com sucesso!" };
-        } catch (e) {
+    try {
+        const docRef = await addDoc(collection(db, "alunos"), {
+            nome: alunoData.nome.trim(),
+            turma: alunoData.turma.trim(),
+            // 🟢 ESTA LINHA SALVA O DRIVE NO FIREBASE:
+            linkDrive: alunoData.linkDrive ? alunoData.linkDrive.trim() : "",
+            xp: 0,
+            saldoXP: 0,
+            titulosComprados: [],
+            poderesInventario: {}
+        });
+    return { sucesso: true, id: docRef.id, mensagem: "Aluno cadastrado com sucesso!" };
+    } catch (e) {
             console.error("Erro ao salvar aluno:", e);
             return { sucesso: false, mensagem: e.message };
         }

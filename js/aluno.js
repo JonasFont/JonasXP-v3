@@ -695,7 +695,7 @@ function renderizarLinksUteis() {
     if (!alunoGlobalMercado) return;
 
     // 🟢 1. LINK FIXO DO PORTAL (Insira a URL real do seu portal aqui)
-    const LINK_PORTAL_GERAL = "https://seu-portal-do-aluno.com.br"; 
+    const LINK_PORTAL_GERAL = "https://portal.ctrlplay.com.br"; 
 
     // 🟢 2. LINK INDIVIDUAL DO DRIVE (Vem do cadastro do aluno)
     const linkDrive = (alunoGlobalMercado.linkDrive || "").trim();

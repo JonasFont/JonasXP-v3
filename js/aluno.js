@@ -211,6 +211,23 @@ function renderizarPoderesMercado(saldo) {
 // 3. MODAL DE CONFIRMAÇÃO CUSTOMIZADO
 // =================================================================
 
+function fecharModal(modalElement) {
+    if (!modalElement) return;
+    if (window.bootstrap && window.bootstrap.Modal) {
+        const inst = window.bootstrap.Modal.getInstance(modalElement) || window.bootstrap.Modal.getOrCreateInstance(modalElement);
+        inst.hide();
+    } else {
+        modalElement.classList.remove('show');
+        modalElement.style.display = 'none';
+    }
+
+    // Remove backdrop residual caso fique preso na tela
+    document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
+    document.body.classList.remove('modal-open');
+    document.body.style.overflow = '';
+    document.body.style.paddingRight = '';
+}
+
 function confirmarCompraModal({ titulo, icone, preco, descricao }, onConfirmar) {
     let modalConf = document.getElementById('modalConfirmacaoCompra');
     
@@ -235,7 +252,7 @@ function confirmarCompraModal({ titulo, icone, preco, descricao }, onConfirmar) 
                 </div>
 
                 <div class="d-flex gap-2">
-                  <button type="button" class="btn btn-sm btn-outline-secondary flex-grow-1 fw-bold" data-bs-dismiss="modal">Cancelar</button>
+                  <button type="button" class="btn btn-sm btn-outline-secondary flex-grow-1 fw-bold" onclick="fecharModal(document.getElementById('modalConfirmacaoCompra'))">Cancelar</button>
                   <button type="button" id="btnConfirmarAcaoModal" class="btn btn-sm btn-warning flex-grow-1 fw-bold text-dark">Comprar</button>
                 </div>
               </div>
@@ -254,30 +271,23 @@ function confirmarCompraModal({ titulo, icone, preco, descricao }, onConfirmar) 
     const novoBtn = btnConfirmar.cloneNode(true);
     btnConfirmar.parentNode.replaceChild(novoBtn, btnConfirmar);
 
-    let bsModal;
-    if (window.bootstrap && window.bootstrap.Modal) {
-        bsModal = window.bootstrap.Modal.getOrCreateInstance(modalConf);
-    }
-
     novoBtn.onclick = async () => {
         novoBtn.disabled = true;
         novoBtn.innerHTML = `<span class="spinner-border spinner-border-sm"></span>...`;
         
-        await onConfirmar();
+        try {
+            await onConfirmar();
+        } catch (e) {
+            console.error("Erro na confirmação:", e);
+        }
         
         novoBtn.disabled = false;
         novoBtn.innerText = 'Comprar';
-
-        if (bsModal) {
-            bsModal.hide();
-        } else {
-            modalConf.classList.remove('show');
-            modalConf.style.display = 'none';
-        }
+        fecharModal(modalConf);
     };
 
-    if (bsModal) {
-        bsModal.show();
+    if (window.bootstrap && window.bootstrap.Modal) {
+        window.bootstrap.Modal.getOrCreateInstance(modalConf).show();
     } else {
         modalConf.classList.add('show');
         modalConf.style.display = 'block';
@@ -328,7 +338,7 @@ function abrirModalMercado() {
                 <h5 class="modal-title fw-bold text-warning">
                   <i class="fa-solid fa-store me-2"></i>Mercado de Títulos & Auras
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close btn-close-white" onclick="fecharModal(document.getElementById('modalMercado'))" aria-label="Close"></button>
               </div>
               <div class="modal-body">
                 <!-- Status do Jogador -->
@@ -444,25 +454,34 @@ function atualizarInterfaceMercado() {
         document.getElementById('statusSaldoXP').innerText = `${saldo.toLocaleString()} XP`;
     }
 
+    // Atualiza título diretamente na tela principal do perfil do Aluno
+    const elTituloMain = document.getElementById('alunoTitulo');
+    if (elTituloMain && alunoGlobalMercado.tituloEscolhido) {
+        elTituloMain.innerHTML = `<span style="font-size: 1.2em;">${alunoGlobalMercado.tituloIcone || '⚡'}</span> ${alunoGlobalMercado.tituloEscolhido}`;
+    }
+
     renderizarAurasFarm(xpTotal);
     renderizarTitulosMercado(saldo);
     renderizarPoderesMercado(saldo);
 }
 
 // =================================================================
-// 5. AÇÕES DO MERCADO (COMPRAR & EQUIPAR PROTEGIDOS)
+// 5. AÇÕES DO MERCADO (BLINDADAS CONTRA ERROS DE API)
 // =================================================================
 
 window.acaoEquiparAuraBase = async function(nomeAura, icone) {
     if (!alunoGlobalMercado) return;
+    
+    // Tenta chamar na API caso a função exista
     try {
         if (window.API && typeof window.API.equiparTituloAluno === 'function') {
             await window.API.equiparTituloAluno(alunoGlobalMercado.id, { nome: nomeAura, icone: icone, id: "aura_farm" });
         }
     } catch (e) {
-        console.warn("API ausente ou falhou ao equipar aura, aplicando localmente:", e);
+        console.warn("API ausente ou com falha ao equipar aura, aplicando alterações no front-end:", e);
     }
     
+    // Aplicação Garantida no Front-End
     alunoGlobalMercado.tituloEscolhido = nomeAura;
     alunoGlobalMercado.tituloIcone = icone;
     alunoGlobalMercado.tituloEscolhidoId = "aura_farm";
@@ -479,17 +498,31 @@ window.acaoComprarTituloLoja = function(id, preco) {
         preco: preco,
         descricao: `Deseja desbloquear o título "${item.nome}"?`
     }, async () => {
+        // Proteção Try/Catch para não quebrar a Promise se a função não existir no api.js
         try {
             if (window.API && typeof window.API.comprarTituloAluno === 'function') {
                 await window.API.comprarTituloAluno(alunoGlobalMercado.id, item, preco);
+            } else if (window.API && typeof window.API.salvarDadosAluno === 'function') {
+                // Tenta fallback genérico de salvamento caso exista
+                await window.API.salvarDadosAluno(alunoGlobalMercado.id, { saldoXP: (alunoGlobalMercado.saldoXP || alunoGlobalMercado.xp) - preco });
             }
         } catch (err) {
-            console.warn("API ausente ou falhou na compra, aplicando localmente:", err);
+            console.warn("API de compra indisponível. Aplicando transação localmente no navegador:", err);
         }
 
-        alunoGlobalMercado.saldoXP = (alunoGlobalMercado.saldoXP !== undefined ? alunoGlobalMercado.saldoXP : Number(alunoGlobalMercado.xp || 0)) - preco;
+        // Aplicação de compra no front-end em tempo real
+        const saldoAtual = Number(alunoGlobalMercado.saldoXP !== undefined ? alunoGlobalMercado.saldoXP : (alunoGlobalMercado.xp || 0));
+        alunoGlobalMercado.saldoXP = Math.max(0, saldoAtual - preco);
+
         if (!alunoGlobalMercado.titulosComprados) alunoGlobalMercado.titulosComprados = [];
-        alunoGlobalMercado.titulosComprados.push(item.id);
+        if (!alunoGlobalMercado.titulosComprados.includes(item.id)) {
+            alunoGlobalMercado.titulosComprados.push(item.id);
+        }
+
+        // Auto-equipa o título comprado
+        alunoGlobalMercado.tituloEscolhido = item.nome;
+        alunoGlobalMercado.tituloIcone = item.icone;
+        alunoGlobalMercado.tituloEscolhidoId = item.id;
 
         atualizarInterfaceMercado();
     });
@@ -504,7 +537,7 @@ window.acaoEquiparTituloComprado = async function(id) {
             await window.API.equiparTituloAluno(alunoGlobalMercado.id, item);
         }
     } catch (e) {
-        console.warn("API ausente ou falhou ao equipar título, aplicando localmente:", e);
+        console.warn("API ausente ao equipar título. Atualizando localmente:", e);
     }
 
     alunoGlobalMercado.tituloEscolhido = item.nome;
@@ -528,10 +561,12 @@ window.acaoComprarPoderLoja = function(id, preco) {
                 await window.API.comprarPoderAluno(alunoGlobalMercado.id, item, preco);
             }
         } catch (err) {
-            console.warn("API ausente ou falhou na compra, aplicando localmente:", err);
+            console.warn("API de compra de poder indisponível. Aplicando localmente:", err);
         }
 
-        alunoGlobalMercado.saldoXP = (alunoGlobalMercado.saldoXP !== undefined ? alunoGlobalMercado.saldoXP : Number(alunoGlobalMercado.xp || 0)) - preco;
+        const saldoAtual = Number(alunoGlobalMercado.saldoXP !== undefined ? alunoGlobalMercado.saldoXP : (alunoGlobalMercado.xp || 0));
+        alunoGlobalMercado.saldoXP = Math.max(0, saldoAtual - preco);
+
         if (!alunoGlobalMercado.poderesInventario) alunoGlobalMercado.poderesInventario = {};
         alunoGlobalMercado.poderesInventario[item.id] = (alunoGlobalMercado.poderesInventario[item.id] || 0) + 1;
 
@@ -688,7 +723,9 @@ function renderizarPerfilCompleto(aluno, id, xpTotal, infoNivel) {
     }
     
     if (elTitulo) {
-        elTitulo.innerHTML = `<span style="font-size: 1.2em;">${infoNivel.icone || '⚡'}</span> ${infoNivel.titulo || 'Guerreiro'}`;
+        const iconeExibicao = aluno.tituloIcone || infoNivel.icone || '⚡';
+        const nomeExibicao = aluno.tituloEscolhido || infoNivel.titulo || 'Guerreiro';
+        elTitulo.innerHTML = `<span style="font-size: 1.2em;">${iconeExibicao}</span> ${nomeExibicao}`;
         if (infoNivel.cor) {
             elTitulo.style.color = infoNivel.cor;
             elTitulo.style.textShadow = `0 0 12px ${infoNivel.cor}`;

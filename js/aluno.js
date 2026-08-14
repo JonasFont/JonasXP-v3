@@ -160,6 +160,10 @@ function renderizarPoderesMercado(saldo) {
 }
 
 // 3. INICIALIZAÇÃO DO BOTÃO E ABERTURA DA MODAL
+// =================================================================
+// ⚡ SISTEMA DO MERCADO (ABAS CORRIGIDAS + COMPRAS REATIVAS)
+// =================================================================
+
 function inicializarMercado(aluno) {
     alunoGlobalMercado = aluno;
 
@@ -186,8 +190,11 @@ function inicializarMercado(aluno) {
 function abrirModalMercado() {
     if (!alunoGlobalMercado) return;
 
-    if (!document.getElementById('modalMercado')) {
-        const modalDiv = document.createElement('div');
+    let modalDiv = document.getElementById('modalMercado');
+
+    // Cria o modal na DOM caso ele não exista
+    if (!modalDiv) {
+        modalDiv = document.createElement('div');
         modalDiv.className = 'modal fade';
         modalDiv.id = 'modalMercado';
         modalDiv.setAttribute('tabindex', '-1');
@@ -201,6 +208,7 @@ function abrirModalMercado() {
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
               </div>
               <div class="modal-body">
+                <!-- Status do Jogador -->
                 <div class="row g-2 mb-3 text-center">
                     <div class="col-4">
                         <div class="p-2 bg-black bg-opacity-50 border border-secondary rounded">
@@ -222,22 +230,23 @@ function abrirModalMercado() {
                     </div>
                 </div>
 
-                <!-- ABAS COM EVENTO DE TROCA DIRETA NO CLIQUE -->
-                <ul class="nav nav-pills nav-fill mb-3" id="pills-tab-mercado" role="tablist">
+                <!-- ABAS COM TROCA DIRETA (SEM BOOTSTRAP TAB DEPENDENCY) -->
+                <ul class="nav nav-pills nav-fill mb-3" id="pills-tab-mercado">
                   <li class="nav-item">
-                    <button class="nav-link active btn-sm" onclick="mudarAbaMercado('content-auras', this)">✨ Auras de Nível</button>
+                    <button class="nav-link active btn-sm fw-bold" onclick="mudarAbaMercado('content-auras', this)">✨ Auras de Nível</button>
                   </li>
                   <li class="nav-item">
-                    <button class="nav-link btn-sm" onclick="mudarAbaMercado('content-titulos', this)">🏷️ Títulos Temáticos</button>
+                    <button class="nav-link btn-sm fw-bold text-white" onclick="mudarAbaMercado('content-titulos', this)">🏷️ Títulos Temáticos</button>
                   </li>
                   <li class="nav-item">
-                    <button class="nav-link btn-sm" onclick="mudarAbaMercado('content-poderes', this)">⚡ Poderes da Sala</button>
+                    <button class="nav-link btn-sm fw-bold text-white" onclick="mudarAbaMercado('content-poderes', this)">⚡ Poderes da Sala</button>
                   </li>
                 </ul>
 
+                <!-- CONTEÚDO DAS ABAS -->
                 <div class="tab-content" id="pills-tabContentMercado">
-                  <div class="tab-pane fade show active" id="content-auras">
-                     <div class="row g-2" id="containerAurasBase"></div>
+                  <div class="tab-pane fade show active" id="content-auras" style="display: block;">
+                     <div class="row g-2" id="containerAurasBase" style="max-height: 320px; overflow-y: auto;"></div>
                   </div>
                   <div class="tab-pane fade" id="content-titulos" style="display: none;">
                      <div class="d-flex gap-1 overflow-auto mb-3" id="pills-temas-titulos">
@@ -247,10 +256,10 @@ function abrirModalMercado() {
                         <button class="btn btn-sm btn-outline-warning" onclick="filtrarTitulos('Filmes', this)">🎬 Filmes</button>
                         <button class="btn btn-sm btn-outline-warning" onclick="filtrarTitulos('Gamer', this)">🎮 Gamer</button>
                      </div>
-                     <div class="row g-2" id="containerMercadoTitulos"></div>
+                     <div class="row g-2" id="containerMercadoTitulos" style="max-height: 300px; overflow-y: auto;"></div>
                   </div>
                   <div class="tab-pane fade" id="content-poderes" style="display: none;">
-                     <div class="row g-2" id="containerMercadoPoderes"></div>
+                     <div class="row g-2" id="containerMercadoPoderes" style="max-height: 320px; overflow-y: auto;"></div>
                   </div>
                 </div>
 
@@ -261,48 +270,29 @@ function abrirModalMercado() {
         document.body.appendChild(modalDiv);
     }
 
-    const xpTotal = Number(alunoGlobalMercado.xp || alunoGlobalMercado.XP || 0);
-    const saldo = Number(alunoGlobalMercado.saldoXP !== undefined ? alunoGlobalMercado.saldoXP : xpTotal);
-    const auraAtual = calcularAuraFarmAtual(xpTotal);
+    atualizarInterfaceMercado();
 
-    if (document.getElementById('statusAuraNome')) {
-        document.getElementById('statusAuraNome').innerText = `${auraAtual.icone} ${auraAtual.nomeAura}`;
-        document.getElementById('statusXpTotal').innerText = `${xpTotal.toLocaleString()} XP`;
-        document.getElementById('statusSaldoXP').innerText = `${saldo.toLocaleString()} XP`;
-    }
-
-    renderizarAurasFarm(xpTotal);
-    renderizarTitulosMercado(saldo);
-    renderizarPoderesMercado(saldo);
-
-    const modalEl = document.getElementById('modalMercado');
+    // Exibe o modal com Bootstrap ou Fallback CSS puro
     if (window.bootstrap && window.bootstrap.Modal) {
-        window.bootstrap.Modal.getOrCreateInstance(modalEl).show();
+        window.bootstrap.Modal.getOrCreateInstance(modalDiv).show();
     } else {
-        modalEl.classList.add('show');
-        modalEl.style.display = 'block';
-        modalEl.removeAttribute('aria-hidden');
-        
-        const btnClose = modalEl.querySelector('.btn-close');
-        if (btnClose) {
-            btnClose.onclick = () => {
-                modalEl.classList.remove('show');
-                modalEl.style.display = 'none';
-            };
-        }
+        modalDiv.classList.add('show');
+        modalDiv.style.display = 'block';
     }
 }
 
-// ⚡ FUNÇÃO DE TROCA MANUAL DE ABAS (Adicione logo abaixo de abrirModalMercado)
+// ⚡ FUNÇÃO DE TROCA MANUAL DE ABAS (100% GARANTIDA)
 window.mudarAbaMercado = function(idConteudo, btnClicado) {
-    // 1. Desativa todos os botões de abas
     document.querySelectorAll('#pills-tab-mercado .nav-link').forEach(btn => {
         btn.classList.remove('active');
+        btn.classList.add('text-white');
     });
-    // 2. Ativa o botão clicado
-    if (btnClicado) btnClicado.classList.add('active');
+    
+    if (btnClicado) {
+        btnClicado.classList.add('active');
+        btnClicado.classList.remove('text-white');
+    }
 
-    // 3. Oculta todos os painéis
     const abas = ['content-auras', 'content-titulos', 'content-poderes'];
     abas.forEach(id => {
         const el = document.getElementById(id);
@@ -312,7 +302,6 @@ window.mudarAbaMercado = function(idConteudo, btnClicado) {
         }
     });
 
-    // 4. Exibe o painel selecionado
     const painelAtivo = document.getElementById(idConteudo);
     if (painelAtivo) {
         painelAtivo.style.display = 'block';
@@ -320,46 +309,97 @@ window.mudarAbaMercado = function(idConteudo, btnClicado) {
     }
 };
 
-// 4. AÇÕES DE COMPRA E EQUIPAR EXPOSTAS GLOBALMENTE
-window.filtrarTitulos = function(tema, btnEl) {
-    temaFiltroAtual = tema;
-    document.querySelectorAll('#pills-temas-titulos .nav-link, #pills-temas-titulos .btn').forEach(b => b.classList.remove('active'));
-    if (btnEl) btnEl.classList.add('active');
+// Atualiza valores e re-renderiza os cards sem fechar a modal
+function atualizarInterfaceMercado() {
+    if (!alunoGlobalMercado) return;
 
-    const xpTotal = Number(alunoGlobalMercado?.xp || 0);
-    const saldo = Number(alunoGlobalMercado?.saldoXP !== undefined ? alunoGlobalMercado.saldoXP : xpTotal);
+    const xpTotal = Number(alunoGlobalMercado.xp || alunoGlobalMercado.XP || 0);
+    const saldo = Number(alunoGlobalMercado.saldoXP !== undefined ? alunoGlobalMercado.saldoXP : xpTotal);
+    const auraAtual = calcularAuraFarmAtual(xpTotal);
+
+    if (document.getElementById('statusAuraNome')) {
+        const tituloEquipado = alunoGlobalMercado.tituloEscolhido || auraAtual.nomeAura;
+        document.getElementById('statusAuraNome').innerText = `${alunoGlobalMercado.tituloIcone || auraAtual.icone} ${tituloEquipado}`;
+        document.getElementById('statusXpTotal').innerText = `${xpTotal.toLocaleString()} XP`;
+        document.getElementById('statusSaldoXP').innerText = `${saldo.toLocaleString()} XP`;
+    }
+
+    renderizarAurasFarm(xpTotal);
     renderizarTitulosMercado(saldo);
-};
+    renderizarPoderesMercado(saldo);
+}
+
+// =================================================================
+// ⚡ AÇÕES DE COMPRAR E EQUIPAR COM ATUALIZAÇÃO EM TEMPO REAL
+// =================================================================
 
 window.acaoEquiparAuraBase = async function(nomeAura, icone) {
     if (!alunoGlobalMercado) return;
     const res = await window.API.equiparTituloAluno(alunoGlobalMercado.id, { nome: nomeAura, icone: icone, id: "aura_farm" });
-    if (res && res.sucesso) { alert(`✨ Aura "${nomeAura}" equipada com sucesso!`); location.reload(); }
+    if (res && res.sucesso) {
+        alunoGlobalMercado.tituloEscolhido = nomeAura;
+        alunoGlobalMercado.tituloIcone = icone;
+        alunoGlobalMercado.tituloEscolhidoId = "aura_farm";
+        atualizarInterfaceMercado();
+        alert(`✨ Aura "${nomeAura}" equipada!`);
+    } else {
+        alert("Erro ao equipar aura.");
+    }
 };
 
 window.acaoComprarTituloLoja = async function(id, preco) {
     const item = CATALOGO_TITULOS.find(t => t.id === id);
     if (!item || !alunoGlobalMercado) return;
+
     if (!confirm(`Deseja comprar o título "${item.nome}" por ${preco} XP?`)) return;
 
     const res = await window.API.comprarTituloAluno(alunoGlobalMercado.id, item, preco);
-    if (res && res.sucesso) { alert(`🎉 Título "${item.nome}" adquirido com sucesso!`); location.reload(); }
+    if (res && res.sucesso) {
+        // Atualiza o estado local do aluno dinamicamente
+        alunoGlobalMercado.saldoXP = (alunoGlobalMercado.saldoXP !== undefined ? alunoGlobalMercado.saldoXP : Number(alunoGlobalMercado.xp || 0)) - preco;
+        if (!alunoGlobalMercado.titulosComprados) alunoGlobalMercado.titulosComprados = [];
+        alunoGlobalMercado.titulosComprados.push(item.id);
+
+        atualizarInterfaceMercado();
+        alert(`🎉 Título "${item.nome}" adquirido com sucesso!`);
+    } else {
+        alert("Erro ao realizar compra. Verifique seu saldo de moedas.");
+    }
 };
 
 window.acaoEquiparTituloComprado = async function(id) {
     const item = CATALOGO_TITULOS.find(t => t.id === id);
     if (!item || !alunoGlobalMercado) return;
+
     const res = await window.API.equiparTituloAluno(alunoGlobalMercado.id, item);
-    if (res && res.sucesso) { alert(`✨ Título "${item.nome}" equipado!`); location.reload(); }
+    if (res && res.sucesso) {
+        alunoGlobalMercado.tituloEscolhido = item.nome;
+        alunoGlobalMercado.tituloIcone = item.icone;
+        alunoGlobalMercado.tituloEscolhidoId = item.id;
+        atualizarInterfaceMercado();
+        alert(`✨ Título "${item.nome}" equipado!`);
+    } else {
+        alert("Erro ao equipar título.");
+    }
 };
 
 window.acaoComprarPoderLoja = async function(id, preco) {
     const item = CATALOGO_PODERES.find(p => p.id === id);
     if (!item || !alunoGlobalMercado) return;
+
     if (!confirm(`Deseja adquirir o poder "${item.nome}" por ${preco} XP?`)) return;
 
     const res = await window.API.comprarPoderAluno(alunoGlobalMercado.id, item, preco);
-    if (res && res.sucesso) { alert(`⚡ Poder "${item.nome}" adicionado ao inventário!`); location.reload(); }
+    if (res && res.sucesso) {
+        alunoGlobalMercado.saldoXP = (alunoGlobalMercado.saldoXP !== undefined ? alunoGlobalMercado.saldoXP : Number(alunoGlobalMercado.xp || 0)) - preco;
+        if (!alunoGlobalMercado.poderesInventario) alunoGlobalMercado.poderesInventario = {};
+        alunoGlobalMercado.poderesInventario[item.id] = (alunoGlobalMercado.poderesInventario[item.id] || 0) + 1;
+
+        atualizarInterfaceMercado();
+        alert(`⚡ Poder "${item.nome}" adicionado ao inventário!`);
+    } else {
+        alert("Erro ao comprar poder.");
+    }
 };
 document.addEventListener('DOMContentLoaded', async () => {
     // 1. Captura o ID da URL

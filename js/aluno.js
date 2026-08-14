@@ -694,10 +694,10 @@ async function carregarPainelAluno(id) {
 function renderizarLinksUteis() {
     if (!alunoGlobalMercado) return;
 
-    // 🟢 COLOQUE SEU LINK DO PORTAL AQUI ENTRE AS ASPAS:
-    const LINK_PORTAL_GERAL = "www.portal.ctrlplay.com.br"; 
+    // 🟢 1. LINK FIXO DO PORTAL (Insira a URL real do seu portal aqui)
+    const LINK_PORTAL_GERAL = "https://seu-portal-do-aluno.com.br"; 
 
-    // Recupera o link do Drive que vem do cadastro individual do aluno
+    // 🟢 2. LINK INDIVIDUAL DO DRIVE (Vem do cadastro do aluno)
     const linkDrive = (alunoGlobalMercado.linkDrive || "").trim();
 
     let container = document.getElementById('containerLinksUteis');
@@ -712,7 +712,9 @@ function renderizarLinksUteis() {
         perfilContainer.insertBefore(container, perfilContainer.children[1] || perfilContainer.firstChild);
     }
 
-    const colClass = linkDrive ? 'col-12 col-md-6' : 'col-12';
+    // Se tiver Drive, divide a tela em 2 colunas. Se não tiver, o Portal ocupa a largura inteira (col-12)
+    const temDrive = linkDrive.length > 0;
+    const colClass = temDrive ? 'col-12 col-md-6' : 'col-12';
 
     container.innerHTML = `
         <div class="card bg-black bg-opacity-40 border-secondary p-3 shadow-lg rounded-3">
@@ -724,7 +726,7 @@ function renderizarLinksUteis() {
             </div>
             
             <div class="row g-2">
-                <!-- BOTÃO PORTAL DO ALUNO (Link Fixo) -->
+                <!-- BOTÃO 1: PORTAL DO ALUNO (FIXO) -->
                 <div class="${colClass}">
                     <a href="${LINK_PORTAL_GERAL}" target="_blank" rel="noopener noreferrer" 
                        class="btn btn-outline-info w-100 py-2 d-flex align-items-center justify-content-center gap-2 text-decoration-none fw-bold shadow-sm rounded-3 hover-scale">
@@ -734,8 +736,8 @@ function renderizarLinksUteis() {
                     </a>
                 </div>
 
-                ${linkDrive ? `
-                <!-- BOTÃO DRIVE DE PROJETOS (Link Dinâmico) -->
+                ${temDrive ? `
+                <!-- BOTÃO 2: DRIVE DE PROJETOS (APARECE APENAS SE HOUVER LINK) -->
                 <div class="${colClass}">
                     <a href="${linkDrive}" target="_blank" rel="noopener noreferrer" 
                        class="btn btn-outline-success w-100 py-2 d-flex align-items-center justify-content-center gap-2 text-decoration-none fw-bold shadow-sm rounded-3 hover-scale">

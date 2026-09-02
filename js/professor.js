@@ -27,7 +27,6 @@ async function carregarDadosIniciais() {
             return;
         }
 
-        // Executa as duas requisições de forma paralela para otimizar o tempo de resposta
         const [turmas, alunos] = await Promise.all([
             window.API.getTurmas(),
             window.API.getAlunos()
@@ -36,14 +35,12 @@ async function carregarDadosIniciais() {
         CACHE_ALUNOS = Array.isArray(alunos) ? alunos : [];
         CACHE_TURMAS = normalizarTurmas(turmas, CACHE_ALUNOS);
         
-        // Constrói mapa para tradução rápida de IDs em Nomes (em minúsculas para ignorar case)
         MAPA_TURMAS = {};
         CACHE_TURMAS.forEach(t => {
             MAPA_TURMAS[String(t.id).toLowerCase()] = t.nome;
             MAPA_TURMAS[String(t.nome).toLowerCase()] = t.nome;
         });
 
-        // Atualiza a interface
         atualizarMetricas();
         preencherTodosSelectsTurmas();
         renderizarTabelaAlunos(CACHE_ALUNOS);
@@ -80,7 +77,6 @@ function normalizarTurmas(turmasAPI, alunos) {
         });
     }
 
-    // Se a aba Turmas estiver vazia, extrai os nomes únicos salvos nos cadastros de alunos
     if (lista.length === 0 && alunos.length > 0) {
         alunos.forEach(a => {
             const tVal = String(a.turma || a.Turma || '').trim();
@@ -98,9 +94,6 @@ function normalizarTurmas(turmasAPI, alunos) {
 // 2. MÉTRICAS E CARDS SUPERIORES
 // ============================================================================
 
-/**
- * Recalcula e exibe na tela os totais de alunos, turmas, soma de XP e média geral de nível.
- */
 function atualizarMetricas() {
     const totalAlunos = CACHE_ALUNOS.length;
     const totalTurmas = CACHE_TURMAS.length;
@@ -120,9 +113,6 @@ function atualizarMetricas() {
 // 3. DROPDOWNS (SELECTS) E FILTROS DE TURMA
 // ============================================================================
 
-/**
- * Preenche dinamicamente todos os menus suspensos de seleção de turma.
- */
 function preencherTodosSelectsTurmas() {
     const idsSelects = [
         'filtroTurmaAluno',
@@ -153,9 +143,6 @@ function preencherTodosSelectsTurmas() {
     });
 }
 
-/**
- * Verifica se um aluno pertence à turma selecionada em um filtro/dropdown.
- */
 function turmaBateComSelecao(aluno, turmaSelecionada) {
     if (!turmaSelecionada) return true;
 
@@ -175,9 +162,6 @@ function turmaBateComSelecao(aluno, turmaSelecionada) {
 // 4. RENDERIZAÇÃO DE TABELAS E FILTRAGEM
 // ============================================================================
 
-/**
- * Constrói as linhas do HTML para a tabela principal de alunos.
- */
 function renderizarTabelaAlunos(listaAlunos) {
     const tbody = document.getElementById('tabelaAlunos');
     if (!tbody) return;
@@ -197,7 +181,6 @@ function renderizarTabelaAlunos(listaAlunos) {
         const xp = Number(aluno.xp || aluno.XP) || 0;
         const infoNivel = window.API.calcularNivel(xp);
 
-        // Trata aspas simples para evitar quebra na passagem de parâmetros via HTML onclick
         const linkDriveEscapado = String(aluno.linkDrive || '').replace(/'/g, "\\'");
 
         return `
@@ -215,6 +198,9 @@ function renderizarTabelaAlunos(listaAlunos) {
                     <small class="text-success fw-bold mt-1 d-block">+${xp.toLocaleString()} XP</small>
                 </td>
                 <td class="text-end">
+                    <button class="btn btn-sm btn-outline-warning me-1" title="Gerar QR Code Individual" onclick="imprimirQRCodeIndividual('${id}')">
+                        <i class="fa-solid fa-qrcode"></i>
+                    </button>
                     <button class="btn btn-sm btn-outline-info me-1" title="Ver Histórico" onclick="verHistoricoAluno('${id}', '${nome}', ${xp})">
                         <i class="fa-solid fa-clock-rotate-left"></i>
                     </button>
@@ -230,9 +216,6 @@ function renderizarTabelaAlunos(listaAlunos) {
     }).join('');
 }
 
-/**
- * Renderiza a tabela de gerenciamento de turmas.
- */
 function renderizarTabelaTurmas() {
     const tbody = document.getElementById('tabelaTurmas');
     if (!tbody) return;
@@ -255,13 +238,19 @@ function renderizarTabelaTurmas() {
     `).join('');
 }
 
-/**
- * Filtra os alunos por busca de texto (Nome ou ID) e seleção de Turma.
- */
 function filtrarAlunos() {
     const termo = (document.getElementById('buscaAluno')?.value || '').toLowerCase().trim();
     const selectFiltro = document.getElementById('filtroTurmaAluno') || document.getElementById('filtroTurma');
     const turmaSel = selectFiltro?.value || '';
+
+    const btnQrTurma = document.getElementById('btnQrTurma');
+    if (btnQrTurma) {
+        if (turmaSel !== '') {
+            btnQrTurma.classList.remove('d-none');
+        } else {
+            btnQrTurma.classList.add('d-none');
+        }
+    }
 
     const filtrados = CACHE_ALUNOS.filter(aluno => {
         const nome = String(aluno.nome || aluno.Nome || '').toLowerCase();
@@ -280,9 +269,6 @@ function filtrarAlunos() {
 // 5. LANÇAMENTO DE PONTUAÇÕES EM LOTE
 // ============================================================================
 
-/**
- * Gera os campos editáveis de pontuação para todos os alunos da turma selecionada.
- */
 function carregarTabelaLote() {
     const turmaSel = document.getElementById('selectTurmaLote')?.value;
     const tbody = document.getElementById('tabelaLote');
@@ -326,9 +312,6 @@ function carregarTabelaLote() {
     if (btnSalvar) btnSalvar.disabled = false;
 }
 
-/**
- * Lê a tabela de lote e envia os lançamentos individuais de cada aluno para a API.
- */
 async function salvarPontuacoesLote(e) {
     e.preventDefault();
     const turmaSel = document.getElementById('selectTurmaLote')?.value;
@@ -382,9 +365,6 @@ async function salvarPontuacoesLote(e) {
 // 6. GERADOR DE LINKS WHATSAPP
 // ============================================================================
 
-/**
- * Gera links diretos do painel do aluno configurados para envio via WhatsApp.
- */
 function gerarLinksWhatsAppTurma() {
     const turmaSel = document.getElementById('selectTurmaWp')?.value;
     const container = document.getElementById('containerLinksWp');
@@ -433,9 +413,6 @@ function gerarLinksWhatsAppTurma() {
 // 7. EXIBIÇÃO DE HISTÓRICO INDIVIDUAL (MODAL)
 // ============================================================================
 
-/**
- * Abre o modal de histórico e carrega do banco de dados todos os lançamentos do aluno.
- */
 async function verHistoricoAluno(id, nome, totalXP) {
     const modalNome = document.getElementById('modalDetalhesNome');
     const detalheNivel = document.getElementById('detalheNivel');
@@ -503,11 +480,7 @@ window.verHistoricoAluno = verHistoricoAluno;
 // 8. CONFIGURAÇÃO DE EVENTOS E MODAIS
 // ============================================================================
 
-/**
- * Mapeia todos os formulários e inputs para seus respectivos comportamentos.
- */
 function configurarEventos() {
-    // Inputs e Filtros
     const busca = document.getElementById('buscaAluno');
     const filtro = document.getElementById('filtroTurmaAluno') || document.getElementById('filtroTurma');
     const selectLote = document.getElementById('selectTurmaLote');
@@ -518,11 +491,9 @@ function configurarEventos() {
     if (selectLote) selectLote.addEventListener('change', carregarTabelaLote);
     if (selectWp) selectWp.addEventListener('change', gerarLinksWhatsAppTurma);
 
-    // Formulário de Lote
     const formLote = document.getElementById('formLote');
     if (formLote) formLote.addEventListener('submit', salvarPontuacoesLote);
 
-    // Botões de Abertura de Modais
     document.getElementById('btnAbrirModalTurma')?.addEventListener('click', () => {
         bootstrap.Modal.getOrCreateInstance(document.getElementById('modalTurma')).show();
     });
@@ -531,7 +502,7 @@ function configurarEventos() {
         bootstrap.Modal.getOrCreateInstance(document.getElementById('modalAluno')).show();
     });
 
-    // --- FORMULÁRIO: CADASTRAR TURMA ---
+    // CADASTRAR TURMA
     document.getElementById('formTurma')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const nome = document.getElementById('turmaNome').value.trim();
@@ -548,13 +519,12 @@ function configurarEventos() {
         }
     });
 
-    // --- FORMULÁRIO: CADASTRAR ALUNO (ÚNICO E LOTE) ---
+    // CADASTRAR ALUNO
     document.getElementById('formAluno')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         
         let turmaVal = document.getElementById('alunoTurma')?.value || '';
 
-        // Trata valor composto vindo da option ("id|||nome")
         if (turmaVal.includes('|||')) {
             turmaVal = turmaVal.split('|||')[1];
         }
@@ -564,9 +534,7 @@ function configurarEventos() {
             return;
         }
 
-        // Identifica se o usuário está salvando via Modo em Lote ou Único
         const abaLoteAtiva = document.getElementById('modoLote')?.classList.contains('active');
-
         const btnSalvar = document.getElementById('btnSalvarAluno') || e.submitter;
         const textoOriginalBtn = btnSalvar ? btnSalvar.innerHTML : 'Salvar';
 
@@ -577,7 +545,6 @@ function configurarEventos() {
             }
 
             if (abaLoteAtiva) {
-                // MODO 1: CADASTRO EM LOTE
                 const campoTexto = document.getElementById('listaNomesLote');
                 const textoNomes = campoTexto ? campoTexto.value : '';
 
@@ -604,7 +571,6 @@ function configurarEventos() {
                 else alert(`⚠️ ${salvosComSucesso} alunos cadastrados, mas ${erros} falharam.`);
 
             } else {
-                // MODO 2: CADASTRO ÚNICO (LÊ O INPUT "alunoLinkDrive")
                 const nome = document.getElementById('alunoNome')?.value.trim();
                 const linkDrive = document.getElementById('alunoLinkDrive')?.value.trim() || "";
 
@@ -627,7 +593,6 @@ function configurarEventos() {
                 }
             }
 
-            // Esconde o modal e restaura as abas originais
             const modalInstance = bootstrap.Modal.getInstance(document.getElementById('modalAluno'));
             if (modalInstance) modalInstance.hide();
 
@@ -657,9 +622,6 @@ function configurarEventos() {
 // 9. AÇÕES DE EDIÇÃO E EXCLUSÃO (ALUNO E TURMA)
 // ============================================================================
 
-/**
- * Preenche o modal de edição de aluno com seus dados atuais.
- */
 window.abrirModalEdicaoAluno = function(id, nome, turma, linkDrive = '') {
     document.getElementById('editAlunoId').value = id;
     document.getElementById('editAlunoNome').value = nome;
@@ -679,9 +641,6 @@ window.abrirModalEdicaoAluno = function(id, nome, turma, linkDrive = '') {
     bootstrap.Modal.getOrCreateInstance(document.getElementById('modalEditarAluno')).show();
 };
 
-/**
- * Confirma as alterações do modal de edição e atualiza no Firebase via API.
- */
 document.getElementById('formEditarAluno')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const id = document.getElementById('editAlunoId').value;
@@ -699,9 +658,6 @@ document.getElementById('formEditarAluno')?.addEventListener('submit', async (e)
     }
 });
 
-/**
- * Exclui permanentemente um aluno.
- */
 window.excluirAluno = async function(id, nome) {
     if (confirm(`Tem certeza que deseja excluir o aluno "${nome}"? Esta ação não pode ser desfeita.`)) {
         const res = await window.API.deletarAluno(id);
@@ -714,9 +670,6 @@ window.excluirAluno = async function(id, nome) {
     }
 };
 
-/**
- * Exclui permanentemente uma turma.
- */
 window.excluirTurma = async function(id, nome) {
     if (confirm(`Tem certeza que deseja excluir a turma "${nome}"?`)) {
         const res = await window.API.deletarTurma(id);
@@ -727,4 +680,138 @@ window.excluirTurma = async function(id, nome) {
             alert("Erro ao remover turma: " + res.mensagem);
         }
     }
+};
+
+// ============================================================================
+// 10. GERAÇÃO E IMPRESSÃO DE QR CODES
+// ============================================================================
+
+window.imprimirQRCodesTurma = function() {
+    const selectFiltro = document.getElementById('filtroTurmaAluno') || document.getElementById('filtroTurma');
+    const turmaSel = selectFiltro?.value || '';
+
+    if (!turmaSel) {
+        alert("Selecione uma turma no filtro para gerar os QR Codes.");
+        return;
+    }
+
+    const alunosTurma = CACHE_ALUNOS.filter(a => turmaBateComSelecao(a, turmaSel));
+
+    if (alunosTurma.length === 0) {
+        alert("Nenhum aluno encontrado para a turma selecionada.");
+        return;
+    }
+
+    renderizarPreviewCrachas(alunosTurma);
+};
+
+window.imprimirQRCodeIndividual = function(alunoId) {
+    const aluno = CACHE_ALUNOS.find(a => String(a.id || a.ID).replace(/['"\s]/g, '') === String(alunoId));
+    if (!aluno) return;
+
+    renderizarPreviewCrachas([aluno]);
+};
+
+function renderizarPreviewCrachas(listaAlunos) {
+    const container = document.getElementById('containerCrachasPreview');
+    if (!container) return;
+
+    container.innerHTML = '';
+    const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/')) + '/aluno.html';
+
+    listaAlunos.forEach((aluno, idx) => {
+        const id = String(aluno.id || aluno.ID).replace(/['"\s]/g, '');
+        const nome = aluno.nome || aluno.Nome || 'Aluno';
+        const turmaRaw = String(aluno.turma || aluno.Turma || 'Geral').trim();
+        const turmaNome = MAPA_TURMAS[turmaRaw.toLowerCase()] || turmaRaw;
+        const link = `${baseUrl}?id=${id}`;
+        const containerQrId = `qr_preview_${idx}`;
+
+        const card = document.createElement('div');
+        card.className = 'col-md-4 col-sm-6';
+        card.innerHTML = `
+            <div class="card bg-black border-secondary text-center p-3 text-white rounded-3 card-cracha-item"
+                 data-nome="${nome}" data-turma="${turmaNome}" data-id="${id}">
+                <div class="text-warning small fw-bold text-uppercase mb-1">JonasXP - Passaporte</div>
+                <div id="${containerQrId}" class="bg-white p-2 rounded mx-auto my-2 d-flex justify-content-center align-items-center" style="width: 130px; height: 130px;"></div>
+                <h6 class="fw-bold mb-0 text-truncate text-light">${nome}</h6>
+                <small class="text-muted">${turmaNome} | #${id}</small>
+            </div>
+        `;
+        container.appendChild(card);
+
+        setTimeout(() => {
+            const qrEl = document.getElementById(containerQrId);
+            if (qrEl && typeof QRCode !== 'undefined') {
+                qrEl.innerHTML = '';
+                new QRCode(qrEl, {
+                    text: link,
+                    width: 115,
+                    height: 115,
+                    colorDark: "#000000",
+                    colorLight: "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.M
+                });
+            }
+        }, 50);
+    });
+
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('modalQrTurma')).show();
+}
+
+window.executarImpressaoEmLote = function() {
+    const itens = document.querySelectorAll('.card-cracha-item');
+    if (itens.length === 0) return;
+
+    let htmlCards = '';
+
+    itens.forEach(item => {
+        const qrCanvas = item.querySelector('canvas');
+        const qrImg = item.querySelector('img');
+        let imgBase64 = qrCanvas ? qrCanvas.toDataURL("image/png") : (qrImg ? qrImg.src : '');
+
+        const nome = item.getAttribute('data-nome');
+        const turma = item.getAttribute('data-turma');
+        const id = item.getAttribute('data-id');
+
+        htmlCards += `
+            <div class="cracha">
+                <div class="header">JonasXP - Passaporte</div>
+                <div class="qrcode"><img src="${imgBase64}" /></div>
+                <div class="nome">${nome}</div>
+                <div class="info">Turma: ${turma} | ID: #${id}</div>
+            </div>
+        `;
+    });
+
+    const janelaPrint = window.open('', '_blank', 'width=900,height=700');
+    janelaPrint.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Imprimir Carteirinhas JonasXP</title>
+            <style>
+                @page { size: A4; margin: 10mm; }
+                body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #fff; }
+                .grid-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+                .cracha { border: 2px dashed #666; border-radius: 8px; padding: 10px; text-align: center; page-break-inside: avoid; }
+                .header { font-size: 11px; font-weight: bold; color: #444; text-transform: uppercase; }
+                .qrcode { margin: 6px auto; width: 110px; height: 110px; }
+                .qrcode img { width: 100%; height: 100%; }
+                .nome { font-size: 13px; font-weight: bold; color: #000; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+                .info { font-size: 10px; color: #555; margin-top: 2px; }
+            </style>
+        </head>
+        <body>
+            <div class="grid-container">${htmlCards}</div>
+            <script>
+                window.onload = function() {
+                    window.print();
+                    setTimeout(function() { window.close(); }, 500);
+                };
+            <\/script>
+        </body>
+        </html>
+    `);
+    janelaPrint.document.close();
 };

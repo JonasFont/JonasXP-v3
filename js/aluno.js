@@ -9,7 +9,6 @@
 // 1. CONSTANTES, ESTADOS GLOBAIS E CATÁLOGOS EXPANDIDOS
 // =================================================================
 
-// Níveis de Aura desbloqueados por acúmulo total de XP
 const NIVEIS_AURA_BASE = [
     { lvl: 1, xpReq: 0,    nomeAura: "Aura Nebulosa",    icone: "⚪", cor: "#adb5bd" },
     { lvl: 2, xpReq: 150,  nomeAura: "Aura Cintilante",  icone: "🟢", cor: "#198754" },
@@ -21,7 +20,6 @@ const NIVEIS_AURA_BASE = [
     { lvl: 8, xpReq: 3000, nomeAura: "Aura do Absoluto", icone: "👑", cor: "#d63384" }
 ];
 
-// Catálogo do Mercado de Títulos por Categoria
 const CATALOGO_TITULOS = [
     // ⛩️ ANIME
     { id: "t_hokage", nome: "Hokage da Sala", icone: "🍥", categoria: "Anime", preco: 250 },
@@ -50,7 +48,6 @@ const CATALOGO_TITULOS = [
     { id: "t_boss", nome: "Chefão Final", icone: "👑", categoria: "Gamer", preco: 500 }
 ];
 
-// Catálogo de Poderes da Sala de Aula (Vantagens Reais)
 const CATALOGO_PODERES = [
     { id: "p_cafe", nome: "Café Turbinado", icone: "☕", descricao: "Garante +10% de XP extra nas tarefas de hoje.", preco: 100 },
     { id: "p_escudo", nome: "Escudo Anti-Falta", icone: "🛡️", descricao: "Perdoa 1 atraso ou falta leve no mês.", preco: 300 },
@@ -61,11 +58,9 @@ const CATALOGO_PODERES = [
     { id: "p_lugar", nome: "Trono Real", icone: "🪑", descricao: "Direito de escolher onde sentar na aula por 1 semana.", preco: 200 }
 ];
 
-// Estados Globais de Controle da Aplicação
 let alunoGlobalMercado = null;
 let categoriaFiltroAtual = 'Todos';
-let abaFiltroCards3D = 'adquiridos'; // Opções de exibição: 'adquiridos', 'disponiveis', 'todos'
-
+let abaFiltroCards3D = 'adquiridos';
 
 // =================================================================
 // 2. HELPER PARA FECHAMENTO SEGURO DE MODAIS
@@ -96,9 +91,8 @@ window.fecharModal = function(modalElement) {
     }, 150);
 };
 
-
 // =================================================================
-// 3. RENDERIZAÇÃO & COMPONENTES DO MERCADO INTERNO (MODAL)
+// 3. RENDERIZAÇÃO & COMPONENTES DO MERCADO INTERNO
 // =================================================================
 
 function calcularAuraFarmAtual(xpTotal) {
@@ -248,9 +242,8 @@ function renderizarPoderesMercado(saldo) {
     });
 }
 
-
 // =================================================================
-// 4. MODAL DE CONFIRMAÇÃO DE COMPRA DO MERCADO
+// 4. MODAL DE CONFIRMAÇÃO DE COMPRA
 // =================================================================
 
 function confirmarCompraModal({ titulo, icone, preco, descricao }, onConfirmar) {
@@ -319,7 +312,6 @@ function confirmarCompraModal({ titulo, icone, preco, descricao }, onConfirmar) 
     }
 }
 
-
 // =================================================================
 // 5. INICIALIZAÇÃO DA MODAL PRINCIPAL DO MERCADO
 // =================================================================
@@ -367,7 +359,6 @@ function abrirModalMercado() {
                 <button type="button" class="btn-close btn-close-white" onclick="window.fecharModal('modalMercado')" aria-label="Close"></button>
               </div>
               <div class="modal-body">
-                <!-- Status do Jogador -->
                 <div class="row g-2 mb-3 text-center">
                     <div class="col-4">
                         <div class="p-2 bg-black bg-opacity-50 border border-secondary rounded">
@@ -389,7 +380,6 @@ function abrirModalMercado() {
                     </div>
                 </div>
 
-                <!-- ABAS DE NAVEGAÇÃO DO MERCADO -->
                 <ul class="nav nav-pills nav-fill mb-3" id="pills-tab-mercado">
                   <li class="nav-item">
                     <button class="nav-link active btn-sm fw-bold" onclick="mudarAbaMercado('content-auras', this)">✨ Auras de Nível</button>
@@ -402,7 +392,6 @@ function abrirModalMercado() {
                   </li>
                 </ul>
 
-                <!-- CONTEÚDO DAS ABAS -->
                 <div class="tab-content" id="pills-tabContentMercado">
                   <div class="tab-pane fade show active" id="content-auras" style="display: block;">
                      <div class="row g-2" id="containerAurasBase" style="max-height: 320px; overflow-y: auto;"></div>
@@ -489,10 +478,8 @@ function atualizarInterfaceMercado() {
     renderizarTitulosMercado(saldo);
     renderizarPoderesMercado(saldo);
 
-    // Re-renderiza os Cards 3D da tela principal para refletir a nova compra
     renderizarConquistasGamificadas(xpTotal);
 }
-
 
 // =================================================================
 // 6. AÇÕES DE COMPRA & PERSISTÊNCIA FIRESTORE/API
@@ -604,9 +591,8 @@ window.acaoComprarPoderLoja = function(id, preco) {
     });
 };
 
-
 // =================================================================
-// 7. RENDERIZAÇÃO DOS CARDS 3D NA TELA PRINCIPAL (COM NAVEGAÇÃO DE ABAS)
+// 7. RENDERIZAÇÃO DOS CARDS 3D NA TELA PRINCIPAL
 // =================================================================
 
 window.mudarFiltroCards3D = function(opcao, btn) {
@@ -800,9 +786,8 @@ function gerarCardsTitulos3D(titulos, saldo) {
     }).join('');
 }
 
-
 // =================================================================
-// 8. CICLO DE VIDA DA PÁGINA (CARREGAMENTO DO PERFIL DO ALUNO)
+// 8. CICLO DE VIDA DA PÁGINA
 // =================================================================
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -885,9 +870,8 @@ async function carregarPainelAluno(id) {
     }
 }
 
-
 // =================================================================
-// 9. EFEITOS DE VISUAL, PARTÍCULAS E COMPONENTES SECUNDÁRIOS
+// 9. EFEITOS VISUAIS E COMPONENTES SECUNDÁRIOS
 // =================================================================
 
 function renderizarLinksUteis() {

@@ -2,12 +2,10 @@
 // PAINEL JONASXP - SCRIPT DO PROFESSOR (js/professor.js)
 // ============================================================================
 
-// --- MEMÓRIA TEMPORÁRIA (CACHE) ---
-let CACHE_ALUNOS = []; // Armazena a lista atual de alunos
-let CACHE_TURMAS = []; // Armazena as turmas no formato: [{ id: "...", nome: "..." }]
-let MAPA_TURMAS = {};  // Dicionário rápido de busca: ID/Nome -> Nome de Exibição
+let CACHE_ALUNOS = [];
+let CACHE_TURMAS = [];
+let MAPA_TURMAS = {};
 
-// Inicializa os dados assim que o DOM estiver completamente carregado
 document.addEventListener('DOMContentLoaded', async () => {
     await carregarDadosIniciais();
     configurarEventos();
@@ -17,9 +15,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 // 1. CARREGAMENTO E NORMALIZAÇÃO DE DADOS
 // ============================================================================
 
-/**
- * Busca dados no Firebase/API, atualiza o cache local e renderiza a interface.
- */
 async function carregarDadosIniciais() {
     try {
         if (!window.API) {
@@ -51,9 +46,6 @@ async function carregarDadosIniciais() {
     }
 }
 
-/**
- * Padroniza a estrutura de turmas vinda da API e extrai turmas legadas dos alunos se necessário.
- */
 function normalizarTurmas(turmasAPI, alunos) {
     const lista = [];
     const idsVistos = new Set();
@@ -128,8 +120,7 @@ function preencherTodosSelectsTurmas() {
         if (!select) return;
 
         const valorAnterior = select.value;
-        const temOpcoes = select.options && select.options.length > 0;
-        const textoPadrao = temOpcoes ? select.options[0].text : 'Todas as Turmas';
+        const textoPadrao = 'Todas as Turmas';
 
         let html = `<option value="">${textoPadrao}</option>`;
 
@@ -172,7 +163,7 @@ function renderizarTabelaAlunos(listaAlunos) {
     }
 
     tbody.innerHTML = listaAlunos.map(aluno => {
-        const id = String(aluno.id || aluno.ID || '').replace(/['"\s]/g, '');
+        const id = String(aluno.id || aluno.ID || '').trim();
         const nome = aluno.nome || aluno.Nome || 'Sem Nome';
         
         const turmaRaw = String(aluno.turma || aluno.Turma || 'Geral').trim();
@@ -198,7 +189,7 @@ function renderizarTabelaAlunos(listaAlunos) {
                     <small class="text-success fw-bold mt-1 d-block">+${xp.toLocaleString()} XP</small>
                 </td>
                 <td class="text-end">
-                    <button class="btn btn-sm btn-outline-warning me-1" title="Gerar QR Code Individual" onclick="imprimirQRCodeIndividual('${id}')">
+                    <button class="btn btn-sm btn-outline-warning me-1 btn-qr-indv" data-id="${id}" title="Gerar QR Code">
                         <i class="fa-solid fa-qrcode"></i>
                     </button>
                     <button class="btn btn-sm btn-outline-info me-1" title="Ver Histórico" onclick="verHistoricoAluno('${id}', '${nome}', ${xp})">
@@ -214,6 +205,14 @@ function renderizarTabelaAlunos(listaAlunos) {
             </tr>
         `;
     }).join('');
+
+    // Listener para delegação de clique no botão QR Code individual
+    tbody.querySelectorAll('.btn-qr-indv').forEach(btn => {
+        btn.onclick = (e) => {
+            const alunoId = e.currentTarget.getAttribute('data-id');
+            imprimirQRCodeIndividual(alunoId);
+        };
+    });
 }
 
 function renderizarTabelaTurmas() {
@@ -291,7 +290,7 @@ function carregarTabelaLote() {
     }
 
     tbody.innerHTML = alunosTurma.map((a, idx) => {
-        const id = String(a.id || a.ID).replace(/['"\s]/g, '');
+        const id = String(a.id || a.ID).trim();
         const nome = a.nome || a.Nome;
 
         return `
@@ -385,7 +384,7 @@ function gerarLinksWhatsAppTurma() {
     const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/')) + '/aluno.html';
 
     container.innerHTML = alunosTurma.map(a => {
-        const id = String(a.id || a.ID).replace(/['"\s]/g, '');
+        const id = String(a.id || a.ID).trim();
         const nome = a.nome || a.Nome;
         const link = `${baseUrl}?id=${id}`;
         const msg = encodeURIComponent(`Olá ${nome}! Acesse seu painel JonasXP para ver seus pontos e conquistas: ${link}`);
@@ -432,7 +431,7 @@ async function verHistoricoAluno(id, nome, totalXP) {
             <tr>
                 <td colspan="7" class="text-center py-4">
                     <div class="spinner-border spinner-border-sm text-info me-2" role="status"></div>
-                    <span class="text-muted">Buscando dados no Firebase...</span>
+                    <span class="text-muted">Buscando dados...</span>
                 </td>
             </tr>`;
     }
@@ -567,8 +566,8 @@ function configurarEventos() {
                     else erros++;
                 }
 
-                if (erros === 0) alert(`🔥 Sucesso! Todos os ${salvosComSucesso} alunos foram cadastrados!`);
-                else alert(`⚠️ ${salvosComSucesso} alunos cadastrados, mas ${erros} falharam.`);
+                if (erros === 0) alert(`Sucesso! Todos os ${salvosComSucesso} alunos foram cadastrados!`);
+                else alert(`${salvosComSucesso} alunos cadastrados, mas ${erros} falharam.`);
 
             } else {
                 const nome = document.getElementById('alunoNome')?.value.trim();
@@ -598,12 +597,6 @@ function configurarEventos() {
 
             document.getElementById('formAluno').reset();
 
-            const primeiraba = document.getElementById('tab-unico');
-            if (primeiraba && typeof bootstrap.Tab !== 'undefined') {
-                const tab = new bootstrap.Tab(primeiraba);
-                tab.show();
-            }
-
             await carregarDadosIniciais();
 
         } catch (error) {
@@ -619,7 +612,7 @@ function configurarEventos() {
 }
 
 // ============================================================================
-// 9. AÇÕES DE EDIÇÃO E EXCLUSÃO (ALUNO E TURMA)
+// 9. AÇÕES DE EDIÇÃO E EXCLUSÃO
 // ============================================================================
 
 window.abrirModalEdicaoAluno = function(id, nome, turma, linkDrive = '') {
@@ -706,8 +699,11 @@ window.imprimirQRCodesTurma = function() {
 };
 
 window.imprimirQRCodeIndividual = function(alunoId) {
-    const aluno = CACHE_ALUNOS.find(a => String(a.id || a.ID).replace(/['"\s]/g, '') === String(alunoId));
-    if (!aluno) return;
+    const aluno = CACHE_ALUNOS.find(a => String(a.id || a.ID).trim() === String(alunoId).trim());
+    if (!aluno) {
+        alert("Aluno não encontrado no cache.");
+        return;
+    }
 
     renderizarPreviewCrachas([aluno]);
 };
@@ -720,7 +716,7 @@ function renderizarPreviewCrachas(listaAlunos) {
     const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/')) + '/aluno.html';
 
     listaAlunos.forEach((aluno, idx) => {
-        const id = String(aluno.id || aluno.ID).replace(/['"\s]/g, '');
+        const id = String(aluno.id || aluno.ID).trim();
         const nome = aluno.nome || aluno.Nome || 'Aluno';
         const turmaRaw = String(aluno.turma || aluno.Turma || 'Geral').trim();
         const turmaNome = MAPA_TURMAS[turmaRaw.toLowerCase()] || turmaRaw;
@@ -739,9 +735,19 @@ function renderizarPreviewCrachas(listaAlunos) {
             </div>
         `;
         container.appendChild(card);
+    });
 
-        setTimeout(() => {
+    const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('modalQrTurma'));
+    modal.show();
+
+    // Gera os QR Codes após abertura do modal
+    setTimeout(() => {
+        listaAlunos.forEach((aluno, idx) => {
+            const id = String(aluno.id || aluno.ID).trim();
+            const link = `${baseUrl}?id=${id}`;
+            const containerQrId = `qr_preview_${idx}`;
             const qrEl = document.getElementById(containerQrId);
+
             if (qrEl && typeof QRCode !== 'undefined') {
                 qrEl.innerHTML = '';
                 new QRCode(qrEl, {
@@ -753,10 +759,8 @@ function renderizarPreviewCrachas(listaAlunos) {
                     correctLevel: QRCode.CorrectLevel.M
                 });
             }
-        }, 50);
-    });
-
-    bootstrap.Modal.getOrCreateInstance(document.getElementById('modalQrTurma')).show();
+        });
+    }, 250);
 }
 
 window.executarImpressaoEmLote = function() {

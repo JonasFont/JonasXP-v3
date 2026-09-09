@@ -930,19 +930,11 @@ async function carregarAulasTurma() {
         `).join('');
     }
 }
-// Define a data atual como padrão no campo de data ao carregar a página
-document.addEventListener('DOMContentLoaded', () => {
-  const campoData = document.getElementById('waDataFalta');
-  if (campoData) {
-    campoData.value = new Date().toISOString().split('T')[0];
-  }
-});
-
-// Função para disparar a mensagem via WhatsApp Web ou App
-function enviarMensagemFalta() {
-  const nome = document.getElementById('waNomeAluno').value.trim();
-  const telefone = document.getElementById('waTelefonePai').value.trim();
-  const dataInput = document.getElementById('waDataFalta').value;
+// Expondo explicitamente as funções para o escopo do window/HTML
+window.enviarMensagemFalta = function() {
+  const nome = document.getElementById('waNomeAluno')?.value.trim();
+  const telefone = document.getElementById('waTelefonePai')?.value.trim();
+  const dataInput = document.getElementById('waDataFalta')?.value;
 
   if (!nome) {
     alert("Por favor, informe o nome do aluno.");
@@ -975,8 +967,23 @@ function enviarMensagemFalta() {
   // Gera o link codificado e abre o WhatsApp
   const urlWhatsApp = `https://wa.me/${telefoneFinal}?text=${encodeURIComponent(mensagem)}`;
   window.open(urlWhatsApp, '_blank');
-}
+};
 
+window.limparFormularioWA = function() {
+  const elNome = document.getElementById('waNomeAluno');
+  const elTel = document.getElementById('waTelefonePai');
+  const elData = document.getElementById('waDataFalta');
+
+  if (elNome) elNome.value = '';
+  if (elTel) elTel.value = '';
+  if (elData) elData.value = new Date().toISOString().split('T')[0];
+};
+window.limparFormularioWA = function() {
+  document.getElementById('waNomeAluno').value = '';
+  document.getElementById('waTelefonePai').value = '';
+  const campoData = document.getElementById('waDataFalta');
+  if (campoData) campoData.value = new Date().toISOString().split('T')[0];
+};
 // Função utilitária para limpar os campos
 function limparFormularioWA() {
   document.getElementById('waNomeAluno').value = '';

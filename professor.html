@@ -62,6 +62,34 @@
 
     <div class="container-fluid px-4">
 
+        <!-- CARDS DE MÉTRICAS -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-3">
+                <div class="card card-custom p-3 text-center">
+                    <small class="text-muted fw-bold">TOTAL DE ALUNOS</small>
+                    <h3 id="metricTotalAlunos" class="text-primary fw-bold mb-0">0</h3>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card card-custom p-3 text-center">
+                    <small class="text-muted fw-bold">TURMAS</small>
+                    <h3 id="metricTotalTurmas" class="text-info fw-bold mb-0">0</h3>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card card-custom p-3 text-center">
+                    <small class="text-muted fw-bold">XP TOTAL DISTRIBUÍDO</small>
+                    <h3 id="metricTotalXP" class="text-warning fw-bold mb-0">0 XP</h3>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card card-custom p-3 text-center">
+                    <small class="text-muted fw-bold">MÉDIA DE NÍVEL</small>
+                    <h3 id="metricMediaNivel" class="text-success fw-bold mb-0">Nível 0</h3>
+                </div>
+            </div>
+        </div>
+
         <!-- NAVEGAÇÃO DE ABAS -->
         <ul class="nav nav-pills mb-4 gap-2" id="pills-tab" role="tablist">
             <li class="nav-item">
@@ -74,7 +102,6 @@
                     <i class="fa-solid fa-users me-2"></i>Turmas
                 </button>
             </li>
-            <!-- ABA AULAS INTEGRADA -->
             <li class="nav-item">
                 <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-aulas">
                     <i class="fa-solid fa-chalkboard-user me-2"></i>Aulas
@@ -100,15 +127,18 @@
                 <div class="card card-custom p-4 mb-4">
                     <div class="row g-3 align-items-center mb-3">
                         <div class="col-md-4">
-                            <input type="text" id="filtroNomeAluno" class="form-control bg-dark text-white border-secondary" placeholder="Buscar aluno por nome...">
+                            <input type="text" id="buscaAluno" class="form-control bg-dark text-white border-secondary" placeholder="Buscar aluno por nome ou ID...">
                         </div>
                         <div class="col-md-4">
                             <select id="filtroTurmaAluno" class="form-select bg-dark text-white border-secondary">
                                 <option value="">Todas as Turmas</option>
                             </select>
                         </div>
-                        <div class="col-md-4 text-end">
-                            <button class="btn btn-primary fw-bold" id="btnAbrirModalNovoAluno">
+                        <div class="col-md-4 text-end d-flex gap-2 justify-content-end">
+                            <button class="btn btn-outline-warning d-none" id="btnQrTurma" onclick="imprimirQRCodesTurma()">
+                                <i class="fa-solid fa-qrcode me-1"></i>QR Code Turma
+                            </button>
+                            <button class="btn btn-primary fw-bold" id="btnAbrirModalAluno">
                                 <i class="fa-solid fa-user-plus me-1"></i>Novo Aluno
                             </button>
                         </div>
@@ -118,16 +148,15 @@
                         <table class="table table-dark table-hover align-middle mb-0">
                             <thead>
                                 <tr>
-                                    <th>#</th>
                                     <th>Aluno</th>
                                     <th>Turma</th>
-                                    <th>XP Total</th>
-                                    <th>Nível</th>
+                                    <th>Nível / Título</th>
+                                    <th>Progresso XP</th>
                                     <th class="text-end">Ações</th>
                                 </tr>
                             </thead>
                             <tbody id="tabelaAlunos">
-                                <tr><td colspan="6" class="text-center py-4 text-muted">Carregando alunos...</td></tr>
+                                <tr><td colspan="5" class="text-center py-4 text-muted">Carregando alunos...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -139,7 +168,7 @@
                 <div class="card card-custom p-4">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h5 class="fw-bold mb-0">Gerenciamento de Turmas</h5>
-                        <button class="btn btn-primary fw-bold" id="btnAbrirModalNovaTurma">
+                        <button class="btn btn-primary fw-bold" id="btnAbrirModalTurma">
                             <i class="fa-solid fa-plus me-1"></i>Nova Turma
                         </button>
                     </div>
@@ -148,12 +177,11 @@
                             <thead>
                                 <tr>
                                     <th>Nome da Turma</th>
-                                    <th>Alunos Matriculados</th>
-                                    <th class="text-end">Ações</th>
+                                    <th class="d-flex justify-content-between"><span>Código ID</span><span class="me-2">Ações</span></th>
                                 </tr>
                             </thead>
                             <tbody id="tabelaTurmas">
-                                <tr><td colspan="3" class="text-center py-4 text-muted">Carregando turmas...</td></tr>
+                                <tr><td colspan="2" class="text-center py-4 text-muted">Carregando turmas...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -195,26 +223,35 @@
             <!-- 4. TAB LANÇAR XP EM LOTE -->
             <div class="tab-pane fade" id="tab-lote">
                 <div class="card card-custom p-4">
-                    <h5 class="fw-bold mb-3">Atribuir XP Coletivo</h5>
-                    <form id="formXpLote">
-                        <div class="row g-3 mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold">Turma Destino</label>
-                                <select id="selectTurmaLote" class="form-select bg-dark text-white border-secondary" required>
-                                    <option value="">Selecione...</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold">Quantidade de XP</label>
-                                <input type="number" id="xpLoteValor" class="form-control bg-dark text-white border-secondary" required placeholder="Ex: 50">
-                            </div>
+                    <h5 class="fw-bold mb-3">Atribuir Lançamentos de Notas/XP em Lote</h5>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Selecione a Turma</label>
+                            <select id="selectTurmaLote" class="form-select bg-dark text-white border-secondary">
+                                <option value="">Selecione...</option>
+                            </select>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Motivo / Atividade</label>
-                            <input type="text" id="xpLoteMotivo" class="form-control bg-dark text-white border-secondary" required placeholder="Ex: Participação na aula prática">
+                    </div>
+                    <form id="formLote">
+                        <div class="table-responsive mb-3">
+                            <table class="table table-dark table-hover align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Aluno</th>
+                                        <th style="width: 100px;">ATV</th>
+                                        <th style="width: 100px;">EQP</th>
+                                        <th style="width: 100px;">CMP</th>
+                                        <th style="width: 100px;">PRT</th>
+                                        <th>Observação Individual</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabelaLote">
+                                    <tr><td colspan="6" class="text-center py-4 text-muted">Selecione uma turma para carregar os alunos.</td></tr>
+                                </tbody>
+                            </table>
                         </div>
-                        <button type="submit" class="btn btn-success fw-bold">
-                            <i class="fa-solid fa-paper-plane me-1"></i>Lançar para Todos da Turma
+                        <button type="submit" id="btnSalvarLote" class="btn btn-success fw-bold" disabled>
+                            <i class="fa-solid fa-floppy-disk me-2"></i>Salvar Pontuações
                         </button>
                     </form>
                 </div>
@@ -223,19 +260,16 @@
             <!-- 5. TAB LINKS WHATSAPP -->
             <div class="tab-pane fade" id="tab-whatsapp">
                 <div class="card card-custom p-4">
-                    <h5 class="fw-bold mb-3">Gerenciador de Links de Grupo</h5>
-                    <div class="row g-3">
-                        <div class="col-md-4">
+                    <h5 class="fw-bold mb-3">Links do Painel dos Alunos para WhatsApp</h5>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
                             <select id="selectTurmaWp" class="form-select bg-dark text-white border-secondary">
                                 <option value="">Selecione a turma...</option>
                             </select>
                         </div>
-                        <div class="col-md-6">
-                            <input type="url" id="inputLinkWp" class="form-control bg-dark text-white border-secondary" placeholder="https://chat.whatsapp.com/...">
-                        </div>
-                        <div class="col-md-2">
-                            <button id="btnSalvarWp" class="btn btn-primary w-100 fw-bold">Salvar Link</button>
-                        </div>
+                    </div>
+                    <div id="containerLinksWp">
+                        <div class="text-center text-muted py-4">Selecione uma turma acima.</div>
                     </div>
                 </div>
             </div>
@@ -244,6 +278,109 @@
     </div>
 
     <!-- MODAIS DE SISTEMA -->
+
+    <!-- MODAL NOVO ALUNO -->
+    <div class="modal fade" id="modalAluno" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <form id="formAluno" class="modal-content bg-dark text-white border-secondary">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title fw-bold">Cadastrar Aluno</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <ul class="nav nav-tabs border-secondary mb-3" id="tabCadAluno" role="tablist">
+                        <li class="nav-item">
+                            <button class="nav-link active text-light" id="modoUnico" data-bs-toggle="tab" data-bs-target="#tab-unico" type="button">Individual</button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link text-light" id="modoLote" data-bs-toggle="tab" data-bs-target="#tab-lote-cad" type="button">Em Lote (Lista)</button>
+                        </li>
+                    </ul>
+                    
+                    <div class="tab-content">
+                        <div class="tab-pane fade show active" id="tab-unico">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Nome Completo <span class="text-danger">*</span></label>
+                                <input type="text" id="alunoNome" class="form-control bg-black text-white border-secondary">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Link Pasta Drive</label>
+                                <input type="url" id="alunoLinkDrive" class="form-control bg-black text-white border-secondary" placeholder="https://drive.google.com/...">
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="tab-lote-cad">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Cole os nomes (um por linha)</label>
+                                <textarea id="listaNomesLote" class="form-control bg-black text-white border-secondary" rows="5" placeholder="João Silva&#10;Maria Santos&#10;Pedro Alves"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Turma <span class="text-danger">*</span></label>
+                        <select id="alunoTurma" class="form-select bg-black text-white border-secondary" required></select>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary fw-bold" id="btnSalvarAluno">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL EDITAR ALUNO -->
+    <div class="modal fade" id="modalEditarAluno" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <form id="formEditarAluno" class="modal-content bg-dark text-white border-secondary">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title fw-bold">Editar Aluno</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="editAlunoId">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Nome Completo</label>
+                        <input type="text" id="editAlunoNome" class="form-control bg-black text-white border-secondary" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Turma</label>
+                        <select id="editAlunoTurma" class="form-select bg-black text-white border-secondary" required></select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Link Pasta Drive</label>
+                        <input type="url" id="editAlunoLinkDrive" class="form-control bg-black text-white border-secondary">
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary fw-bold">Atualizar Aluno</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL TURMA -->
+    <div class="modal fade" id="modalTurma" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <form id="formTurma" class="modal-content bg-dark text-white border-secondary">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title fw-bold">Nova Turma</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Nome da Turma <span class="text-danger">*</span></label>
+                        <input type="text" id="turmaNome" class="form-control bg-black text-white border-secondary" placeholder="Ex: 3º Ano A" required>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary fw-bold">Criar Turma</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <!-- MODAL AULA -->
     <div class="modal fade" id="modalAula" tabindex="-1" aria-hidden="true">
@@ -326,79 +463,44 @@
         </div>
     </div>
 
-    <!-- MODAL NOVO/EDITAR ALUNO -->
-    <div class="modal fade" id="modalAluno" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <form id="formAluno" class="modal-content bg-dark text-white border-secondary">
-                <div class="modal-header border-secondary">
-                    <h5 class="modal-title fw-bold" id="modalAlunoTitulo">Cadastrar Aluno</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <input type="hidden" id="alunoId">
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Nome Completo <span class="text-danger">*</span></label>
-                        <input type="text" id="alunoNome" class="form-control bg-black text-white border-secondary" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Turma <span class="text-danger">*</span></label>
-                        <select id="alunoTurma" class="form-select bg-black text-white border-secondary" required></select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Link Pasta Drive</label>
-                        <input type="url" id="alunoDrive" class="form-control bg-black text-white border-secondary" placeholder="https://drive.google.com/...">
-                    </div>
-                </div>
-                <div class="modal-footer border-secondary">
-                    <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary fw-bold" id="btnSalvarAluno">Salvar</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- MODAL TURMA -->
-    <div class="modal fade" id="modalTurma" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <form id="formTurma" class="modal-content bg-dark text-white border-secondary">
-                <div class="modal-header border-secondary">
-                    <h5 class="modal-title fw-bold">Nova Turma</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Nome da Turma <span class="text-danger">*</span></label>
-                        <input type="text" id="turmaNome" class="form-control bg-black text-white border-secondary" placeholder="Ex: 3º Ano A" required>
-                    </div>
-                </div>
-                <div class="modal-footer border-secondary">
-                    <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary fw-bold">Criar Turma</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- MODAL HISTÓRICO -->
-    <div class="modal fade" id="modalHistorico" tabindex="-1" aria-hidden="true">
+    <!-- MODAL DETALHES / HISTÓRICO DO ALUNO -->
+    <div class="modal fade" id="modalDetalhesAluno" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content bg-dark text-white border-secondary">
                 <div class="modal-header border-secondary">
-                    <h5 class="modal-title fw-bold" id="historicoAlunoNome">Histórico do Aluno</h5>
+                    <h5 class="modal-title fw-bold" id="modalDetalhesNome">Histórico do Aluno</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
+                    <div class="row g-2 mb-3 text-center">
+                        <div class="col-4 p-2 bg-black rounded">
+                            <small class="text-muted d-block">Nível</small>
+                            <span id="detalheNivel" class="fw-bold text-warning">-</span>
+                        </div>
+                        <div class="col-4 p-2 bg-black rounded">
+                            <small class="text-muted d-block">Título</small>
+                            <span id="detalheTitulo" class="fw-bold text-info">-</span>
+                        </div>
+                        <div class="col-4 p-2 bg-black rounded">
+                            <small class="text-muted d-block">Total XP</small>
+                            <span id="detalheXP" class="fw-bold text-success">-</span>
+                        </div>
+                    </div>
                     <div class="table-responsive">
                         <table class="table table-dark table-sm align-middle">
                             <thead>
                                 <tr>
                                     <th>Data</th>
-                                    <th>Motivo</th>
-                                    <th>XP</th>
+                                    <th>ATV</th>
+                                    <th>EQP</th>
+                                    <th>CMP</th>
+                                    <th>PRT</th>
+                                    <th>Total XP</th>
+                                    <th>Observação</th>
                                 </tr>
                             </thead>
-                            <tbody id="tabelaHistorico">
-                                <tr><td colspan="3" class="text-center py-3 text-muted">Buscando histórico...</td></tr>
+                            <tbody id="detalhesHistorico">
+                                <tr><td colspan="7" class="text-center py-3 text-muted">Buscando histórico...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -407,9 +509,36 @@
         </div>
     </div>
 
-    <!-- Bootstrap 5 JS Bundle -->
+    <!-- MODAL IMPRESSÃO QR CODE -->
+    <div class="modal fade" id="modalQrTurma" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content bg-dark text-white border-secondary">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-qrcode me-2"></i>Carteirinhas com QR Code</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="containerCrachasPreview" class="row g-3"></div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Fechar</button>
+                    <button type="button" class="btn btn-warning fw-bold" onclick="executarImpressaoEmLote()">
+                        <i class="fa-solid fa-print me-1"></i>Imprimir Crachás
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DEPENDÊNCIAS DE SCRIPT -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Script Principal -->
-    <script src="professor.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <!-- JS MÓDULOS DA APLICAÇÃO -->
+    <script type="module" src="js/firebase-config.js"></script>
+    <script type="module" src="js/api.js"></script>
+    <script type="module" src="js/professor.js"></script>
 </body>
 </html>

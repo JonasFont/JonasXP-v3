@@ -161,6 +161,78 @@ const API = {
             return { sucesso: false, mensagem: e.message };
         }
     },
+    // Adicione estes métodos dentro do objeto const API = { ... }
+
+    // --- CADASTRAR/SALVAR AULA ---
+    async salvarAula(aulaData) {
+        try {
+            const docRef = await addDoc(collection(db, "aulas"), {
+                turma: aulaData.turma.trim(),
+                titulo: aulaData.titulo.trim(),
+                conteudo: aulaData.conteudo ? aulaData.conteudo.trim() : "",
+                data: aulaData.data || new Date().toLocaleDateString('pt-BR')
+            });
+            return { sucesso: true, id: docRef.id, mensagem: "Aula cadastrada com sucesso!" };
+        } catch (e) {
+            console.error("Erro ao salvar aula:", e);
+            return { sucesso: false, mensagem: e.message };
+        }
+    },
+
+    // --- BUSCAR AULAS POR TURMA ---
+    async getAulasPorTurma(nomeTurma) {
+        try {
+            const q = query(
+                collection(db, "aulas"), 
+                where("turma", "==", nomeTurma)
+            );
+            const querySnapshot = await getDocs(q);
+            const aulas = [];
+            querySnapshot.forEach((doc) => {
+                aulas.push({ id: doc.id, ...doc.data() });
+            });
+            return aulas;
+        } catch (e) {
+            console.error("Erro ao buscar aulas:", e);
+            return [];
+        }
+    },
+
+    // --- ENVIAR FEEDBACK DO ALUNO/AULA ---
+    async salvarFeedback(feedbackData) {
+        try {
+            const docRef = await addDoc(collection(db, "feedbacks"), {
+                alunoId: feedbackData.alunoId,
+                aulaId: feedbackData.aulaId || "",
+                tipo: feedbackData.tipo, // 'Elogio', 'Atencao', 'Orientacao'
+                mensagem: feedbackData.mensagem.trim(),
+                data: feedbackData.data || new Date().toLocaleDateString('pt-BR')
+            });
+            return { sucesso: true, id: docRef.id, mensagem: "Feedback enviado com sucesso!" };
+        } catch (e) {
+            console.error("Erro ao salvar feedback:", e);
+            return { sucesso: false, mensagem: e.message };
+        }
+    },
+
+    // --- BUSCAR FEEDBACKS DO ALUNO ---
+    async getFeedbacksPorAluno(idAluno) {
+        try {
+            const q = query(
+                collection(db, "feedbacks"), 
+                where("alunoId", "==", idAluno)
+            );
+            const querySnapshot = await getDocs(q);
+            const feedbacks = [];
+            querySnapshot.forEach((doc) => {
+                feedbacks.push({ id: doc.id, ...doc.data() });
+            });
+            return feedbacks;
+        } catch (e) {
+            console.error("Erro ao buscar feedbacks:", e);
+            return [];
+        }
+    },
 
     // --- LANÇAR XP/PONTOS ---
     async salvarLancamento(payload) {

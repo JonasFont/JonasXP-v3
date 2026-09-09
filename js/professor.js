@@ -9,6 +9,7 @@ let MAPA_TURMAS = {};
 document.addEventListener('DOMContentLoaded', async () => {
     await carregarDadosIniciais();
     configurarEventos();
+    configurarEventosAulasEFeedbacks();
 });
 
 // ============================================================================
@@ -112,7 +113,9 @@ function preencherTodosSelectsTurmas() {
         'alunoTurma',
         'selectTurmaLote',
         'selectTurmaWp',
-        'turmaSelect'
+        'turmaSelect',
+        'selectTurmaAulas',
+        'aulaTurma'
     ];
 
     idsSelects.forEach(id => {
@@ -189,6 +192,9 @@ function renderizarTabelaAlunos(listaAlunos) {
                     <small class="text-success fw-bold mt-1 d-block">+${xp.toLocaleString()} XP</small>
                 </td>
                 <td class="text-end">
+                    <button class="btn btn-sm btn-outline-info me-1" title="Enviar Feedback" onclick="abrirModalFeedback('${id}', '${nome}', '${turmaNome}')">
+                        <i class="fa-solid fa-comment-dots"></i>
+                    </button>
                     <button class="btn btn-sm btn-outline-warning me-1 btn-qr-indv" data-id="${id}" title="Gerar QR Code">
                         <i class="fa-solid fa-qrcode"></i>
                     </button>
@@ -818,4 +824,136 @@ window.executarImpressaoEmLote = function() {
         </html>
     `);
     janelaPrint.document.close();
+};
+
+// ============================================================================
+// 11. NOVO MÓDULO DE AULAS & FEEDBACKS
+// ============================================================================
+
+function configurarEventosAulasEFeedbacks() {
+    // Escuta mudança de turma na aba de Aulas
+    document.getElementById('selectTurmaAulas')?.addEventListener('change', carregarAulasTurma);
+
+    // Modal Nova Aula
+    document.getElementById('btnAbrirModalAula')?.addEventListener('click', () => {
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('modalAula')).show();
+    });
+
+    // Salvar Nova Aula
+    document.getElementById('formAula')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('btnSalvarAula');
+        if (btn) btn.disabled = true;
+
+        let turmaVal = document.getElementById('aulaTurma')?.value || '';
+        if (turmaVal.includes('|||')) turmaVal = turmaVal.split('|||')[1];
+
+        const payload = {
+            turma: turmaVal,
+            titulo: document.getElementById('aulaTitulo')?.value.trim(),
+            conteudo: document.getElementById('aulaConteudo')?.value.trim()
+        };
+
+        if (window.API && window.API.salvarAula) {
+            const res = await window.API.salvarAula(payload);
+            if (res && res.sucesso) {
+                alert("Aula cadastrada com sucesso!");
+                const modalEl = document.getElementById('modalAula');
+                const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+                modal.hide();
+                document.getElementById('formAula').reset();
+                await carregarAulasTurma();
+            } else {
+                alert("Erro ao salvar aula: " + (res?.mensagem || 'Erro desconhecido'));
+            }
+        }
+        if (btn) btn.disabled = false;
+    });
+
+    // Salvar Feedback Individual
+    document.getElementById('formFeedback')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('btnEnviarFeedback');
+        if (btn) btn.disabled = true;
+
+        const payload = {
+            alunoId: document.getElementById('feedbackAlunoId')?.value,
+            aulaId: document.getElementById('feedbackAulaId')?.value,
+            tipo: document.getElementById('feedbackTipo')?.value,
+            mensagem: document.getElementById('feedbackTexto')?.value.trim()
+        };
+
+        if (window.API && window.API.salvarFeedback) {
+            const res = await window.API.salvarFeedback(payload);
+            if (res && res.sucesso) {
+                alert("Feedback enviado com sucesso!");
+                const modalEl = document.getElementById('modalFeedback');
+                const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+                modal.hide();
+            } else {
+                alert("Erro ao enviar feedback: " + (res?.mensagem || 'Erro desconhecido'));
+            }
+        }
+        if (btn) btn.disabled = false;
+    });
+}
+
+async function carregarAulasTurma() {
+    const tbody = document.getElementById('tabelaAulas');
+    let turmaSel = document.getElementById('selectTurmaAulas')?.value || '';
+    if (turmaSel.includes('|||')) turmaSel = turmaSel.split('|||')[1];
+
+    if (!tbody) return;
+
+    if (!turmaSel) {
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-muted">Selecione uma turma para ver as aulas.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-muted"><i class="fa-solid fa-spinner fa-spin me-2"></i>Buscando aulas...</td></tr>`;
+
+    if (window.API && window.API.getAulasPorTurma) {
+        const aulas = await window.API.getAulasPorTurma(turmaSel);
+
+        if (!aulas || aulas.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-muted">Nenhuma aula cadastrada para esta turma.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = aulas.map(a => `
+            <tr>
+                <td class="text-muted small">${a.data || '-'}</td>
+                <td class="fw-bold text-info">${a.titulo || 'Sem título'}</td>
+                <td>${a.conteudo || '<span class="text-muted small">Sem descrição</span>'}</td>
+                <td><span class="badge bg-secondary">${a.turma || turmaSel}</span></td>
+            </tr>
+        `).join('');
+    }
+}
+
+window.abrirModalFeedback = async function(alunoId, alunoNome, turmaNome) {
+    const inputId = document.getElementById('feedbackAlunoId');
+    const inputNome = document.getElementById('feedbackAlunoNome');
+    const inputTexto = document.getElementById('feedbackTexto');
+
+    if (inputId) inputId.value = alunoId;
+    if (inputNome) inputNome.value = alunoNome;
+    if (inputTexto) inputTexto.value = '';
+
+    const selectAula = document.getElementById('feedbackAulaId');
+    if (selectAula) {
+        selectAula.innerHTML = '<option value="">Carregando aulas...</option>';
+        if (window.API && window.API.getAulasPorTurma) {
+            const aulas = await window.API.getAulasPorTurma(turmaNome);
+            let html = '<option value="">Geral / Nenhuma aula específica</option>';
+            if (Array.isArray(aulas)) {
+                aulas.forEach(a => {
+                    html += `<option value="${a.id}">${a.data ? a.data + ' - ' : ''}${a.titulo}</option>`;
+                });
+            }
+            selectAula.innerHTML = html;
+        }
+    }
+
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('modalFeedback')).show();
 };

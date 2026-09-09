@@ -930,6 +930,59 @@ async function carregarAulasTurma() {
         `).join('');
     }
 }
+// Define a data atual como padrão no campo de data ao carregar a página
+document.addEventListener('DOMContentLoaded', () => {
+  const campoData = document.getElementById('waDataFalta');
+  if (campoData) {
+    campoData.value = new Date().toISOString().split('T')[0];
+  }
+});
+
+// Função para disparar a mensagem via WhatsApp Web ou App
+function enviarMensagemFalta() {
+  const nome = document.getElementById('waNomeAluno').value.trim();
+  const telefone = document.getElementById('waTelefonePai').value.trim();
+  const dataInput = document.getElementById('waDataFalta').value;
+
+  if (!nome) {
+    alert("Por favor, informe o nome do aluno.");
+    return;
+  }
+
+  if (!telefone) {
+    alert("Por favor, informe o telefone do responsável.");
+    return;
+  }
+
+  // Formatando a data do input (AAAA-MM-DD -> DD/MM/AAAA)
+  let dataFormatada = "";
+  if (dataInput) {
+    const [ano, mes, dia] = dataInput.split('-');
+    dataFormatada = `${dia}/${mes}/${ano}`;
+  } else {
+    dataFormatada = new Date().toLocaleDateString('pt-BR');
+  }
+
+  // Limpa caracteres especiais mantendo apenas números
+  const numeroLimpo = telefone.replace(/\D/g, '');
+
+  // Adiciona o DDI (55) se o usuário digitou apenas DDD + Número
+  const telefoneFinal = numeroLimpo.length <= 11 ? `55${numeroLimpo}` : numeroLimpo;
+
+  // Texto da mensagem personalizada
+  const mensagem = `Olá! Tudo bem?\n\nNotamos que o(a) *${nome}* não esteve presente na aula do dia *${dataFormatada}*.\n\nGostaria de saber se ocorreu tudo bem e qual foi o motivo da falta? Ficamos no aguardo!`;
+
+  // Gera o link codificado e abre o WhatsApp
+  const urlWhatsApp = `https://wa.me/${telefoneFinal}?text=${encodeURIComponent(mensagem)}`;
+  window.open(urlWhatsApp, '_blank');
+}
+
+// Função utilitária para limpar os campos
+function limparFormularioWA() {
+  document.getElementById('waNomeAluno').value = '';
+  document.getElementById('waTelefonePai').value = '';
+  document.getElementById('waDataFalta').value = new Date().toISOString().split('T')[0];
+}
 
 window.abrirModalFeedback = async function(alunoId, alunoNome, turmaNome) {
     const inputId = document.getElementById('feedbackAlunoId');

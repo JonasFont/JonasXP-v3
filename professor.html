@@ -529,6 +529,39 @@
             </div>
         </div>
     </div>
+    <!-- Nova Aba: Gestão de Faltas e WhatsApp -->
+    <div class="card p-4 my-3 shadow-sm border-0 rounded-3">
+    <div class="d-flex align-items-center mb-3">
+        <span class="fs-3 me-2">💬</span>
+        <h4 class="m-0 fw-bold">Notificar Falta ao Responsável</h4>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-md-4">
+        <label class="form-label fw-semibold">Nome do Aluno</label>
+        <input type="text" id="waNomeAluno" class="form-control" placeholder="Ex: João Silva">
+        </div>
+
+        <div class="col-md-4">
+        <label class="form-label fw-semibold">WhatsApp do Responsável</label>
+        <input type="tel" id="waTelefonePai" class="form-control" placeholder="(12) 99999-9999">
+        </div>
+
+        <div class="col-md-4">
+        <label class="form-label fw-semibold">Data da Falta</label>
+        <input type="date" id="waDataFalta" class="form-control">
+        </div>
+    </div>
+
+    <div class="mt-4 text-end">
+        <button type="button" onclick="limparFormularioWA()" class="btn btn-outline-secondary me-2">
+        Limpar
+        </button>
+        <button type="button" onclick="enviarMensagemFalta()" class="btn btn-success fw-bold px-4">
+        🚀 Enviar no WhatsApp
+        </button>
+    </div>
+    </div>
 
     <!-- DEPENDÊNCIAS DE SCRIPT -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>

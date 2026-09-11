@@ -85,7 +85,37 @@ function normalizarTurmas(turmasAPI, alunos) {
 }
 
 // ============================================================================
-// 2. MÉTRICAS E CARDS SUPERIORES
+// 2. LIMPEZA DE DADOS ANTERIORES
+// ============================================================================
+
+window.limparDadosAntigos = async function() {
+    const confirmacao = confirm(
+        "ATENÇÃO: Deseja apagar todos os lançamentos de notas e históricos anteriores a HOJE?\n\n" +
+        "Esta ação zerará as pontuações antigas para que você faça os relançamentos limpos nas novas turmas."
+    );
+
+    if (!confirmacao) return;
+
+    try {
+        if (window.API && window.API.limparDadosAnterioresAHoje) {
+            const res = await window.API.limparDadosAnterioresAHoje();
+            if (res && res.sucesso) {
+                alert("Lançamentos antigos removidos com sucesso!");
+                await carregarDadosIniciais();
+            } else {
+                alert("Erro ao apagar dados antigos: " + (res?.mensagem || "Falha na requisição."));
+            }
+        } else {
+            alert("A função 'limparDadosAnterioresAHoje' não está definida na sua API.");
+        }
+    } catch (err) {
+        console.error("Erro ao limpar lançamentos antigos:", err);
+        alert("Ocorreu um erro ao processar a limpeza.");
+    }
+};
+
+// ============================================================================
+// 3. MÉTRICAS E CARDS SUPERIORES
 // ============================================================================
 
 function atualizarMetricas() {
@@ -104,7 +134,7 @@ function atualizarMetricas() {
 }
 
 // ============================================================================
-// 3. DROPDOWNS (SELECTS) E COMPARADOR DE TURMAS
+// 4. DROPDOWNS (SELECTS) E COMPARADOR DE TURMAS
 // ============================================================================
 
 function preencherTodosSelectsTurmas() {
@@ -114,6 +144,7 @@ function preencherTodosSelectsTurmas() {
         'alunoTurma',
         'selectTurmaLote',
         'selectTurmaWp',
+        'waSelectTurma',
         'turmaSelect',
         'selectTurmaAulas',
         'aulaTurma'
@@ -151,7 +182,7 @@ function turmaBateComSelecao(aluno, turmaSelecionada) {
 }
 
 // ============================================================================
-// 4. RENDERIZAÇÃO DE TABELAS E FILTRAGEM
+// 5. RENDERIZAÇÃO DE TABELAS E FILTRAGEM
 // ============================================================================
 
 function renderizarTabelaAlunos(listaAlunos) {
@@ -268,7 +299,7 @@ function filtrarAlunos() {
 }
 
 // ============================================================================
-// 5. LANÇAMENTO DE PONTUAÇÕES EM LOTE
+// 6. LANÇAMENTO DE PONTUAÇÕES EM LOTE
 // ============================================================================
 
 function carregarTabelaLote() {
@@ -364,7 +395,7 @@ async function salvarPontuacoesLote(e) {
 }
 
 // ============================================================================
-// 6. FERRAMENTAS WHATSAPP
+// 7. FERRAMENTAS WHATSAPP
 // ============================================================================
 
 function gerarLinksWhatsAppTurma() {
@@ -412,6 +443,58 @@ function gerarLinksWhatsAppTurma() {
     }).join('');
 }
 
+window.carregarAlunosWhatsApp = function() {
+    const turmaSel = document.getElementById('waSelectTurma')?.value;
+    const selectAluno = document.getElementById('waSelectAluno');
+
+    if (!selectAluno) return;
+
+    document.getElementById('waNomeAluno').value = '';
+    document.getElementById('waTelefonePai').value = '';
+
+    if (!turmaSel) {
+        selectAluno.innerHTML = '<option value="">Primeiro selecione a turma...</option>';
+        selectAluno.disabled = true;
+        return;
+    }
+
+    const alunosTurma = CACHE_ALUNOS.filter(a => turmaBateComSelecao(a, turmaSel));
+
+    if (alunosTurma.length === 0) {
+        selectAluno.innerHTML = '<option value="">Nenhum aluno encontrado nesta turma</option>';
+        selectAluno.disabled = true;
+        return;
+    }
+
+    let html = '<option value="">Selecione o aluno...</option>';
+    alunosTurma.forEach(a => {
+        const id = String(a.id || a.ID).trim();
+        const nome = a.nome || a.Nome;
+        html += `<option value="${id}">${nome}</option>`;
+    });
+
+    selectAluno.innerHTML = html;
+    selectAluno.disabled = false;
+};
+
+window.preencherDadosAlunoWA = function() {
+    const idAluno = document.getElementById('waSelectAluno')?.value;
+    if (!idAluno) return;
+
+    const aluno = CACHE_ALUNOS.find(a => String(a.id || a.ID).trim() === String(idAluno).trim());
+    if (!aluno) return;
+
+    document.getElementById('waNomeAluno').value = aluno.nome || aluno.Nome || '';
+
+    const telefone = aluno.telefonePai || aluno.telefone || aluno.Telefone || aluno.celular || aluno.contato || '';
+    document.getElementById('waTelefonePai').value = telefone;
+
+    const inputData = document.getElementById('waDataFalta');
+    if (inputData && !inputData.value) {
+        inputData.value = new Date().toISOString().split('T')[0];
+    }
+};
+
 window.enviarMensagemFalta = function() {
     const nome = document.getElementById('waNomeAluno')?.value.trim();
     const telefone = document.getElementById('waTelefonePai')?.value.trim();
@@ -438,13 +521,21 @@ window.enviarMensagemFalta = function() {
 };
 
 window.limparFormularioWA = function() {
+    if (document.getElementById('waSelectTurma')) document.getElementById('waSelectTurma').value = '';
+    
+    const selectAluno = document.getElementById('waSelectAluno');
+    if (selectAluno) {
+        selectAluno.innerHTML = '<option value="">Primeiro selecione a turma...</option>';
+        selectAluno.disabled = true;
+    }
+
     if (document.getElementById('waNomeAluno')) document.getElementById('waNomeAluno').value = '';
     if (document.getElementById('waTelefonePai')) document.getElementById('waTelefonePai').value = '';
     if (document.getElementById('waDataFalta')) document.getElementById('waDataFalta').value = new Date().toISOString().split('T')[0];
 };
 
 // ============================================================================
-// 7. EXIBIÇÃO DE HISTÓRICO INDIVIDUAL (MODAL)
+// 8. EXIBIÇÃO DE HISTÓRICO INDIVIDUAL (MODAL)
 // ============================================================================
 
 async function verHistoricoAluno(id, nome, totalXP) {
@@ -511,7 +602,7 @@ async function verHistoricoAluno(id, nome, totalXP) {
 window.verHistoricoAluno = verHistoricoAluno;
 
 // ============================================================================
-// 8. CONFIGURAÇÃO DE EVENTOS E MODAIS
+// 9. CONFIGURAÇÃO DE EVENTOS E MODAIS
 // ============================================================================
 
 function configurarEventos() {
@@ -631,7 +722,7 @@ function configurarEventos() {
 }
 
 // ============================================================================
-// 9. AÇÕES DE EDIÇÃO E EXCLUSÃO
+// 10. AÇÕES DE EDIÇÃO E EXCLUSÃO
 // ============================================================================
 
 window.abrirModalEdicaoAluno = function(id, nome, turma, linkDrive = '') {
@@ -695,7 +786,7 @@ window.excluirTurma = async function(id, nome) {
 };
 
 // ============================================================================
-// 10. GERAÇÃO E IMPRESSÃO DE QR CODES
+// 11. GERAÇÃO E IMPRESSÃO DE QR CODES
 // ============================================================================
 
 window.imprimirQRCodesTurma = function() {
@@ -838,7 +929,7 @@ window.executarImpressaoEmLote = function() {
 };
 
 // ============================================================================
-// 11. MÓDULO DE AULAS & FEEDBACKS
+// 12. MÓDULO DE AULAS & FEEDBACKS
 // ============================================================================
 
 function configurarEventosAulasEFeedbacks() {

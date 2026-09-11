@@ -242,33 +242,63 @@
                     </div>
                 </div>
 
-                <div class="card card-custom p-4">
-                    <h5 class="fw-bold mb-3"><i class="fa-brands fa-whatsapp me-2 text-success"></i>Notificar Falta ao Responsável</h5>
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <label class="form-label fw-bold">Nome do Aluno</label>
-                            <input type="text" id="waNomeAluno" class="form-control" placeholder="Ex: João Silva">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label fw-bold">WhatsApp do Responsável</label>
-                            <input type="tel" id="waTelefonePai" class="form-control" placeholder="(12) 99999-9999">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label fw-bold">Data da Falta</label>
-                            <input type="date" id="waDataFalta" class="form-control">
-                        </div>
-                    </div>
+                <!-- ABA WHATSAPP -->
+<div class="tab-pane fade" id="whatsapp" role="tabpanel">
+    <div class="card bg-black border-secondary p-4 text-white">
+        <h5 class="fw-bold text-warning mb-3">
+            <i class="fa-brands fa-whatsapp me-2"></i>Notificar Falta / Recado Individual
+        </h5>
+        
+        <form id="formWhatsAppIndv" onsubmit="event.preventDefault(); enviarMensagemFalta();">
+            <div class="row g-3 mb-3">
+                <!-- 1. SELEÇÃO DA TURMA -->
+                <div class="col-md-6">
+                    <label class="form-label text-muted">1. Selecione a Turma</label>
+                    <select id="waSelectTurma" class="form-select bg-dark text-white border-secondary" onchange="carregarAlunosWhatsApp()">
+                        <option value="">Selecione uma turma...</option>
+                    </select>
+                </div>
 
-                    <div class="mt-4 text-end">
-                        <button type="button" onclick="limparFormularioWA()" class="btn btn-outline-light me-2">
-                            Limpar
-                        </button>
-                        <button type="button" onclick="enviarMensagemFalta()" class="btn btn-success fw-bold px-4">
-                            <i class="fa-brands fa-whatsapp me-1"></i>Enviar no WhatsApp
-                        </button>
-                    </div>
+                <!-- 2. SELEÇÃO DO ALUNO (Filtrado pela turma) -->
+                <div class="col-md-6">
+                    <label class="form-label text-muted">2. Selecione o Aluno</label>
+                    <select id="waSelectAluno" class="form-select bg-dark text-white border-secondary" onchange="preencherDadosAlunoWA()" disabled>
+                        <option value="">Primeiro selecione a turma...</option>
+                    </select>
                 </div>
             </div>
+
+            <div class="row g-3 mb-3">
+                <!-- 3. NOME DO ALUNO (Preenchido automático) -->
+                <div class="col-md-4">
+                    <label class="form-label text-muted">Nome do Aluno</label>
+                    <input type="text" id="waNomeAluno" class="form-control bg-dark text-white border-secondary" placeholder="Nome do aluno" required>
+                </div>
+
+                <!-- 4. TELEFONE DO RESPONSÁVEL (Preenchido automático se existir) -->
+                <div class="col-md-4">
+                    <label class="form-label text-muted">Telefone do Responsável (DDD + Número)</label>
+                    <input type="text" id="waTelefonePai" class="form-control bg-dark text-white border-secondary" placeholder="Ex: 19999999999" required>
+                </div>
+
+                <!-- 5. DATA DA FALTA -->
+                <div class="col-md-4">
+                    <label class="form-label text-muted">Data da Falta</label>
+                    <input type="date" id="waDataFalta" class="form-control bg-dark text-white border-secondary">
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2 mt-4">
+                <button type="button" class="btn btn-outline-secondary" onclick="limparFormularioWA()">
+                    <i class="fa-solid fa-eraser me-1"></i>Limpar
+                </button>
+                <button type="submit" class="btn btn-success fw-bold">
+                    <i class="fa-brands fa-whatsapp me-1"></i>Enviar Notificação
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 
         </div>
     </div>

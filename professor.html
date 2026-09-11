@@ -114,7 +114,7 @@
             </li>
             <li class="nav-item">
                 <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-whatsapp">
-                    <i class="fa-brands fa-whatsapp me-2"></i>Links WhatsApp
+                    <i class="fa-brands fa-whatsapp me-2"></i>Ferramentas WhatsApp
                 </button>
             </li>
         </ul>
@@ -257,10 +257,11 @@
                 </div>
             </div>
 
-            <!-- 5. TAB LINKS WHATSAPP -->
+            <!-- 5. TAB FERRAMENTAS WHATSAPP -->
             <div class="tab-pane fade" id="tab-whatsapp">
-                <div class="card card-custom p-4">
-                    <h5 class="fw-bold mb-3">Links do Painel dos Alunos para WhatsApp</h5>
+                <!-- LINKS DOS PAINÉIS -->
+                <div class="card card-custom p-4 mb-4">
+                    <h5 class="fw-bold mb-3"><i class="fa-solid fa-link me-2 text-info"></i>Links do Painel dos Alunos</h5>
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
                             <select id="selectTurmaWp" class="form-select bg-dark text-white border-secondary">
@@ -270,6 +271,34 @@
                     </div>
                     <div id="containerLinksWp">
                         <div class="text-center text-muted py-4">Selecione uma turma acima.</div>
+                    </div>
+                </div>
+
+                <!-- NOTIFICAR FALTA -->
+                <div class="card card-custom p-4">
+                    <h5 class="fw-bold mb-3"><i class="fa-brands fa-whatsapp me-2 text-success"></i>Notificar Falta ao Responsável</h5>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Nome do Aluno</label>
+                            <input type="text" id="waNomeAluno" class="form-control bg-dark text-white border-secondary" placeholder="Ex: João Silva">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">WhatsApp do Responsável</label>
+                            <input type="tel" id="waTelefonePai" class="form-control bg-dark text-white border-secondary" placeholder="(12) 99999-9999">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Data da Falta</label>
+                            <input type="date" id="waDataFalta" class="form-control bg-dark text-white border-secondary">
+                        </div>
+                    </div>
+
+                    <div class="mt-4 text-end">
+                        <button type="button" onclick="limparFormularioWA()" class="btn btn-outline-light me-2">
+                            Limpar
+                        </button>
+                        <button type="button" onclick="enviarMensagemFalta()" class="btn btn-success fw-bold px-4">
+                            <i class="fa-brands fa-whatsapp me-1"></i>Enviar no WhatsApp
+                        </button>
                     </div>
                 </div>
             </div>
@@ -528,39 +557,6 @@
                 </div>
             </div>
         </div>
-    </div>
-    <!-- Nova Aba: Gestão de Faltas e WhatsApp -->
-    <div class="card p-4 my-3 shadow-sm border-0 rounded-3">
-    <div class="d-flex align-items-center mb-3">
-        <span class="fs-3 me-2">💬</span>
-        <h4 class="m-0 fw-bold">Notificar Falta ao Responsável</h4>
-    </div>
-
-    <div class="row g-3">
-        <div class="col-md-4">
-        <label class="form-label fw-semibold">Nome do Aluno</label>
-        <input type="text" id="waNomeAluno" class="form-control" placeholder="Ex: João Silva">
-        </div>
-
-        <div class="col-md-4">
-        <label class="form-label fw-semibold">WhatsApp do Responsável</label>
-        <input type="tel" id="waTelefonePai" class="form-control" placeholder="(12) 99999-9999">
-        </div>
-
-        <div class="col-md-4">
-        <label class="form-label fw-semibold">Data da Falta</label>
-        <input type="date" id="waDataFalta" class="form-control">
-        </div>
-    </div>
-
-    <div class="mt-4 text-end">
-        <button type="button" onclick="limparFormularioWA()" class="btn btn-outline-secondary me-2">
-        Limpar
-        </button>
-        <button type="button" onclick="enviarMensagemFalta()" class="btn btn-success fw-bold px-4">
-        🚀 Enviar no WhatsApp
-        </button>
-    </div>
     </div>
 
     <!-- DEPENDÊNCIAS DE SCRIPT -->

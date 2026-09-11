@@ -3,7 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel do Professor - Sistema de Gamificação</title>
+    <title>Painel do Professor - Sistema Gamificado</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -11,18 +16,141 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- CSS Customizado -->
     <link rel="stylesheet" href="stylee.css">
+
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --card-bg: #1e293b;
+            --card-border: #334155;
+            --accent-primary: #6366f1;
+            --accent-success: #10b981;
+            --accent-warning: #f59e0b;
+            --accent-info: #06b6d4;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        /* Top Bar */
+        .navbar-custom {
+            background-color: var(--card-bg);
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        /* Custom Cards */
+        .card-custom {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .card-custom:hover {
+            border-color: #475569;
+        }
+
+        .metric-card {
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+            padding: 1.25rem;
+        }
+
+        .metric-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        /* Navigation Pills */
+        .nav-pills .nav-link {
+            color: var(--text-muted);
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            font-weight: 600;
+            padding: 0.6rem 1.2rem;
+            transition: all 0.2s ease;
+        }
+
+        .nav-pills .nav-link:hover {
+            color: #fff;
+            border-color: var(--accent-primary);
+        }
+
+        .nav-pills .nav-link.active {
+            background-color: var(--accent-primary);
+            color: #fff;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 12px rgba(99, 102, 241, 0.4);
+        }
+
+        /* Tables */
+        .table-custom {
+            --bs-table-bg: transparent;
+            --bs-table-color: var(--text-main);
+            border-color: var(--card-border);
+        }
+
+        .table-custom th {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 2px solid var(--card-border);
+        }
+
+        /* Form Controls */
+        .form-control, .form-select {
+            background-color: #0f172a;
+            border: 1px solid var(--card-border);
+            color: var(--text-main);
+            border-radius: 8px;
+        }
+
+        .form-control:focus, .form-select:focus {
+            background-color: #0f172a;
+            border-color: var(--accent-primary);
+            color: var(--text-main);
+            box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.25);
+        }
+
+        .form-control::placeholder {
+            color: #64748b;
+        }
+
+        /* Modals */
+        .modal-content {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+        }
+    </style>
 </head>
 <body class="pb-5">
 
     <!-- NAVBAR HEADER -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom border-secondary mb-4">
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-custom mb-4 py-3">
         <div class="container-fluid px-4">
-            <span class="navbar-brand fw-bold text-primary">
-                <i class="fa-solid fa-graduation-cap me-2"></i>Painel Pedagógico
+            <span class="navbar-brand fw-bold d-flex align-items-center gap-2">
+                <i class="fa-solid fa-graduation-cap text-primary fs-4"></i>
+                <span>Painel Pedagógico</span>
             </span>
             <div class="d-flex align-items-center gap-3">
-                <span id="userStatus" class="badge bg-success">Professor Conectado</span>
-                <button id="btnLogout" class="btn btn-outline-danger btn-sm">
+                <span id="userStatus" class="badge bg-success-subtle text-success border border-success px-3 py-2 rounded-pill">
+                    <i class="fa-solid fa-circle-check me-1"></i>Professor Conectado
+                </span>
+                <button id="btnLogout" class="btn btn-outline-danger btn-sm rounded-2 px-3">
                     <i class="fa-solid fa-right-from-bracket me-1"></i>Sair
                 </button>
             </div>
@@ -33,28 +161,48 @@
 
         <!-- CARDS DE MÉTRICAS -->
         <div class="row g-3 mb-4">
-            <div class="col-md-3">
-                <div class="card card-custom p-3 text-center">
-                    <small class="text-muted fw-bold">TOTAL DE ALUNOS</small>
-                    <h3 id="metricTotalAlunos" class="text-primary fw-bold mb-0">0</h3>
+            <div class="col-6 col-lg-3">
+                <div class="card card-custom metric-card">
+                    <div class="metric-icon bg-primary bg-opacity-10 text-primary">
+                        <i class="fa-solid fa-users"></i>
+                    </div>
+                    <div>
+                        <small class="text-muted fw-bold d-block text-uppercase">Total de Alunos</small>
+                        <h3 id="metricTotalAlunos" class="fw-bold mb-0">0</h3>
+                    </div>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="card card-custom p-3 text-center">
-                    <small class="text-muted fw-bold">TURMAS</small>
-                    <h3 id="metricTotalTurmas" class="text-info fw-bold mb-0">0</h3>
+            <div class="col-6 col-lg-3">
+                <div class="card card-custom metric-card">
+                    <div class="metric-icon bg-info bg-opacity-10 text-info">
+                        <i class="fa-solid fa-layer-group"></i>
+                    </div>
+                    <div>
+                        <small class="text-muted fw-bold d-block text-uppercase">Turmas Ativas</small>
+                        <h3 id="metricTotalTurmas" class="fw-bold mb-0">0</h3>
+                    </div>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="card card-custom p-3 text-center">
-                    <small class="text-muted fw-bold">XP TOTAL DISTRIBUÍDO</small>
-                    <h3 id="metricTotalXP" class="text-warning fw-bold mb-0">0 XP</h3>
+            <div class="col-6 col-lg-3">
+                <div class="card card-custom metric-card">
+                    <div class="metric-icon bg-warning bg-opacity-10 text-warning">
+                        <i class="fa-solid fa-bolt"></i>
+                    </div>
+                    <div>
+                        <small class="text-muted fw-bold d-block text-uppercase">XP Distribuído</small>
+                        <h3 id="metricTotalXP" class="fw-bold mb-0">0 XP</h3>
+                    </div>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="card card-custom p-3 text-center">
-                    <small class="text-muted fw-bold">MÉDIA DE NÍVEL</small>
-                    <h3 id="metricMediaNivel" class="text-success fw-bold mb-0">Nível 0</h3>
+            <div class="col-6 col-lg-3">
+                <div class="card card-custom metric-card">
+                    <div class="metric-icon bg-success bg-opacity-10 text-success">
+                        <i class="fa-solid fa-chart-line"></i>
+                    </div>
+                    <div>
+                        <small class="text-muted fw-bold d-block text-uppercase">Média de Nível</small>
+                        <h3 id="metricMediaNivel" class="fw-bold mb-0">Nível 0</h3>
+                    </div>
                 </div>
             </div>
         </div>
@@ -83,7 +231,7 @@
             </li>
             <li class="nav-item">
                 <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-whatsapp">
-                    <i class="fa-brands fa-whatsapp me-2"></i>Ferramentas WhatsApp
+                    <i class="fa-brands fa-whatsapp me-2"></i>Notificar Falta / WhatsApp
                 </button>
             </li>
         </ul>
@@ -96,7 +244,10 @@
                 <div class="card card-custom p-4 mb-4">
                     <div class="row g-3 align-items-center mb-3">
                         <div class="col-md-4">
-                            <input type="text" id="buscaAluno" class="form-control" placeholder="Buscar aluno por nome ou ID...">
+                            <div class="input-group">
+                                <span class="input-group-text bg-dark border-secondary text-muted"><i class="fa-solid fa-magnifying-glass"></i></span>
+                                <input type="text" id="buscaAluno" class="form-control" placeholder="Buscar aluno por nome ou ID...">
+                            </div>
                         </div>
                         <div class="col-md-4">
                             <select id="filtroTurmaAluno" class="form-select">
@@ -107,14 +258,14 @@
                             <button class="btn btn-outline-warning d-none" id="btnQrTurma" onclick="imprimirQRCodesTurma()">
                                 <i class="fa-solid fa-qrcode me-1"></i>QR Code Turma
                             </button>
-                            <button class="btn btn-primary fw-bold" id="btnAbrirModalAluno">
+                            <button class="btn btn-primary fw-bold px-3" id="btnAbrirModalAluno">
                                 <i class="fa-solid fa-user-plus me-1"></i>Novo Aluno
                             </button>
                         </div>
                     </div>
 
                     <div class="table-responsive">
-                        <table class="table table-dark table-hover align-middle mb-0">
+                        <table class="table table-custom table-hover align-middle mb-0">
                             <thead>
                                 <tr>
                                     <th>Aluno</th>
@@ -142,7 +293,7 @@
                         </button>
                     </div>
                     <div class="table-responsive">
-                        <table class="table table-dark table-hover align-middle mb-0">
+                        <table class="table table-custom table-hover align-middle mb-0">
                             <thead>
                                 <tr>
                                     <th>Nome da Turma</th>
@@ -172,7 +323,7 @@
                         </button>
                     </div>
                     <div class="table-responsive">
-                        <table class="table table-dark table-hover align-middle mb-0">
+                        <table class="table table-custom table-hover align-middle mb-0">
                             <thead>
                                 <tr>
                                     <th>Data</th>
@@ -203,7 +354,7 @@
                     </div>
                     <form id="formLote">
                         <div class="table-responsive mb-3">
-                            <table class="table table-dark table-hover align-middle">
+                            <table class="table table-custom table-hover align-middle">
                                 <thead>
                                     <tr>
                                         <th>Aluno</th>
@@ -226,10 +377,58 @@
                 </div>
             </div>
 
-            <!-- 5. TAB FERRAMENTAS WHATSAPP -->
+            <!-- 5. TAB WHATSAPP & NOTIFICAÇÕES -->
             <div class="tab-pane fade" id="tab-whatsapp">
                 <div class="card card-custom p-4 mb-4">
-                    <h5 class="fw-bold mb-3"><i class="fa-solid fa-link me-2 text-info"></i>Links do Painel dos Alunos</h5>
+                    <h5 class="fw-bold text-success mb-3">
+                        <i class="fa-brands fa-whatsapp me-2"></i>Notificar Falta / Recado Individual
+                    </h5>
+                    <p class="text-muted small">Selecione o aluno e a data correspondente para gerar o envio direto da notificação para o responsável via WhatsApp.</p>
+                    
+                    <form id="formWhatsAppIndv" onsubmit="event.preventDefault(); enviarMensagemFalta();">
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label text-muted small fw-bold">1. Selecione a Turma</label>
+                                <select id="waSelectTurma" class="form-select" onchange="carregarAlunosWhatsApp()">
+                                    <option value="">Selecione uma turma...</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label text-muted small fw-bold">2. Selecione o Aluno</label>
+                                <select id="waSelectAluno" class="form-select" onchange="preencherDadosAlunoWA()" disabled>
+                                    <option value="">Primeiro selecione a turma...</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label text-muted small fw-bold">Nome do Aluno</label>
+                                <input type="text" id="waNomeAluno" class="form-control" placeholder="Nome do aluno" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label text-muted small fw-bold">Telefone do Responsável (DDD + Número)</label>
+                                <input type="text" id="waTelefonePai" class="form-control" placeholder="Ex: 19999999999" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label text-muted small fw-bold">Data da Falta</label>
+                                <input type="date" id="waDataFalta" class="form-control" required>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-2 mt-4">
+                            <button type="button" class="btn btn-outline-secondary" onclick="limparFormularioWA()">
+                                <i class="fa-solid fa-eraser me-1"></i>Limpar
+                            </button>
+                            <button type="submit" class="btn btn-success fw-bold">
+                                <i class="fa-brands fa-whatsapp me-1"></i>Enviar Notificação
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="card card-custom p-4">
+                    <h5 class="fw-bold mb-3"><i class="fa-solid fa-link me-2 text-info"></i>Links Individuais do Painel dos Alunos</h5>
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
                             <select id="selectTurmaWp" class="form-select">
@@ -241,64 +440,7 @@
                         <div class="text-center text-muted py-4">Selecione uma turma acima.</div>
                     </div>
                 </div>
-
-                <!-- ABA WHATSAPP -->
-<div class="tab-pane fade" id="whatsapp" role="tabpanel">
-    <div class="card bg-black border-secondary p-4 text-white">
-        <h5 class="fw-bold text-warning mb-3">
-            <i class="fa-brands fa-whatsapp me-2"></i>Notificar Falta / Recado Individual
-        </h5>
-        
-        <form id="formWhatsAppIndv" onsubmit="event.preventDefault(); enviarMensagemFalta();">
-            <div class="row g-3 mb-3">
-                <!-- 1. SELEÇÃO DA TURMA -->
-                <div class="col-md-6">
-                    <label class="form-label text-muted">1. Selecione a Turma</label>
-                    <select id="waSelectTurma" class="form-select bg-dark text-white border-secondary" onchange="carregarAlunosWhatsApp()">
-                        <option value="">Selecione uma turma...</option>
-                    </select>
-                </div>
-
-                <!-- 2. SELEÇÃO DO ALUNO (Filtrado pela turma) -->
-                <div class="col-md-6">
-                    <label class="form-label text-muted">2. Selecione o Aluno</label>
-                    <select id="waSelectAluno" class="form-select bg-dark text-white border-secondary" onchange="preencherDadosAlunoWA()" disabled>
-                        <option value="">Primeiro selecione a turma...</option>
-                    </select>
-                </div>
             </div>
-
-            <div class="row g-3 mb-3">
-                <!-- 3. NOME DO ALUNO (Preenchido automático) -->
-                <div class="col-md-4">
-                    <label class="form-label text-muted">Nome do Aluno</label>
-                    <input type="text" id="waNomeAluno" class="form-control bg-dark text-white border-secondary" placeholder="Nome do aluno" required>
-                </div>
-
-                <!-- 4. TELEFONE DO RESPONSÁVEL (Preenchido automático se existir) -->
-                <div class="col-md-4">
-                    <label class="form-label text-muted">Telefone do Responsável (DDD + Número)</label>
-                    <input type="text" id="waTelefonePai" class="form-control bg-dark text-white border-secondary" placeholder="Ex: 19999999999" required>
-                </div>
-
-                <!-- 5. DATA DA FALTA -->
-                <div class="col-md-4">
-                    <label class="form-label text-muted">Data da Falta</label>
-                    <input type="date" id="waDataFalta" class="form-control bg-dark text-white border-secondary">
-                </div>
-            </div>
-
-            <div class="d-flex justify-content-end gap-2 mt-4">
-                <button type="button" class="btn btn-outline-secondary" onclick="limparFormularioWA()">
-                    <i class="fa-solid fa-eraser me-1"></i>Limpar
-                </button>
-                <button type="submit" class="btn btn-success fw-bold">
-                    <i class="fa-brands fa-whatsapp me-1"></i>Enviar Notificação
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
 
         </div>
     </div>
@@ -308,7 +450,7 @@
     <!-- MODAL NOVO ALUNO -->
     <div class="modal fade" id="modalAluno" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <form id="formAluno" class="modal-content bg-dark text-white border-secondary">
+            <form id="formAluno" class="modal-content text-white">
                 <div class="modal-header border-secondary">
                     <h5 class="modal-title fw-bold">Cadastrar Aluno</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
@@ -358,7 +500,7 @@
     <!-- MODAL EDITAR ALUNO -->
     <div class="modal fade" id="modalEditarAluno" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <form id="formEditarAluno" class="modal-content bg-dark text-white border-secondary">
+            <form id="formEditarAluno" class="modal-content text-white">
                 <div class="modal-header border-secondary">
                     <h5 class="modal-title fw-bold">Editar Aluno</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
@@ -389,7 +531,7 @@
     <!-- MODAL TURMA -->
     <div class="modal fade" id="modalTurma" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <form id="formTurma" class="modal-content bg-dark text-white border-secondary">
+            <form id="formTurma" class="modal-content text-white">
                 <div class="modal-header border-secondary">
                     <h5 class="modal-title fw-bold">Nova Turma</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
@@ -411,7 +553,7 @@
     <!-- MODAL AULA -->
     <div class="modal fade" id="modalAula" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <form id="formAula" class="modal-content bg-dark text-white border-secondary">
+            <form id="formAula" class="modal-content text-white">
                 <div class="modal-header border-secondary">
                     <h5 class="modal-title fw-bold"><i class="fa-solid fa-chalkboard-user me-2 text-primary"></i>Cadastrar Nova Aula</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
@@ -443,7 +585,7 @@
     <!-- MODAL FEEDBACK -->
     <div class="modal fade" id="modalFeedback" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <form id="formFeedback" class="modal-content bg-dark text-white border-info">
+            <form id="formFeedback" class="modal-content text-white">
                 <div class="modal-header border-secondary">
                     <h5 class="modal-title fw-bold text-info">
                         <i class="fa-solid fa-comment-dots me-2"></i>Enviar Feedback
@@ -492,28 +634,28 @@
     <!-- MODAL DETALHES / HISTÓRICO DO ALUNO -->
     <div class="modal fade" id="modalDetalhesAluno" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content bg-dark text-white border-secondary">
+            <div class="modal-content text-white">
                 <div class="modal-header border-secondary">
                     <h5 class="modal-title fw-bold" id="modalDetalhesNome">Histórico do Aluno</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="row g-2 mb-3 text-center">
-                        <div class="col-4 p-2 bg-black rounded">
+                        <div class="col-4 p-2 bg-dark rounded border border-secondary">
                             <small class="text-muted d-block">Nível</small>
                             <span id="detalheNivel" class="fw-bold text-warning">-</span>
                         </div>
-                        <div class="col-4 p-2 bg-black rounded">
+                        <div class="col-4 p-2 bg-dark rounded border border-secondary">
                             <small class="text-muted d-block">Título</small>
                             <span id="detalheTitulo" class="fw-bold text-info">-</span>
                         </div>
-                        <div class="col-4 p-2 bg-black rounded">
+                        <div class="col-4 p-2 bg-dark rounded border border-secondary">
                             <small class="text-muted d-block">Total XP</small>
                             <span id="detalheXP" class="fw-bold text-success">-</span>
                         </div>
                     </div>
                     <div class="table-responsive">
-                        <table class="table table-dark table-sm align-middle">
+                        <table class="table table-custom table-sm align-middle">
                             <thead>
                                 <tr>
                                     <th>Data</th>
@@ -538,7 +680,7 @@
     <!-- MODAL IMPRESSÃO QR CODE -->
     <div class="modal fade" id="modalQrTurma" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content bg-dark text-white border-secondary">
+            <div class="modal-content text-white">
                 <div class="modal-header border-secondary">
                     <h5 class="modal-title fw-bold"><i class="fa-solid fa-qrcode me-2"></i>Carteirinhas com QR Code</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
@@ -555,6 +697,48 @@
             </div>
         </div>
     </div>
+
+    <!-- SCRIPT DE ENVIO WHATSAPP -->
+    <script>
+        // Define a data atual como padrão no campo de falta
+        document.addEventListener("DOMContentLoaded", () => {
+            const today = new Date().toISOString().split('T')[0];
+            const dataFaltaInput = document.getElementById('waDataFalta');
+            if (dataFaltaInput) dataFaltaInput.value = today;
+        });
+
+        // Função responsável por montar a mensagem e redirecionar para o WhatsApp API
+        function enviarMensagemFalta() {
+            const nomeAluno = document.getElementById('waNomeAluno').value.trim();
+            const telefoneRaw = document.getElementById('waTelefonePai').value.trim();
+            const dataRaw = document.getElementById('waDataFalta').value;
+
+            if (!nomeAluno || !telefoneRaw || !dataRaw) {
+                alert('Por favor, preencha todos os campos obrigatórios.');
+                return;
+            }
+
+            // Sanitiza o telefone garantindo formato apenas com números
+            const telefone = telefoneRaw.replace(/\D/g, '');
+
+            // Formata a data de AAAA-MM-DD para DD/MM/AAAA
+            const partesData = dataRaw.split('-');
+            const dataFormatada = `${partesData[2]}/${partesData[1]}/${partesData[0]}`;
+
+            // Mensagem formatada
+            const mensagem = `Olá! Informamos que o(a) aluno(a) *${nomeAluno}* registrou uma falta na aula do dia *${dataFormatada}*.\n\nQualquer dúvida ou justificativa, estamos à disposição!`;
+
+            // Abre o WhatsApp Web / App
+            const url = `https://api.whatsapp.com/send?phone=55${telefone}&text=${encodeURIComponent(mensagem)}`;
+            window.open(url, '_blank');
+        }
+
+        function limparFormularioWA() {
+            document.getElementById('formWhatsAppIndv').reset();
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('waDataFalta').value = today;
+        }
+    </script>
 
     <!-- DEPENDÊNCIAS DE SCRIPT -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>

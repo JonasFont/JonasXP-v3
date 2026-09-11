@@ -123,9 +123,7 @@ function preencherTodosSelectsTurmas() {
         if (!select) return;
 
         const valorAnterior = select.value;
-        const textoPadrao = 'Todas as Turmas';
-
-        let html = `<option value="">${textoPadrao}</option>`;
+        let html = `<option value="">Todas as Turmas</option>`;
 
         CACHE_TURMAS.forEach(t => {
             const val = `${t.id}|||${t.nome}`;
@@ -186,8 +184,8 @@ function renderizarTabelaAlunos(listaAlunos) {
                     <small class="text-warning fw-bold">${infoNivel.titulo}</small>
                 </td>
                 <td>
-                    <div class="progress bg-dark" style="height: 10px; min-width: 120px;">
-                        <div class="progress-bar bg-warning" style="width: ${infoNivel.porcentagem}%"></div>
+                    <div class="progress" style="height: 10px; min-width: 120px;">
+                        <div class="progress-bar" style="width: ${infoNivel.porcentagem}%"></div>
                     </div>
                     <small class="text-success fw-bold mt-1 d-block">+${xp.toLocaleString()} XP</small>
                 </td>
@@ -212,7 +210,6 @@ function renderizarTabelaAlunos(listaAlunos) {
         `;
     }).join('');
 
-    // Listener para delegação de clique no botão QR Code individual
     tbody.querySelectorAll('.btn-qr-indv').forEach(btn => {
         btn.onclick = (e) => {
             const alunoId = e.currentTarget.getAttribute('data-id');
@@ -305,11 +302,11 @@ function carregarTabelaLote() {
                     ${nome}
                     <input type="hidden" name="alunoId_${idx}" value="${id}">
                 </td>
-                <td><input type="number" class="form-control form-control-sm bg-dark text-white border-secondary" name="atv_${idx}" value="10" min="0"></td>
-                <td><input type="number" class="form-control form-control-sm bg-dark text-white border-secondary" name="eqp_${idx}" value="10" min="0"></td>
-                <td><input type="number" class="form-control form-control-sm bg-dark text-white border-secondary" name="cmp_${idx}" value="10" min="0"></td>
-                <td><input type="number" class="form-control form-control-sm bg-dark text-white border-secondary" name="prt_${idx}" value="10" min="0"></td>
-                <td><input type="text" class="form-control form-control-sm bg-dark text-white border-secondary" name="obs_${idx}" placeholder="Observação individual..."></td>
+                <td><input type="number" class="form-control form-control-sm" name="atv_${idx}" value="10" min="0"></td>
+                <td><input type="number" class="form-control form-control-sm" name="eqp_${idx}" value="10" min="0"></td>
+                <td><input type="number" class="form-control form-control-sm" name="cmp_${idx}" value="10" min="0"></td>
+                <td><input type="number" class="form-control form-control-sm" name="prt_${idx}" value="10" min="0"></td>
+                <td><input type="text" class="form-control form-control-sm" name="obs_${idx}" placeholder="Observação individual..."></td>
             </tr>
         `;
     }).join('');
@@ -367,7 +364,7 @@ async function salvarPontuacoesLote(e) {
 }
 
 // ============================================================================
-// 6. GERADOR DE LINKS WHATSAPP
+// 6. FERRAMENTAS WHATSAPP
 // ============================================================================
 
 function gerarLinksWhatsAppTurma() {
@@ -413,6 +410,37 @@ function gerarLinksWhatsAppTurma() {
         `;
     }).join('');
 }
+
+window.enviarMensagemFalta = function() {
+    const nome = document.getElementById('waNomeAluno')?.value.trim();
+    const telefone = document.getElementById('waTelefonePai')?.value.trim();
+    const dataInput = document.getElementById('waDataFalta')?.value;
+
+    if (!nome || !telefone) {
+        alert("Por favor, preencha o nome do aluno e o telefone do responsável.");
+        return;
+    }
+
+    let dataFormatada = "";
+    if (dataInput) {
+        const [ano, mes, dia] = dataInput.split('-');
+        dataFormatada = `${dia}/${mes}/${ano}`;
+    } else {
+        dataFormatada = new Date().toLocaleDateString('pt-BR');
+    }
+
+    const numeroLimpo = telefone.replace(/\D/g, '');
+    const telefoneFinal = numeroLimpo.length <= 11 ? `55${numeroLimpo}` : numeroLimpo;
+    const mensagem = `Olá! Tudo bem?\n\nNotamos que o(a) *${nome}* não esteve presente na aula do dia *${dataFormatada}*.\n\nGostaria de saber se ocorreu tudo bem e qual foi o motivo da falta? Ficamos no aguardo!`;
+
+    window.open(`https://wa.me/${telefoneFinal}?text=${encodeURIComponent(mensagem)}`, '_blank');
+};
+
+window.limparFormularioWA = function() {
+    if (document.getElementById('waNomeAluno')) document.getElementById('waNomeAluno').value = '';
+    if (document.getElementById('waTelefonePai')) document.getElementById('waTelefonePai').value = '';
+    if (document.getElementById('waDataFalta')) document.getElementById('waDataFalta').value = new Date().toISOString().split('T')[0];
+};
 
 // ============================================================================
 // 7. EXIBIÇÃO DE HISTÓRICO INDIVIDUAL (MODAL)
@@ -507,7 +535,6 @@ function configurarEventos() {
         bootstrap.Modal.getOrCreateInstance(document.getElementById('modalAluno')).show();
     });
 
-    // CADASTRAR TURMA
     document.getElementById('formTurma')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const nome = document.getElementById('turmaNome').value.trim();
@@ -524,15 +551,11 @@ function configurarEventos() {
         }
     });
 
-    // CADASTRAR ALUNO
     document.getElementById('formAluno')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         
         let turmaVal = document.getElementById('alunoTurma')?.value || '';
-
-        if (turmaVal.includes('|||')) {
-            turmaVal = turmaVal.split('|||')[1];
-        }
+        if (turmaVal.includes('|||')) turmaVal = turmaVal.split('|||')[1];
 
         if (!turmaVal) {
             alert("Por favor, selecione uma turma!");
@@ -550,13 +573,8 @@ function configurarEventos() {
             }
 
             if (abaLoteAtiva) {
-                const campoTexto = document.getElementById('listaNomesLote');
-                const textoNomes = campoTexto ? campoTexto.value : '';
-
-                const nomes = textoNomes
-                    .split('\n')
-                    .map(nome => nome.replace(/,/g, '').trim())
-                    .filter(nome => nome.length > 0);
+                const textoNomes = document.getElementById('listaNomesLote')?.value || '';
+                const nomes = textoNomes.split('\n').map(n => n.replace(/,/g, '').trim()).filter(n => n.length > 0);
 
                 if (nomes.length === 0) {
                     alert("Por favor, cole ou digite ao menos um nome na lista!");
@@ -584,11 +602,7 @@ function configurarEventos() {
                     return;
                 }
 
-                const res = await window.API.salvarAluno({ 
-                    nome: nome, 
-                    turma: turmaVal, 
-                    linkDrive: linkDrive 
-                });
+                const res = await window.API.salvarAluno({ nome, turma: turmaVal, linkDrive });
 
                 if (res && res.sucesso) {
                     alert("Aluno cadastrado com sucesso!");
@@ -600,9 +614,7 @@ function configurarEventos() {
 
             const modalInstance = bootstrap.Modal.getInstance(document.getElementById('modalAluno'));
             if (modalInstance) modalInstance.hide();
-
             document.getElementById('formAluno').reset();
-
             await carregarDadosIniciais();
 
         } catch (error) {
@@ -726,7 +738,6 @@ function renderizarPreviewCrachas(listaAlunos) {
         const nome = aluno.nome || aluno.Nome || 'Aluno';
         const turmaRaw = String(aluno.turma || aluno.Turma || 'Geral').trim();
         const turmaNome = MAPA_TURMAS[turmaRaw.toLowerCase()] || turmaRaw;
-        const link = `${baseUrl}?id=${id}`;
         const containerQrId = `qr_preview_${idx}`;
 
         const card = document.createElement('div');
@@ -746,7 +757,6 @@ function renderizarPreviewCrachas(listaAlunos) {
     const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('modalQrTurma'));
     modal.show();
 
-    // Gera os QR Codes após abertura do modal
     setTimeout(() => {
         listaAlunos.forEach((aluno, idx) => {
             const id = String(aluno.id || aluno.ID).trim();
@@ -827,19 +837,16 @@ window.executarImpressaoEmLote = function() {
 };
 
 // ============================================================================
-// 11. NOVO MÓDULO DE AULAS & FEEDBACKS
+// 11. MÓDULO DE AULAS & FEEDBACKS
 // ============================================================================
 
 function configurarEventosAulasEFeedbacks() {
-    // Escuta mudança de turma na aba de Aulas
     document.getElementById('selectTurmaAulas')?.addEventListener('change', carregarAulasTurma);
 
-    // Modal Nova Aula
     document.getElementById('btnAbrirModalAula')?.addEventListener('click', () => {
         bootstrap.Modal.getOrCreateInstance(document.getElementById('modalAula')).show();
     });
 
-    // Salvar Nova Aula
     document.getElementById('formAula')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const btn = document.getElementById('btnSalvarAula');
@@ -870,7 +877,6 @@ function configurarEventosAulasEFeedbacks() {
         if (btn) btn.disabled = false;
     });
 
-    // Salvar Feedback Individual
     document.getElementById('formFeedback')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const btn = document.getElementById('btnEnviarFeedback');
@@ -929,66 +935,6 @@ async function carregarAulasTurma() {
             </tr>
         `).join('');
     }
-}
-// Expondo explicitamente as funções para o escopo do window/HTML
-window.enviarMensagemFalta = function() {
-  const nome = document.getElementById('waNomeAluno')?.value.trim();
-  const telefone = document.getElementById('waTelefonePai')?.value.trim();
-  const dataInput = document.getElementById('waDataFalta')?.value;
-
-  if (!nome) {
-    alert("Por favor, informe o nome do aluno.");
-    return;
-  }
-
-  if (!telefone) {
-    alert("Por favor, informe o telefone do responsável.");
-    return;
-  }
-
-  // Formatando a data do input (AAAA-MM-DD -> DD/MM/AAAA)
-  let dataFormatada = "";
-  if (dataInput) {
-    const [ano, mes, dia] = dataInput.split('-');
-    dataFormatada = `${dia}/${mes}/${ano}`;
-  } else {
-    dataFormatada = new Date().toLocaleDateString('pt-BR');
-  }
-
-  // Limpa caracteres especiais mantendo apenas números
-  const numeroLimpo = telefone.replace(/\D/g, '');
-
-  // Adiciona o DDI (55) se o usuário digitou apenas DDD + Número
-  const telefoneFinal = numeroLimpo.length <= 11 ? `55${numeroLimpo}` : numeroLimpo;
-
-  // Texto da mensagem personalizada
-  const mensagem = `Olá! Tudo bem?\n\nNotamos que o(a) *${nome}* não esteve presente na aula do dia *${dataFormatada}*.\n\nGostaria de saber se ocorreu tudo bem e qual foi o motivo da falta? Ficamos no aguardo!`;
-
-  // Gera o link codificado e abre o WhatsApp
-  const urlWhatsApp = `https://wa.me/${telefoneFinal}?text=${encodeURIComponent(mensagem)}`;
-  window.open(urlWhatsApp, '_blank');
-};
-
-window.limparFormularioWA = function() {
-  const elNome = document.getElementById('waNomeAluno');
-  const elTel = document.getElementById('waTelefonePai');
-  const elData = document.getElementById('waDataFalta');
-
-  if (elNome) elNome.value = '';
-  if (elTel) elTel.value = '';
-  if (elData) elData.value = new Date().toISOString().split('T')[0];
-};
-window.limparFormularioWA = function() {
-  document.getElementById('waNomeAluno').value = '';
-  document.getElementById('waTelefonePai').value = '';
-  const campoData = document.getElementById('waDataFalta');
-  if (campoData) campoData.value = new Date().toISOString().split('T')[0];
-};
-// Função utilitária para limpar os campos
-function limparFormularioWA() {
-  document.getElementById('waNomeAluno').value = '';
-  document.getElementById('waTelefonePai').value = '';
-  document.getElementById('waDataFalta').value = new Date().toISOString().split('T')[0];
 }
 
 window.abrirModalFeedback = async function(alunoId, alunoNome, turmaNome) {

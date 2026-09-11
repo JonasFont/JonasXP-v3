@@ -33,8 +33,10 @@ async function carregarDadosIniciais() {
         
         MAPA_TURMAS = {};
         CACHE_TURMAS.forEach(t => {
-            MAPA_TURMAS[String(t.id).toLowerCase()] = t.nome;
-            MAPA_TURMAS[String(t.nome).toLowerCase()] = t.nome;
+            const nomeLimpo = String(t.nome || t.id).trim().toLowerCase();
+            const idLimpo = String(t.id).trim().toLowerCase();
+            MAPA_TURMAS[idLimpo] = t.nome;
+            MAPA_TURMAS[nomeLimpo] = t.nome;
         });
 
         atualizarMetricas();
@@ -49,33 +51,32 @@ async function carregarDadosIniciais() {
 
 function normalizarTurmas(turmasAPI, alunos) {
     const lista = [];
-    const idsVistos = new Set();
+    const nomesVistos = new Set();
+
+    const adicionarTurma = (id, nome) => {
+        const nomeFormatado = String(nome || id || '').trim();
+        const idFormatado = String(id || nome || '').trim();
+        if (nomeFormatado && !nomesVistos.has(nomeFormatado.toLowerCase())) {
+            nomesVistos.add(nomeFormatado.toLowerCase());
+            lista.push({ id: idFormatado, nome: nomeFormatado });
+        }
+    };
 
     if (Array.isArray(turmasAPI)) {
         turmasAPI.forEach(t => {
             if (typeof t === 'object' && t !== null) {
-                const id = String(t.id || t.idTurma || t.turma || '').trim();
-                const nome = String(t.nome || t.Nome || t.turma || t.Turma || id).trim();
-                if ((id || nome) && !idsVistos.has(id || nome)) {
-                    idsVistos.add(id || nome);
-                    lista.push({ id: id || nome, nome: nome || id });
-                }
+                adicionarTurma(t.id || t.idTurma, t.nome || t.Nome || t.turma || t.Turma);
             } else if (t) {
-                const val = String(t).trim();
-                if (!idsVistos.has(val)) {
-                    idsVistos.add(val);
-                    lista.push({ id: val, nome: val });
-                }
+                adicionarTurma(t, t);
             }
         });
     }
 
-    if (lista.length === 0 && alunos.length > 0) {
+    if (alunos && alunos.length > 0) {
         alunos.forEach(a => {
             const tVal = String(a.turma || a.Turma || '').trim();
-            if (tVal && !idsVistos.has(tVal)) {
-                idsVistos.add(tVal);
-                lista.push({ id: tVal, nome: tVal });
+            if (tVal) {
+                adicionarTurma(tVal, tVal);
             }
         });
     }
@@ -103,7 +104,7 @@ function atualizarMetricas() {
 }
 
 // ============================================================================
-// 3. DROPDOWNS (SELECTS) E FILTROS DE TURMA
+// 3. DROPDOWNS (SELECTS) E COMPARADOR DE TURMAS
 // ============================================================================
 
 function preencherTodosSelectsTurmas() {
@@ -123,11 +124,10 @@ function preencherTodosSelectsTurmas() {
         if (!select) return;
 
         const valorAnterior = select.value;
-        let html = `<option value="">Todas as Turmas</option>`;
+        let html = `<option value="">Todas as Turmas / Selecione...</option>`;
 
         CACHE_TURMAS.forEach(t => {
-            const val = `${t.id}|||${t.nome}`;
-            html += `<option value="${val}">${t.nome}</option>`;
+            html += `<option value="${t.nome}">${t.nome}</option>`;
         });
 
         select.innerHTML = html;
@@ -138,16 +138,16 @@ function preencherTodosSelectsTurmas() {
 function turmaBateComSelecao(aluno, turmaSelecionada) {
     if (!turmaSelecionada) return true;
 
-    const partes = turmaSelecionada.split('|||');
-    const selId = (partes[0] || '').toLowerCase().trim();
-    const selNome = (partes[1] || partes[0] || '').toLowerCase().trim();
+    let selLimpo = turmaSelecionada.includes('|||') 
+        ? turmaSelecionada.split('|||')[1] || turmaSelecionada.split('|||')[0] 
+        : turmaSelecionada;
+
+    selLimpo = String(selLimpo).toLowerCase().trim();
 
     const aTurmaRaw = String(aluno.turma || aluno.Turma || aluno.idTurma || '').toLowerCase().trim();
+    const aTurmaMapeada = (MAPA_TURMAS[aTurmaRaw] || aTurmaRaw).toLowerCase().trim();
 
-    if (aTurmaRaw === selId || aTurmaRaw === selNome) return true;
-    if (MAPA_TURMAS[aTurmaRaw] && MAPA_TURMAS[aTurmaRaw].toLowerCase() === selNome) return true;
-
-    return false;
+    return aTurmaRaw === selLimpo || aTurmaMapeada === selLimpo;
 }
 
 // ============================================================================
@@ -287,7 +287,7 @@ function carregarTabelaLote() {
     const alunosTurma = CACHE_ALUNOS.filter(a => turmaBateComSelecao(a, turmaSel));
 
     if (alunosTurma.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">Nenhum aluno encontrado para a turma selecionada.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">Nenhum aluno encontrado para a turma "${turmaSel}".</td></tr>`;
         if (btnSalvar) btnSalvar.disabled = true;
         return;
     }
@@ -368,7 +368,8 @@ async function salvarPontuacoesLote(e) {
 // ============================================================================
 
 function gerarLinksWhatsAppTurma() {
-    const turmaSel = document.getElementById('selectTurmaWp')?.value;
+    const selectWp = document.getElementById('selectTurmaWp');
+    const turmaSel = selectWp?.value;
     const container = document.getElementById('containerLinksWp');
 
     if (!container) return;
@@ -380,11 +381,11 @@ function gerarLinksWhatsAppTurma() {
     const alunosTurma = CACHE_ALUNOS.filter(a => turmaBateComSelecao(a, turmaSel));
 
     if (alunosTurma.length === 0) {
-        container.innerHTML = `<div class="alert alert-warning text-center">Nenhum aluno encontrado para esta turma.</div>`;
+        container.innerHTML = `<div class="alert alert-warning text-center">Nenhum aluno encontrado para a turma "${turmaSel}".</div>`;
         return;
     }
 
-    const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/')) + '/aluno.html';
+    const baseUrl = window.location.origin + window.location.pathname.replace('professor.html', 'aluno.html');
 
     container.innerHTML = alunosTurma.map(a => {
         const id = String(a.id || a.ID).trim();
@@ -547,7 +548,7 @@ function configurarEventos() {
             document.getElementById('formTurma').reset();
             await carregarDadosIniciais();
         } else {
-            alert(res.mensagem || "Erro ao salvar turma.");
+            alert(res?.mensagem || "Erro ao salvar turma.");
         }
     });
 
@@ -607,7 +608,7 @@ function configurarEventos() {
                 if (res && res.sucesso) {
                     alert("Aluno cadastrado com sucesso!");
                 } else {
-                    alert(res.mensagem || "Erro ao salvar aluno.");
+                    alert(res?.mensagem || "Erro ao salvar aluno.");
                     return;
                 }
             }
@@ -665,7 +666,7 @@ document.getElementById('formEditarAluno')?.addEventListener('submit', async (e)
         bootstrap.Modal.getInstance(document.getElementById('modalEditarAluno')).hide();
         await carregarDadosIniciais();
     } else {
-        alert("Erro ao atualizar aluno: " + (res.mensagem || "Falha ao salvar."));
+        alert("Erro ao atualizar aluno: " + (res?.mensagem || "Falha ao salvar."));
     }
 });
 
@@ -731,7 +732,7 @@ function renderizarPreviewCrachas(listaAlunos) {
     if (!container) return;
 
     container.innerHTML = '';
-    const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/')) + '/aluno.html';
+    const baseUrl = window.location.origin + window.location.pathname.replace('professor.html', 'aluno.html');
 
     listaAlunos.forEach((aluno, idx) => {
         const id = String(aluno.id || aluno.ID).trim();
